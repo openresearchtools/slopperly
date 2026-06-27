@@ -64,6 +64,7 @@ def install_plugin_import_harness() -> None:
         "slopperly.runtime.llamacpp.client",
         "slopperly.runtime.vllm",
         "slopperly.runtime.vllm.stt_client",
+        "slopperly.runtime.vllm.vlm_client",
         "slopperly.runtime.vllm_omni",
         "slopperly.runtime.vllm_omni.tts_client",
     ]:
@@ -111,6 +112,36 @@ class RuntimeHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length)
         if self.path == "/v1/chat/completions":
             RuntimeHandler.chat_payload = json.loads(body.decode("utf-8"))
+            is_video = any(
+                part.get("type") == "video_url"
+                for message in RuntimeHandler.chat_payload.get("messages", [])
+                for part in (
+                    message.get("content", [])
+                    if isinstance(message.get("content"), list)
+                    else []
+                )
+                if isinstance(part, dict)
+            )
+            if is_video:
+                return self._json({
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps({
+                                    "scene": "A local test clip.",
+                                    "events": [
+                                        {
+                                            "start": 0.0,
+                                            "end": 1.5,
+                                            "description": "A caption from vLLM.",
+                                        }
+                                    ],
+                                })
+                            }
+                        }
+                    ],
+                    "usage": {"prompt_tokens": 20, "completion_tokens": 15},
+                })
             return self._json({
                 "choices": [{"message": {"content": "wide shot, slow dolly, warm light"}}],
                 "usage": {"prompt_tokens": 12, "completion_tokens": 7},
@@ -288,6 +319,42 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(len(editor.created), 2)
         self.assertEqual(editor.created[0].channel, 2)
         self.assertIn("hello local", editor.created[0].text)
+
+    def test_marlin_video_captions_uses_vllm_vlm_plugin_path(self):
+        module = load_plugin_module("text", "marlin_video_captions")
+        plugin = module.MarlinVideoCaptionsPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            video_path = Path(tmp) / "clip.mp4"
+            video_path.write_bytes(b"fake local video")
+            editor = FakeSeqEditor()
+            scene = SimpleNamespace(
+                marlin_mode="CAPTION",
+                marlin_find_query="",
+                marlin_last_query="",
+                marlin_speed="FAST",
+                frame_end=148,
+                sequence_editor=editor,
+                render=SimpleNamespace(fps=24, fps_base=1),
+            )
+            inputs = self.base.ModelInputs(
+                video_path=str(video_path),
+                insert_frame_start=100,
+                insert_channel=3,
+            )
+            prefs = SimpleNamespace(vllm_url=self.base_url, vllm_vlm_model="local-vlm")
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                plugin.generate(pipe, inputs, scene, prefs)
+
+        self.assertEqual(RuntimeHandler.chat_payload["model"], "local-vlm")
+        content = RuntimeHandler.chat_payload["messages"][0]["content"]
+        self.assertEqual(content[1]["type"], "video_url")
+        self.assertTrue(content[1]["video_url"]["url"].startswith("file://"))
+        self.assertEqual(len(editor.created), 2)
+        self.assertIn("A local test clip.", editor.created[0].text)
+        self.assertIn("A caption from vLLM.", editor.created[1].text)
+        self.assertEqual(editor.created[1].channel, 3)
 
 
 if __name__ == "__main__":

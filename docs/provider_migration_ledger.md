@@ -258,6 +258,33 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Replaced the llama.cpp prompt-rewriter placeholder with a concrete Hugging Face GGUF source: `bartowski/Qwen2.5-7B-Instruct-GGUF`, file `Qwen2.5-7B-Instruct-Q5_K_M.gguf`.
 - Kept the current logical model IDs and legacy aliases stable so UI/save compatibility is not disturbed.
 
+## 2026-06-27 Marlin video captions vLLM migration block
+
+### Production Path Migrated
+
+- `text/marlin_video_captions.py` no longer loads `torch`, Transformers, or SDNQ directly in the production plugin path.
+- The existing Marlin caption/find UI now calls local vLLM multimodal chat completions through `slopperly.runtime.vllm.vlm_client.VllmVlmClient`.
+- Caption output is normalized back to the existing `scene` plus `events` shape, preserving VSE overview/event text strip insertion.
+- Find output is normalized back to the existing `format_ok` plus `span` shape, preserving timeline marker insertion.
+
+### Runtime/Registry Work Added
+
+- Added `vllm_video_caption_vlm` to `slopperly/config/models.yaml` with legacy alias `tintwotin/Marlin-2B-SDNQ-int8`.
+- The pinned local VLM profile is `Qwen/Qwen2.5-VL-7B-Instruct`, downloaded as a local Hugging Face snapshot and served by the Slopperly-owned vLLM runtime.
+- vLLM supervisor launch commands now include `--allowed-local-media-path` so local `file://` video references can be read by the server.
+
+### Verification
+
+- Unit coverage verifies the VLM client sends a local `video_url` chat payload and normalizes JSON caption output.
+- Integration coverage imports `MarlinVideoCaptionsPlugin`, calls `load()` and `generate()`, and verifies VSE text strips are created from a loopback fake vLLM server under the local-network guard.
+- Added `tests/gpu/test_video_caption_vlm.py` for real plugin-path artifact certification.
+
+### Blocked / Not Yet Certified
+
+- This block did not run a live vLLM VLM server on the RTX 4090.
+- `tests/gpu/test_video_caption_vlm.py` requires `tests/fixtures/video_caption_smoke.mp4` and a reachable local vLLM multimodal server before it can produce PASS certification evidence.
+- Dropdown certification remains blocked for `vllm_video_caption_vlm` until the GPU test writes a PASS record with a real caption artifact.
+
 ### Downloader Behavior
 
 - `slopperly.models.download` now supports both exact Hugging Face file downloads and full Hugging Face snapshot downloads into the local model cache.

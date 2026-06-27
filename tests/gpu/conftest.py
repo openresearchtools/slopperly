@@ -227,6 +227,7 @@ def install_plugin_import_harness(root: Path) -> None:
         "slopperly.runtime.llamacpp.client",
         "slopperly.runtime.vllm",
         "slopperly.runtime.vllm.stt_client",
+        "slopperly.runtime.vllm.vlm_client",
         "slopperly.runtime.vllm_omni",
         "slopperly.runtime.vllm_omni.tts_client",
     ]:

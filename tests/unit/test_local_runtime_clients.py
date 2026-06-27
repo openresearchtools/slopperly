@@ -16,6 +16,7 @@ from slopperly.runtime.errors import RuntimeUnavailableError
 from slopperly.runtime.llamacpp.client import LlamaCppClient
 from slopperly.runtime.local_url import assert_local_http_url
 from slopperly.runtime.vllm.stt_client import VllmSttClient
+from slopperly.runtime.vllm.vlm_client import VllmVlmClient
 from slopperly.runtime.vllm_omni.tts_client import VllmOmniTtsClient
 
 
@@ -55,6 +56,35 @@ class RuntimeHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length)
         if self.path == "/v1/chat/completions":
             RuntimeHandler.last_json = json.loads(body.decode("utf-8"))
+            is_video = any(
+                part.get("type") == "video_url"
+                for message in RuntimeHandler.last_json.get("messages", [])
+                for part in (
+                    message.get("content", [])
+                    if isinstance(message.get("content"), list)
+                    else []
+                )
+                if isinstance(part, dict)
+            )
+            if is_video:
+                return self._json({
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps({
+                                    "scene": "A local test clip.",
+                                    "events": [
+                                        {
+                                            "start": 0.0,
+                                            "end": 1.0,
+                                            "description": "A person waves.",
+                                        }
+                                    ],
+                                })
+                            }
+                        }
+                    ],
+                })
             return self._json({
                 "choices": [{"message": {"content": "wide shot, slow dolly, warm light"}}],
                 "usage": {"prompt_tokens": 10, "completion_tokens": 8},
@@ -129,6 +159,23 @@ class LocalRuntimeClientTests(unittest.TestCase):
         self.assertEqual(result["text"], "hello local world")
         self.assertIn(b"openai/whisper-large-v3-turbo", RuntimeHandler.last_multipart)
         self.assertIn(b'name="file"; filename="speech.wav"', RuntimeHandler.last_multipart)
+
+    def test_vllm_vlm_posts_local_video_chat(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            video_path = Path(tmp) / "clip.mp4"
+            video_path.write_bytes(b"fake local video")
+            result = VllmVlmClient(self.base_url).caption_video(
+                str(video_path),
+                model="local-vlm",
+                duration_seconds=2.0,
+                max_tokens=128,
+            )
+        self.assertEqual(result["scene"], "A local test clip.")
+        self.assertEqual(result["events"][0]["description"], "A person waves.")
+        self.assertEqual(RuntimeHandler.last_json["model"], "local-vlm")
+        content = RuntimeHandler.last_json["messages"][0]["content"]
+        self.assertEqual(content[1]["type"], "video_url")
+        self.assertTrue(content[1]["video_url"]["url"].startswith("file://"))
 
     def test_vllm_omni_speech_writes_binary_audio(self):
         with tempfile.TemporaryDirectory() as tmp:

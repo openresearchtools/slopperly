@@ -772,3 +772,12 @@ The following upstream sources are the factual basis for this spec:
 - Completed: Workflow validation rejects absolute upload endpoint URLs; endpoints must be relative Comfy paths.
 - Evidence: `tests/integration/test_comfy_workflow_runner.py` covers `/upload/video` with multipart field `video`; `tests/unit/test_comfy_workflow_security.py` covers invalid upload endpoints.
 - Still blocked: real audio/video Comfy workflow packs and GPU artifact tests have not run against owned ComfyUI.
+
+### 2026-06-27 Marlin video caption vLLM block
+
+- Completed: `text/marlin_video_captions.py` now routes caption/find inference through the local vLLM VLM client instead of direct Transformers/SDNQ model loading.
+- Completed: The existing caption strip and find marker output paths are preserved; the local vLLM response is normalized to the existing `scene/events` and `format_ok/span` shapes.
+- Completed: vLLM supervisor launch commands include `--allowed-local-media-path` for local `file://` video inputs.
+- Completed: `vllm_video_caption_vlm` is registered in `slopperly/config/models.yaml` with legacy alias `tintwotin/Marlin-2B-SDNQ-int8`.
+- Evidence: unit coverage verifies VLM chat payload normalization; integration coverage calls `MarlinVideoCaptionsPlugin.load()` and `generate()` against a loopback fake vLLM server under the local-network guard.
+- Still blocked: real RTX 4090 VLM artifact certification requires a running local vLLM multimodal server and `tests/fixtures/video_caption_smoke.mp4`.

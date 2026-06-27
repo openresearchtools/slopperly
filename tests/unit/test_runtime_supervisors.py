@@ -46,6 +46,9 @@ class RuntimeSupervisorTests(unittest.TestCase):
         self.assertEqual(command[1:3], ["-m", "vllm.entrypoints.openai.api_server"])
         self.assertIn("openai/whisper-large-v3-turbo", command)
         self.assertIn("8090", command)
+        self.assertIn("--allowed-local-media-path", command)
+        allowed_idx = command.index("--allowed-local-media-path") + 1
+        self.assertEqual(command[allowed_idx], str(Path(".").resolve()))
 
     def test_vllm_omni_launch_uses_local_openai_server(self):
         with tempfile.TemporaryDirectory() as tmp:

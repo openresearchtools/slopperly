@@ -64,6 +64,26 @@ models:
     validation_command: pytest tests/gpu/test_vllm_stt.py --device cuda
     workflows:
       - text/faster_whisper_transcribe.py
+  - logical_name: vllm_video_caption_vlm
+    legacy_aliases:
+      - tintwotin/Marlin-2B-SDNQ-int8
+    task: video_caption
+    runtime: vllm
+    model_source: https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct
+    download_mode: hf_snapshot
+    local_cache_path: models/vllm/Qwen/Qwen2.5-VL-7B-Instruct
+    required_files:
+      - config.json
+    required_node_pack: vllm[multimodal]
+    supported_resolutions: []
+    context_limits: {}
+    default_parameters:
+      response_format: json
+      temperature: 0.0
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_video_caption_vlm.py --device cuda
+    workflows:
+      - text/marlin_video_captions.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter

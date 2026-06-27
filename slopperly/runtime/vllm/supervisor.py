@@ -16,9 +16,16 @@ from .stt_client import VllmSttClient
 
 
 class VllmSupervisor:
-    def __init__(self, venv: str | Path = ".slopperly/vllm-venv", url: str = "http://127.0.0.1:8090"):
+    def __init__(
+        self,
+        venv: str | Path = ".slopperly/vllm-venv",
+        url: str = "http://127.0.0.1:8090",
+        *,
+        allowed_local_media_path: str | Path = ".",
+    ):
         self.venv = Path(venv)
         self.url = url
+        self.allowed_local_media_path = Path(allowed_local_media_path)
 
     def health(self) -> dict:
         return VllmSttClient(self.url).health()
@@ -39,6 +46,8 @@ class VllmSupervisor:
             str(port),
             "--model",
             model,
+            "--allowed-local-media-path",
+            str(self.allowed_local_media_path.resolve()),
         ]
 
     def preflight(self) -> list[InstallStep]:

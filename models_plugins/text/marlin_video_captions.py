@@ -1,14 +1,14 @@
 """
 Marlin Video Captions - dense video captioning and event search directly into Blender.
 
-Caption mode  : runs marlin.caption() - inserts a Scene overview strip and one
-                TEXT strip per event on the VSE timeline.
-Find mode     : runs marlin.caption(), filters events by query string, and adds
+Caption mode  : runs local vLLM video captioning - inserts a Scene overview
+                strip and one TEXT strip per event on the VSE timeline.
+Find mode     : runs local vLLM event search and adds
                 timeline markers (prefixed "MARLIN:") for every match.  Markers
                 are kept until the query string changes.
 
-Model : tintwotin/Marlin-2B-SDNQ-int8
-New dep: qwen-vl-utils, sdnq
+Legacy model ID: tintwotin/Marlin-2B-SDNQ-int8
+Runtime: local vLLM multimodal chat server
 """
 
 import gc
@@ -16,8 +16,10 @@ import os
 import time
 
 from ...models.base import ModelPlugin, InputSpec, ParamSpec, ModelInputs
+from ...slopperly.runtime.vllm.vlm_client import DEFAULT_VLM_MODEL, VllmVlmClient
 
 _MODEL_ID = "tintwotin/Marlin-2B-SDNQ-int8"
+_VLLM_MODEL_ID = DEFAULT_VLM_MODEL
 
 # - Scene props registered at import time -------------------------------------
 def _marlin_query_updated(self, context):
@@ -157,14 +159,11 @@ def _make_preview_clip(src_path: str, out_path: str,
                 outp.mux(pkt)
 
 
-# Sampling rate used in both load() (env var) and generate() (FPS_MAX_FRAMES).
-_SAMPLE_FPS = 1.0
-
 # - Plugin --------------------------------------------------------------------
 
 class MarlinVideoCaptionsPlugin(ModelPlugin):
     MODEL_ID     = _MODEL_ID
-    DISPLAY_NAME = "Marlin: Video Captions (SDNQ)"
+    DISPLAY_NAME = "Marlin: Video Captions (local vLLM)"
     MODEL_TYPE   = "text"
     DESCRIPTION  = (
         "Dense video captioning with second-precise timestamps. "
@@ -176,109 +175,17 @@ class MarlinVideoCaptionsPlugin(ModelPlugin):
     UI_SECTIONS = []
     PARAMS      = ParamSpec()
 
-    REQUIRED_PACKAGES    = ["qwen_vl_utils", "sdnq"]
+    REQUIRED_PACKAGES    = []
     requires_input_strip = True
     supports_batch       = False  # deterministic caption → batch makes identical copies
 
     def load(self, prefs, scene, **kw) -> dict:
-        import torch
-        import os as _os
-        _os.environ["FPS"]                       = str(_SAMPLE_FPS)
-        _os.environ["VIDEO_MAX_PIXELS"]          = "100352"
-        _os.environ["FPS_MIN_FRAMES"]            = "4"
-        _os.environ["FORCE_QWENVL_VIDEO_READER"] = "cv2"
-        _os.environ["TOKENIZERS_PARALLELISM"]    = "false"
-
-        from transformers import AutoModelForCausalLM, BitsAndBytesConfig
-        from sdnq import SDNQConfig
-
-        torch.set_grad_enabled(False)
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32       = True
-
-        local     = getattr(prefs, "local_files_only", False)
-        cache_dir = getattr(prefs, "hf_cache_dir", None) or None
-
-        triton_available = False
-        try:
-            import triton
-            triton_available = True
-        except ImportError:
-            triton_available = False
-
-        # Build SDNQ configuration to handle 3D tensors in the checkpoint.
-        try:
-            sdnq_config = SDNQConfig(
-                weights_dtype="int8",
-                group_size=128,
-                use_quantized_matmul=triton_available,
-                quantization_device="cuda",
-                return_device="cuda",
-                modules_to_not_convert=["vision_tower", "visual", "lm_head", "embedding_projection"],
-            )
-        except Exception as e:
-            print(f"Marlin: SDNQ Triton check failed ({e}) - forcing Eager dequantization.")
-            triton_available = False
-            sdnq_config = SDNQConfig(
-                weights_dtype="int8",
-                group_size=128,
-                use_quantized_matmul=False,
-                quantization_device="cuda",
-                return_device="cuda",
-                modules_to_not_convert=["vision_tower", "visual", "lm_head", "embedding_projection"],
-            )
-
-        bnb = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.float16,
-            bnb_4bit_use_double_quant=True,
-        )
-
-        # Loading loop prioritizing SDNQ + SDPA for Windows/Blender stability.
-        # NOTE: FlashAttention-2 was tried as the preferred path but ran ~5-10x
-        # SLOWER on this Windows/torch-2.9.1 build (562s vs. seconds for a short
-        # clip), so SDPA stays first — do not re-add flash_attention_2 here.
-        for attempt_kwargs in [
-            dict(trust_remote_code=True, quantization_config=sdnq_config,
-                 torch_dtype=torch.float16, attn_implementation="sdpa",
-                 device_map={"": "cuda"}, low_cpu_mem_usage=True,
-                 local_files_only=local, cache_dir=cache_dir),
-            dict(trust_remote_code=True, quantization_config=sdnq_config,
-                 torch_dtype=torch.float16, attn_implementation="eager",
-                 device_map={"": "cuda"}, low_cpu_mem_usage=True,
-                 local_files_only=local, cache_dir=cache_dir),
-            dict(trust_remote_code=True, quantization_config=bnb,
-                 attn_implementation="sdpa",
-                 device_map={"": "cuda"}, low_cpu_mem_usage=True,
-                 local_files_only=local, cache_dir=cache_dir),
-        ]:
-            try:
-                marlin = AutoModelForCausalLM.from_pretrained(self.MODEL_ID, **attempt_kwargs)
-                marlin.eval()
-
-                try:
-                    from sdnq.loader import apply_sdnq_options_to_model
-                    marlin = apply_sdnq_options_to_model(marlin, use_quantized_matmul=triton_available)
-                except ImportError:
-                    pass
-
-                if not triton_available:
-                    from sdnq.dequantizer import dequantize_sdnq_model
-                    marlin = dequantize_sdnq_model(marlin)
-                    print("Marlin: dequantized to fp16 (no Triton)")
-
-                _ = marlin.processor
-                sdnq_used = "quantization_config" in attempt_kwargs and isinstance(attempt_kwargs["quantization_config"], SDNQConfig)
-                _attn = attempt_kwargs.get("attn_implementation", "?")
-                used = f"{_attn}+{'SDNQ-int8' if sdnq_used else 'fallback'}"
-                print(f"Marlin: loaded ({used})")
-                return {"model": marlin}
-            except Exception as e:
-                print(f"Marlin: load attempt failed ({e}), trying next config...")
-
-        print("Marlin: all load attempts failed.")
-        return {"model": None}
+        model = getattr(prefs, "vllm_vlm_model", "") or _VLLM_MODEL_ID
+        return {
+            "client": VllmVlmClient.from_preferences(prefs),
+            "model": model,
+            "last_model_card": model,
+        }
 
     def draw_custom_ui(self, col, context) -> bool:
         scene = context.scene
@@ -291,7 +198,10 @@ class MarlinVideoCaptionsPlugin(ModelPlugin):
     @staticmethod
     def _run_on_main_thread(fn):
         """Schedule *fn* on Blender's main thread, block until it returns."""
-        import bpy, threading
+        try:
+            import bpy, threading
+        except Exception:
+            return fn()
         done   = threading.Event()
         result = {}
         def _wrapper():
@@ -308,14 +218,15 @@ class MarlinVideoCaptionsPlugin(ModelPlugin):
             raise result["error"]
         return result.get("value")
 
+    @staticmethod
+    def _current_scene(fallback):
+        try:
+            import bpy
+            return bpy.context.scene
+        except Exception:
+            return fallback
+
     def generate(self, pipe, inputs: ModelInputs, scene, prefs):
-        import bpy
-        import torch
-
-        ver = tuple(int(x) for x in torch.__version__.split("+")[0].split(".")[:2])
-        if ver < (2, 11):
-            print(f"Marlin: WARNING - torch >= 2.11.0 recommended; installed: {torch.__version__}")
-
         mode  = getattr(scene, "marlin_mode",       "CAPTION")
         query = getattr(scene, "marlin_find_query", "").strip()
 
@@ -346,6 +257,7 @@ class MarlinVideoCaptionsPlugin(ModelPlugin):
             _fe = getattr(inputs, "insert_frame_end", _fs + int(fps * 10))
 
             def _resolve():
+                import bpy
                 _sc = bpy.context.scene
                 _ed = _sc.sequence_editor
                 if not _ed:
@@ -397,9 +309,10 @@ class MarlinVideoCaptionsPlugin(ModelPlugin):
                 print(f"Marlin: Markers already current for query {query!r}.")
                 return None
 
-        marlin = pipe.get("model") if pipe else None
-        if marlin is None:
-            print("Marlin: Model not loaded.")
+        client = pipe.get("client") if pipe else None
+        model = pipe.get("model") if pipe else _VLLM_MODEL_ID
+        if client is None:
+            print("Marlin: local vLLM VLM client not loaded.")
             return None
 
         # - Step 2: extract trimmed window --------------------------------
@@ -426,27 +339,15 @@ class MarlinVideoCaptionsPlugin(ModelPlugin):
 
         clip_end = clip_start + trim_dur_s
 
-        # Quality/speed preset: scale frame resolution (the dominant prefill
-        # cost — vision tokens grow ~quadratically with resolution) and the
-        # caption token floor. BALANCED reproduces the prior hardcoded defaults.
+        # Quality/speed preset maps to the response token budget. Video decode
+        # sampling and pixel limits are owned by the launched vLLM server.
         _speed = getattr(scene, "marlin_speed", "BALANCED")
-        _video_max_pixels, _tok_floor = {
-            "QUALITY":  (200704, 768),
-            "BALANCED": (100352, 768),
-            "FAST":     (50176,  512),
-        }.get(_speed, (100352, 768))
-
-        max_frames  = str(int(trim_dur_s * _SAMPLE_FPS) + 4)
+        _tok_floor = {
+            "QUALITY":  768,
+            "BALANCED": 768,
+            "FAST":     512,
+        }.get(_speed, 768)
         cap_new_tok = max(_tok_floor, int(trim_dur_s * 15))
-
-        _prev_max_frames   = os.environ.get("FPS_MAX_FRAMES")
-        _prev_video_pixels = os.environ.get("VIDEO_MAX_PIXELS")
-        os.environ["FPS_MAX_FRAMES"]   = max_frames
-        os.environ["VIDEO_MAX_PIXELS"] = str(_video_max_pixels)
-
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            torch.cuda.synchronize()
 
         # - Step 3: inference (runs in worker thread) ---------------------
         try:
@@ -455,12 +356,19 @@ class MarlinVideoCaptionsPlugin(ModelPlugin):
 
                 print(f"Marlin: Find {query!r}  file={clip_path!r}")
                 t0 = time.time()
-                find_result = marlin.find(clip_path, event=query, max_new_tokens=64)
+                find_result = client.find_video(
+                    clip_path,
+                    query=query,
+                    model=model,
+                    duration_seconds=trim_dur_s,
+                    clip_start_seconds=clip_start,
+                    max_tokens=128,
+                )
                 print(f"Marlin: find completed in {time.time() - t0:.1f}s  result={find_result}")
                 span = find_result.get("span") if find_result else None
 
                 def _insert_markers():
-                    _sc = bpy.context.scene
+                    _sc = self._current_scene(scene)
                     old = [m for m in _sc.timeline_markers if m.name.startswith("MARLIN:")]
                     for m in old:
                         _sc.timeline_markers.remove(m)
@@ -479,27 +387,23 @@ class MarlinVideoCaptionsPlugin(ModelPlugin):
                 print(f"Marlin: Caption  file={clip_path!r}  "
                       f"dur={trim_dur_s:.1f}s  max_new_tokens={cap_new_tok}")
                 t0 = time.time()
-                result = marlin.caption(clip_path, max_new_tokens=cap_new_tok,
-                                        do_sample=False, temperature=0.0)
+                result = client.caption_video(
+                    clip_path,
+                    model=model,
+                    duration_seconds=trim_dur_s,
+                    clip_start_seconds=clip_start,
+                    max_tokens=cap_new_tok,
+                    speed=_speed,
+                )
                 print(f"Marlin: captioning completed in {time.time() - t0:.1f}s")
 
         finally:
-            if _prev_max_frames is None:
-                os.environ.pop("FPS_MAX_FRAMES", None)
-            else:
-                os.environ["FPS_MAX_FRAMES"] = _prev_max_frames
-            if _prev_video_pixels is None:
-                os.environ.pop("VIDEO_MAX_PIXELS", None)
-            else:
-                os.environ["VIDEO_MAX_PIXELS"] = _prev_video_pixels
             if _tmp_path:
                 try:
                     os.remove(_tmp_path)
                 except Exception:
                     pass
             gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
 
         # - Step 4: insert VSE strips (on main thread) --------------------
         self.set_phase(inputs, "Step 4: Inserting VSE strips")
@@ -515,7 +419,7 @@ class MarlinVideoCaptionsPlugin(ModelPlugin):
         _ch_hint = inputs.insert_channel if inputs.insert_channel > 0 else 1
 
         def _insert_strips():
-            _sc = bpy.context.scene
+            _sc = self._current_scene(scene)
             _ed = _sc.sequence_editor
             if not _ed:
                 print("Marlin: No sequence editor on main thread.")

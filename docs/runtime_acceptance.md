@@ -22,6 +22,7 @@
 - Runtime supervisors now build local-only launch commands from the owned install layout and preflight required executables/files before starting a server.
 - `python -m slopperly.audit.model_registry` validates registry fields, download modes, Hugging Face artifact sources, required files, and GPU validation command declarations.
 - `python tests/integration/test_local_plugin_paths.py` exercises selected `ModelPlugin.generate()` paths against local fake OpenAI-compatible runtime servers.
+- The Marlin video-caption plugin path now has fake-server integration coverage through local vLLM multimodal chat completions. The test calls `MarlinVideoCaptionsPlugin.load()` and `generate()` and verifies the existing VSE text-strip output path.
 - `python tests/integration/test_comfy_workflow_runner.py` exercises the committed LTX 2.3 Comfy workflow pack against a local fake Comfy server, including `/object_info` node checks, input-image upload, API graph patching, queue submission, history polling, output collection, and existing queue phase/progress callbacks.
 - Comfy workflow schemas can now address indexed media/text fields such as `images[0]`, `images[1]`, `image_prompts[1]`, and `middle_images_paths[0].path`; the integration test verifies separate uploads are patched into distinct API graph nodes before queueing.
 - Comfy upload schemas can now declare `endpoint`, `form_field`, and `type_field` for media uploads, with validation that upload endpoints stay relative Comfy paths. Integration coverage verifies `/upload/video` with a `video` multipart field.
@@ -30,6 +31,7 @@
 - `python tests/unit/test_network_guard.py` verifies that the runtime network guard blocks non-local sockets while allowing localhost runtime calls.
 - Current fake-server integration tests run under the runtime network guard, so the covered plugin/gateway paths fail if they attempt non-local connections.
 - `tests/gpu/` now contains pytest plugin-path artifact tests for the currently registered GPU validation commands. These tests call real plugin `generate()` methods and write JSON certification evidence under `.slopperly/certification/<profile>/`.
+- `tests/gpu/test_video_caption_vlm.py` is registered for `vllm_video_caption_vlm` and will validate non-empty caption text from the Marlin plugin path once a real MP4 fixture and local vLLM VLM server are present.
 - `python -m slopperly.audit.dropdown_certification --profile smoke_16gb` now requires a `PASS` certification JSON record for the exact logical model/profile and a real artifact file; `BLOCKED` records stay blocked and report their reason.
 
 ## Current Blocks
@@ -39,6 +41,7 @@
 - vLLM, vLLM-Omni, and llama.cpp install commands now plan or execute their local runtime setup; supervisor launch wiring and artifact tests still need full migration evidence.
 - vLLM, vLLM-Omni, and llama.cpp clients/supervisors now exist with unit coverage, but runtime launch and GPU artifact validation remain blocked until the local model servers are installed, model artifacts are downloaded, and servers are started.
 - MoviiGen prompt rewrite, Faster Whisper STT, OmniVoice TTS, and MOSS-TTS have plugin-path integration coverage against local fake servers, but not real GPU runtime artifact certification.
+- Marlin video captions now use local vLLM VLM in production code and have loopback plugin-path coverage, but real GPU VLM artifact certification is blocked until `tests/fixtures/video_caption_smoke.mp4` exists and the local vLLM multimodal server is running with `--allowed-local-media-path`.
 - The LTX 2.3 Comfy workflow runner has local fake-server integration coverage, but it is not yet a plugin-path GPU artifact certification and the returned fake bytes are not claimed as a valid MP4.
 - Shared audio-driven timing planning exists, but LTX lipsync/dialogue and Wan interpolation workflows still need to call it from their local Comfy plugin paths and validate real MP4 duration/fps artifacts.
 - The runtime network guard has unit and fake-server integration coverage, but the required GPU artifact suite still needs to run under this guard after model downloads complete.

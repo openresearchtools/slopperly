@@ -9,6 +9,7 @@ vllm:
   host: 127.0.0.1
   port: 8090
   venv: .slopperly/vllm-venv
+  allowed_local_media_path: .
 vllm_omni:
   runtime: vllm_omni
   host: 127.0.0.1
