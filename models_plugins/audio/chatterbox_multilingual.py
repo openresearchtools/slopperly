@@ -1,5 +1,9 @@
 """Multilingual TTS via local Slopperly ComfyUI Chatterbox workflows."""
 
+import shutil
+import subprocess
+import time
+from pathlib import Path
 from types import SimpleNamespace
 
 from ...models.base import ModelPlugin, InputSpec, UISection, ParamSpec, ModelInputs
@@ -47,6 +51,58 @@ def _comfy_language(value: str) -> str:
     return f"{name} ({code})"
 
 
+def _is_wav(path: Path) -> bool:
+    try:
+        with path.open("rb") as handle:
+            return handle.read(4) == b"RIFF"
+    except OSError:
+        return False
+
+
+def _write_wav(source: str, destination: str) -> str:
+    source_path = Path(source)
+    destination_path = Path(destination)
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if source_path.resolve() == destination_path.resolve():
+        return str(destination_path)
+
+    if _is_wav(source_path):
+        shutil.copyfile(source_path, destination_path)
+        return str(destination_path)
+
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-i",
+                str(source_path),
+                "-ar",
+                "24000",
+                str(destination_path),
+            ],
+            check=True,
+        )
+        return str(destination_path)
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        pass
+
+    try:
+        import soundfile as sf
+
+        audio, _sample_rate = sf.read(str(source_path), always_2d=True)
+        sf.write(str(destination_path), audio, 24000)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Chatterbox Multilingual generated audio could not be converted to WAV: {source_path}"
+        ) from exc
+    return str(destination_path)
+
+
 class ChatterboxMultilingualPlugin(ModelPlugin):
     MODEL_ID = "ChatterboxMultilingual"
     DISPLAY_NAME = "TTS/VC: Chatterbox Multilingual"
@@ -75,9 +131,6 @@ class ChatterboxMultilingualPlugin(ModelPlugin):
             gateway = SlopperlyRuntimeGateway()
 
         language = _comfy_language(getattr(scene, "chatterbox_mtl_language", "en"))
-        workflow_inputs = SimpleNamespace(**vars(inputs))
-        workflow_inputs.chatterbox_mtl_language = language
-
         workflow_id = WORKFLOW_REF_ID if inputs.audio_ref else WORKFLOW_ID
         phase = "Generating multilingual speech with local ComfyUI Chatterbox"
         if inputs.audio_ref:
@@ -87,19 +140,26 @@ class ChatterboxMultilingualPlugin(ModelPlugin):
                 "Chatterbox Multilingual uses reference-audio TTS in the pinned Comfy node; "
                 "speech-to-speech VC is handled by the standard Chatterbox VC profile."
             )
-            workflow_inputs.usage_note = inputs.usage_note
 
         self.set_phase(inputs, phase)
+        label = inputs.prompt or "chatterbox_multilingual"
         filename = solve_path(
-            clean_filename(f"{inputs.seed}_{language}_{inputs.prompt[:40]}_chatterbox_mtl") + ".flac"
+            clean_filename(f"{inputs.seed}_{language}_{label[:48]}_chatterbox_mtl") + ".wav"
         )
-        return gateway.run_comfy_workflow(
+        comfy_destination = str(Path(filename).with_suffix(".flac"))
+        workflow_inputs = SimpleNamespace(**vars(inputs))
+        workflow_inputs.chatterbox_mtl_language = language
+        workflow_inputs.chatterbox_multilingual_filename_prefix = (
+            f"slopperly_chatterbox_multilingual_{inputs.seed}_{time.time_ns()}"
+        )
+        comfy_output = gateway.run_comfy_workflow(
             workflow_id,
             workflow_inputs,
             scene,
             prefs,
-            destination=filename,
+            destination=comfy_destination,
         )
+        return _write_wav(comfy_output, filename)
 
     def draw_custom_ui(self, col, context) -> bool:
         scene = context.scene

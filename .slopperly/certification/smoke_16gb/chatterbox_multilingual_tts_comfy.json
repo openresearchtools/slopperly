@@ -1,0 +1,45 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/chatterbox_multilingual_tts_comfy/chatterbox_multilingual_manifest.json",
+  "command": "pytest tests/gpu/test_chatterbox_multilingual.py::test_chatterbox_multilingual --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T16:45:46+00:00",
+  "logical_name": "chatterbox_multilingual_tts_comfy",
+  "metadata": {
+    "multilingual_tts": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/chatterbox_multilingual_tts_comfy/9292_French_fr__Bonjour_cette_voix_Chatterbox_multilingue_local_chatterbox_mtl.wav",
+    "reference_input": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/chatterbox_multilingual_tts_comfy/9292_French_fr__Bonjour_cette_voix_Chatterbox_multilingue_local_chatterbox_mtl.wav",
+    "reference_tts": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/chatterbox_multilingual_tts_comfy/9293_Spanish_es__Esta_segunda_voz_multilingue_usa_una_referencia__chatterbox_mtl.wav",
+    "runtime_url": "http://127.0.0.1:8190"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "kind": "manifest",
+    "modes": {
+      "multilingual_tts": {
+        "channels": 1,
+        "duration": 7.27,
+        "format": "WAV",
+        "kind": "audio",
+        "rms": 4123.915138340181,
+        "sample_rate": 24000
+      },
+      "reference_input": {
+        "channels": 1,
+        "duration": 7.27,
+        "format": "WAV",
+        "kind": "audio",
+        "rms": 4123.915138340181,
+        "sample_rate": 24000
+      },
+      "reference_tts": {
+        "channels": 1,
+        "duration": 9.03,
+        "format": "WAV",
+        "kind": "audio",
+        "rms": 3679.5042174805535,
+        "sample_rate": 24000
+      }
+    }
+  }
+}

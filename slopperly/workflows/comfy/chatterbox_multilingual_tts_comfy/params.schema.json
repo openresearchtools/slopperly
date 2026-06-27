@@ -68,6 +68,12 @@
         "node": "1",
         "input": "keep_model_loaded"
       }
+    ],
+    "chatterbox_multilingual_filename_prefix": [
+      {
+        "node": "2",
+        "input": "filename_prefix"
+      }
     ]
   },
   "uploads": {},
