@@ -124,3 +124,21 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 ### Blocked / Not Yet Certified
 
 - This block does not add workflow packs or GPU artifacts. Dropdown certification remains blocked until real plugin-path artifact tests pass on the target device profile.
+
+## 2026-06-27 Model manager and doctor command block
+
+### Acceptance Commands Added
+
+- Added `python -m slopperly.models.download --profile smoke_16gb --accept-licenses`.
+- Added `python -m slopperly.doctor --local-only --cuda --runtimes all`.
+
+### Behavior
+
+- The model download command reads `slopperly/config/models.yaml`, resolves Hugging Face artifact-source repositories, plans/downloads exact required files into a local cache root, and blocks vague registry entries until they name exact files.
+- The doctor command runs local-only/no-cloud audits, workflow-pack validation, optional CUDA detection, and optional local runtime health probes for ComfyUI, vLLM, vLLM-Omni, and llama.cpp.
+- Both commands print `PASS`, `PLAN`, `FAIL`, or `BLOCKED` evidence instead of implying that missing model artifacts or stopped runtimes are ready.
+
+### Blocked / Not Yet Certified
+
+- The registry still contains generic vLLM/vLLM-Omni/llama.cpp artifact placeholders that must be replaced by exact local files or runtime-managed model cache evidence.
+- Runtime health checks remain blocked until the owned ComfyUI/vLLM/vLLM-Omni/llama.cpp servers are installed and running.

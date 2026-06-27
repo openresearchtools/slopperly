@@ -1,0 +1,66 @@
+import tempfile
+import unittest
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from slopperly.doctor import run_checks, selected_runtimes
+from slopperly.models.download import (
+    download_models,
+    huggingface_repo_id,
+    is_exact_file,
+)
+
+
+class ModelDownloadAndDoctorTests(unittest.TestCase):
+    def test_huggingface_repo_id_parses_artifact_urls(self):
+        self.assertEqual(
+            huggingface_repo_id("https://huggingface.co/unsloth/Qwen-Image-Edit-2511-GGUF"),
+            "unsloth/Qwen-Image-Edit-2511-GGUF",
+        )
+        self.assertEqual(
+            huggingface_repo_id("https://huggingface.co/org/model/blob/main/file.gguf"),
+            "org/model",
+        )
+        self.assertIsNone(huggingface_repo_id("local GGUF configured by model manager"))
+
+    def test_exact_file_detection_blocks_generic_registry_text(self):
+        self.assertTrue(is_exact_file("model-Q5_K_M.gguf"))
+        self.assertFalse(is_exact_file("model artifacts downloaded by vLLM"))
+        self.assertFalse(is_exact_file("nested/path/model.gguf"))
+
+    def test_download_dry_run_plans_exact_hf_files_and_blocks_generic_entries(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            results = download_models(
+                root=ROOT,
+                profile="smoke_16gb",
+                cache_root=Path(tmp),
+                dry_run=True,
+            )
+        statuses = {(result.model, result.status) for result in results}
+        self.assertIn(("qwen_image_edit_2511_multi_gguf", "PLAN"), statuses)
+        self.assertIn(("wan22_ti2v_5b_720p24_gguf", "PLAN"), statuses)
+        self.assertIn(("vllm_whisper_large_v3_turbo_stt", "BLOCKED"), statuses)
+        self.assertIn(("llamacpp_prompt_rewriter", "BLOCKED"), statuses)
+
+    def test_doctor_local_only_checks_pass_without_runtime_probe(self):
+        checks = run_checks(root=ROOT, local_only=True, cuda=False, runtimes="none")
+        by_name = {check.name: check.status for check in checks}
+        self.assertEqual(by_name["local_only_surface"], "PASS")
+        self.assertEqual(by_name["no_cloud"], "PASS")
+        self.assertEqual(by_name["workflow_packs"], "PASS")
+
+    def test_selected_runtimes(self):
+        self.assertEqual(selected_runtimes("none"), [])
+        self.assertEqual(
+            selected_runtimes("all"),
+            ["comfyui", "vllm", "vllm_omni", "llamacpp"],
+        )
+        self.assertEqual(selected_runtimes("comfyui,vllm"), ["comfyui", "vllm"])
+
+
+if __name__ == "__main__":
+    unittest.main()

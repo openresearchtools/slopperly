@@ -14,6 +14,8 @@
 - Python compile check passes for edited production modules.
 - Static no-cloud audit passes for production paths.
 - Local-only production surface audit passes for remote backend factory/client/UI hooks.
+- `python -m slopperly.models.download --dry-run --report-only` plans exact Hugging Face artifact downloads and blocks vague registry entries.
+- `python -m slopperly.doctor --local-only --runtimes none --report-only` passes local-only/no-cloud/workflow-pack checks.
 
 ## Current Blocks
 
@@ -23,3 +25,4 @@
 - vLLM, vLLM-Omni, and llama.cpp clients now exist with unit coverage, but runtime launch and GPU artifact validation remain blocked until the local model servers are installed and started.
 - Artifact validators and workflow/dropdown audits now exist. Dropdown certification remains blocked until real plugin-path GPU artifact evidence is written for each registry entry.
 - Add-on preferences now expose local runtime endpoints only; remote backend discovery/API-key generation UI has been removed from production registration. Queue jobs snapshot local runtime endpoints.
+- Full doctor with `--cuda --runtimes all` reports CUDA evidence when present and remains BLOCKED for any local runtime server that is not running.

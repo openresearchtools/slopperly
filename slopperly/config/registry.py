@@ -36,6 +36,11 @@ def load_dropdown_profiles(root: str | Path | None = None) -> dict:
     return load_yaml(base / "slopperly" / "config" / "dropdown_profiles.yaml")
 
 
+def load_runtimes_config(root: str | Path | None = None) -> dict:
+    base = Path(root) if root else repo_root()
+    return load_yaml(base / "slopperly" / "config" / "runtimes.yaml")
+
+
 def model_entries(root: str | Path | None = None) -> list[dict]:
     data = load_models_config(root)
     entries = data.get("models") if isinstance(data, dict) else None
