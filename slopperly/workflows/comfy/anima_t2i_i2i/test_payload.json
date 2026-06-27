@@ -1,0 +1,10 @@
+{
+  "prompt": "anime portrait of a small local runtime console, clean lines, bright cel shading",
+  "negative_prompt": "worst quality, low quality, blurry, jpeg artifacts",
+  "width": 1024,
+  "height": 1024,
+  "steps": 25,
+  "guidance": 4.0,
+  "seed": 240101,
+  "frames": 1
+}

@@ -1,0 +1,5 @@
+{
+  "source": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_anima_preview.json",
+  "note": "Editable source is the official Anima text-to-image subgraph template. This img2img companion graph adds LoadImage, ImageScale, and VAEEncode before KSampler while preserving the same Anima model/text encoder/VAE.",
+  "workflow_id": "anima_t2i_i2i_img2img"
+}

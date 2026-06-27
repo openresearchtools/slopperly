@@ -1,0 +1,5 @@
+{
+  "source": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_anima_preview.json",
+  "note": "Editable Comfy template source is an official subgraph workflow. The committed API workflow expands the Anima subgraph into plain Comfy API nodes for /prompt submission.",
+  "workflow_id": "anima_t2i_i2i"
+}

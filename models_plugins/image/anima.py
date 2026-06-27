@@ -1,7 +1,12 @@
-"""Text-to-image and image-to-image via Anima (mrfatso/anima-preview3-diffusers)."""
+"""Text-to-image and img2img via local ComfyUI Anima workflows."""
 
-from ...models.base import ModelPlugin, InputSpec, UISection, ParamSpec, ModelInputs
-from ...utils.helpers import gfx_device, low_vram, clean_filename
+from ...models.base import ModelInputs, ModelPlugin, InputSpec, ParamSpec, UISection
+from ...slopperly.runtime.gateway import SlopperlyRuntimeGateway
+from ...utils.helpers import clean_filename, solve_path
+
+
+T2I_WORKFLOW_ID = "anima_t2i_i2i"
+I2I_WORKFLOW_ID = "anima_t2i_i2i_img2img"
 
 
 class AnimaPlugin(ModelPlugin):
@@ -17,74 +22,60 @@ class AnimaPlugin(ModelPlugin):
         UISection.IMAGE_STRENGTH, UISection.SEED, UISection.LORA,
     ]
     PARAMS            = ParamSpec(steps=25, guidance=4.0)
-    REQUIRED_PACKAGES = ["torch", "diffusers"]
+    REQUIRED_PACKAGES = []
     supports_inpaint  = False
     supports_img2img  = True
 
     def load(self, prefs, scene, **kw):
-        import torch
-        from diffusers import AnimaAutoBlocks
-        from diffusers.guiders import ClassifierFreeGuidance
-
-        _cache_dir = prefs.hf_cache_dir or None
-        print(f"Loading {self.MODEL_ID}…")
-
-        pipe = AnimaAutoBlocks().init_pipeline(self.MODEL_ID)
-        pipe.load_components(torch_dtype=torch.bfloat16, cache_dir=_cache_dir)
-        pipe.update_components(
-            guider=ClassifierFreeGuidance(guidance_scale=4.0),
-        )
-
-        # Apply user LoRAs before moving to device
-        enabled_items = kw.get("enabled_items", [])
-        if enabled_items:
-            import bpy
-            lora_folder = getattr(bpy.context.scene, "lora_folder", "")
-            names, weights = [], []
-            for item in enabled_items:
-                name = clean_filename(item.name).replace(".", "")
-                names.append(name)
-                weights.append(item.weight_value)
-                pipe.load_lora_weights(
-                    bpy.path.abspath(lora_folder),
-                    weight_name=item.name + ".safetensors",
-                    adapter_name=name,
-                )
-            pipe.set_adapters(names, adapter_weights=weights)
-
-        pipe.to("mps" if gfx_device == "mps" else gfx_device)
-
-        return {"pipe": pipe, "converter": pipe, "refiner": None, "preprocessor": None}
+        enabled = [
+            (getattr(item, "name", ""), float(getattr(item, "weight_value", 1.0) or 1.0))
+            for item in kw.get("enabled_items", [])
+            if getattr(item, "enabled", True) and getattr(item, "name", "")
+        ]
+        return {
+            "gateway": SlopperlyRuntimeGateway(),
+            "last_model_card": self.MODEL_ID,
+            "enabled_loras": enabled,
+        }
 
     def generate(self, pipe_obj, inputs: ModelInputs, scene, prefs):
-        import torch
+        gateway = pipe_obj.get("gateway") if isinstance(pipe_obj, dict) else None
+        if gateway is None:
+            gateway = SlopperlyRuntimeGateway()
 
-        pipe  = pipe_obj["pipe"]
-        seed  = inputs.seed
-        generator = (
-            torch.Generator("cuda").manual_seed(seed)
-            if torch.cuda.is_available() and seed != 0 else None
+        custom_loras = pipe_obj.get("enabled_loras", []) if isinstance(pipe_obj, dict) else []
+        if custom_loras:
+            inputs.usage_note = (
+                (getattr(inputs, "usage_note", "") + "\n") if getattr(inputs, "usage_note", "") else ""
+            ) + (
+                "Anima local Comfy workflows preserve the LoRA UI, but dynamic project "
+                "LoRA injection is not mapped in this certified graph yet."
+            )
+
+        workflow_id = T2I_WORKFLOW_ID
+        stem = "anima_preview3"
+        if inputs.mode == "img2img" and inputs.image is not None:
+            workflow_id = I2I_WORKFLOW_ID
+            stem = "anima_preview3_i2i"
+            inputs.anima_denoise = max(0.0, min(1.0, 1.0 - float(inputs.strength)))
+        else:
+            inputs.anima_denoise = 1.0
+
+        inputs.anima_model = "anima-preview3-base.safetensors"
+        inputs.anima_text_encoder = "qwen_3_06b_base.safetensors"
+        inputs.anima_clip_type = "stable_diffusion"
+        inputs.anima_vae = "qwen_image_vae.safetensors"
+        inputs.anima_sampler = "er_sde"
+        inputs.anima_scheduler = "simple"
+
+        self.set_phase(inputs, f"Generating with local ComfyUI {self.DISPLAY_NAME}")
+        filename = clean_filename(f"{inputs.seed}_{stem}") or stem
+        destination = solve_path(filename + ".png")
+        return gateway.run_comfy_workflow(
+            workflow_id,
+            inputs,
+            scene,
+            prefs,
+            destination=destination,
+            timeout=float(getattr(prefs, "comfyui_timeout", 3600.0) or 3600.0),
         )
-
-        self.set_phase(inputs, "Generating")
-
-        shared_kwargs = dict(
-            prompt=inputs.prompt,
-            negative_prompt=inputs.neg_prompt or "",
-            width=inputs.width,
-            height=inputs.height,
-            num_inference_steps=inputs.steps,
-            guidance_scale=inputs.guidance,
-            generator=generator,
-            callback_on_step_end=self.step_callback(inputs),
-        )
-
-        if inputs.image is not None:
-            # img2img: pass the init image and denoise strength
-            return pipe(
-                image=inputs.image,
-                strength=1.0 - inputs.strength,
-                **shared_kwargs,
-            ).images[0]
-
-        return pipe(**shared_kwargs).images[0]

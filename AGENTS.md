@@ -950,3 +950,16 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: workflow-runner integration coverage verifies all four committed Z-Image packs directly, and `tests/gpu/test_zimage.py` now performs base/Turbo text-to-image and img2img plugin-path certification attempts instead of reporting an unwired-test block.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core Z-Image node classes and the Z-Image diffusion/text encoder/VAE files installed locally.
 - Still blocked: Z-Image Turbo negative prompts are deliberately unmapped because the official Comfy Turbo graph uses `ConditioningZeroOut`; the wrapper records this in `inputs.usage_note` when a negative prompt is supplied.
+
+### 2026-06-27 Anima Comfy workflow block
+
+- Completed: `image/anima.py` now routes `mrfatso/anima-preview3-diffusers` through the local Comfy workflow gateway instead of direct Torch/Diffusers `AnimaAutoBlocks` execution and generation-time Hugging Face downloads in the add-on process.
+- Completed: the existing prompt, negative prompt, image strip, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present; the wrapper selects text-to-image or img2img workflow packs from the existing `ModelInputs.mode` and `ModelInputs.image` values.
+- Completed: `anima_t2i_i2i` and `anima_t2i_i2i_img2img` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Completed: the workflows use official Comfy core Anima Preview template nodes: `UNETLoader`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `KSampler`, `VAEDecode`, and `SaveImage`; text-to-image uses `EmptyLatentImage`; img2img adds `LoadImage`, `ImageScale`, and `VAEEncode`.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `anima-preview3-base.safetensors`, `qwen_3_06b_base.safetensors`, and `qwen_image_vae.safetensors`.
+- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the core `EmptyLatentImage` node used by the Anima text-to-image workflow.
+- Evidence: integration coverage calls `AnimaPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching, img2img image upload, and preserved `denoise = 1.0 - strength` mapping.
+- Evidence: workflow-runner integration coverage verifies both committed Anima packs directly, and `tests/gpu/test_anima.py` now performs text-to-image and img2img plugin-path certification attempts instead of reporting an unwired-test block.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with core Anima node classes and the Anima diffusion/text encoder/VAE files installed locally.
+- Still blocked: arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the wrapper records custom LoRA injection as a follow-up rather than loading placeholder filenames.

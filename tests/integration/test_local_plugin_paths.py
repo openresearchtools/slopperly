@@ -147,6 +147,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "CLIPTextEncode": {},
                 "ConditioningStableAudio": {},
                 "EmptyLatentAudio": {},
+                "EmptyLatentImage": {},
                 "KSampler": {},
                 "VAEDecodeAudio": {},
                 "MMAudioModelLoader": {},
@@ -556,6 +557,33 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                     else "slopperly_zimage_i2i_00001_.png"
                     if img2img
                     else "slopperly_zimage_00001_.png"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "images": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "UNETLoader"
+                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("anima-")
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                output_node = "11" if "11" in RuntimeHandler.comfy_prompt else "9"
+                filename = (
+                    "slopperly_anima_i2i_00001_.png"
+                    if output_node == "11"
+                    else "slopperly_anima_00001_.png"
                 )
                 return self._json({
                     "prompt-1": {
@@ -1242,6 +1270,80 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["10"]["inputs"]["steps"], 8)
         self.assertEqual(prompt["10"]["inputs"]["cfg"], 1.0)
         self.assertAlmostEqual(prompt["10"]["inputs"]["denoise"], 0.35)
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_anima_uses_comfy_t2i_and_i2i_plugin_paths(self):
+        module = load_plugin_module("image", "anima")
+        plugin = module.AnimaPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Anima text to image",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                steps=25,
+                guidance=4.0,
+                seed=2401,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(RuntimeHandler.comfy_uploads, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "anima-preview3-base.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["clip_name"], "qwen_3_06b_base.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["type"], "stable_diffusion")
+        self.assertEqual(prompt["3"]["inputs"]["vae_name"], "qwen_image_vae.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["text"], "local Anima text to image")
+        self.assertEqual(prompt["5"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["6"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["7"]["inputs"]["seed"], 2401)
+        self.assertEqual(prompt["7"]["inputs"]["steps"], 25)
+        self.assertEqual(prompt["7"]["inputs"]["cfg"], 4.0)
+        self.assertEqual(prompt["7"]["inputs"]["sampler_name"], "er_sde")
+        self.assertEqual(prompt["7"]["inputs"]["scheduler"], "simple")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            RuntimeHandler.comfy_uploads = []
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Anima image to image",
+                neg_prompt="text, watermark",
+                image=str(source),
+                mode="img2img",
+                width=1024,
+                height=1024,
+                steps=25,
+                guidance=4.0,
+                strength=0.65,
+                seed=2402,
+                frames=1,
+            )
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["4"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["5"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["7"]["inputs"]["text"], "local Anima image to image")
+        self.assertEqual(prompt["8"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["9"]["inputs"]["seed"], 2402)
+        self.assertEqual(prompt["9"]["inputs"]["steps"], 25)
+        self.assertEqual(prompt["9"]["inputs"]["cfg"], 4.0)
+        self.assertAlmostEqual(prompt["9"]["inputs"]["denoise"], 0.35)
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
 
     def test_google_nano_banana_alias_uses_local_qwen_workflow(self):

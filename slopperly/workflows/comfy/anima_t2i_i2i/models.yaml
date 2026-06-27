@@ -1,0 +1,29 @@
+workflow_id: anima_t2i_i2i
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    node_classes:
+      - UNETLoader
+      - CLIPLoader
+      - VAELoader
+      - CLIPTextEncode
+      - EmptyLatentImage
+      - KSampler
+      - VAEDecode
+      - SaveImage
+model_files:
+  - source: https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-preview3-base.safetensors
+    target: models/diffusion_models/anima-preview3-base.safetensors
+  - source: https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors
+    target: models/text_encoders/qwen_3_06b_base.safetensors
+  - source: https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors
+    target: models/vae/qwen_image_vae.safetensors
+supported_resolutions:
+  - 1024x1024
+  - 1280x720
+  - 720x1280
+artifact_contract:
+  type: image/png
+  validator: PIL readable image; dimensions match requested width and height.

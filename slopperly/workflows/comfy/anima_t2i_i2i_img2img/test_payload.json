@@ -1,0 +1,12 @@
+{
+  "prompt": "polish the source into an Anima anime-style local render",
+  "negative_prompt": "worst quality, low quality, blurry, jpeg artifacts",
+  "image": "tests/fixtures/vsr_source.ppm",
+  "width": 1024,
+  "height": 1024,
+  "steps": 25,
+  "guidance": 4.0,
+  "strength": 0.65,
+  "seed": 240102,
+  "frames": 1
+}

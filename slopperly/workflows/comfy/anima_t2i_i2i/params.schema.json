@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "workflow_id": "anima_t2i_i2i",
+  "description": "Patch schema for Anima Preview 3 text-to-image through Comfy core nodes.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "4",
+        "input": "text"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "5",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "6",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "6",
+        "input": "height"
+      }
+    ],
+    "steps": [
+      {
+        "node": "7",
+        "input": "steps"
+      }
+    ],
+    "guidance": [
+      {
+        "node": "7",
+        "input": "cfg"
+      }
+    ],
+    "seed": [
+      {
+        "node": "7",
+        "input": "seed"
+      }
+    ],
+    "anima_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "anima_text_encoder": [
+      {
+        "node": "2",
+        "input": "clip_name"
+      }
+    ],
+    "anima_clip_type": [
+      {
+        "node": "2",
+        "input": "type"
+      }
+    ],
+    "anima_vae": [
+      {
+        "node": "3",
+        "input": "vae_name"
+      }
+    ],
+    "anima_sampler": [
+      {
+        "node": "7",
+        "input": "sampler_name"
+      }
+    ],
+    "anima_scheduler": [
+      {
+        "node": "7",
+        "input": "scheduler"
+      }
+    ]
+  },
+  "uploads": {},
+  "unmapped_ui_parameters": {
+    "image_strength": "Text-to-image does not consume the image strength field.",
+    "lora": "Project LoRA UI is preserved, but this certified graph does not dynamically inject arbitrary LoRA files yet."
+  },
+  "output": {
+    "node": "9",
+    "type": "image/png",
+    "contract": "Return the first SaveImage PNG artifact as the generated image path."
+  }
+}

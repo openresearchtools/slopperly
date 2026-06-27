@@ -18,6 +18,7 @@ comfyui:
     - ConditioningZeroOut
     - ConditioningStableAudio
     - EmptyLatentAudio
+    - EmptyLatentImage
     - KSampler
     - ModelSamplingAuraFlow
     - FluxKontextImageScale

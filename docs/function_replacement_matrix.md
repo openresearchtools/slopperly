@@ -21,6 +21,7 @@ This matrix is the working replacement plan for production-visible functions.
 | `Qwen/Qwen-Image-Edit-2511` | Migrated wrapper, GPU/server test pending | ComfyUI | `qwen_image_edit_2511_multi_gguf` |
 | `Tongyi-MAI/Z-Image` | Migrated wrapper, GPU/server test pending | ComfyUI | `zimage_t2i_i2i`, `zimage_t2i_i2i_img2img` |
 | `Tongyi-MAI/Z-Image-Turbo` | Migrated wrapper, GPU/server test pending | ComfyUI | `zimage_turbo_t2i_i2i`, `zimage_turbo_t2i_i2i_img2img` |
+| `mrfatso/anima-preview3-diffusers` | Migrated wrapper, GPU/server test pending | ComfyUI | `anima_t2i_i2i`, `anima_t2i_i2i_img2img` |
 | `StemSplitter` | Migrated wrapper, GPU/server test pending | ComfyUI | `audio_stem_split_demucs` |
 | `MMAudio` | Migrated wrapper, GPU/server test pending | ComfyUI | `mmaudio_video_to_audio` |
 | `cocktailpeanut/stable-audio-3-medium-base` | Migrated wrapper, GPU/server test pending | ComfyUI | `stable_audio_3_medium_base` |

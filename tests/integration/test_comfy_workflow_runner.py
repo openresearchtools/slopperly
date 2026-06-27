@@ -402,6 +402,32 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "UNETLoader"
+                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("anima-")
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                output_node = "11" if "11" in ComfyHandler.last_prompt else "9"
+                filename = (
+                    "slopperly_anima_i2i_00001_.png"
+                    if output_node == "11"
+                    else "slopperly_anima_00001_.png"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "images": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -433,6 +459,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "qwen_image_edit" in parsed.query
                 or "qwen_image_2512" in parsed.query
                 or "zimage" in parsed.query
+                or "anima" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
@@ -562,6 +589,15 @@ def _qwen_image_object_info(workflow_id: str) -> dict:
 
 
 def _zimage_object_info(workflow_id: str) -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _anima_object_info(workflow_id: str) -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
             encoding="utf-8"
@@ -1487,6 +1523,94 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["10"]["inputs"]["steps"], 8)
         self.assertEqual(prompt["10"]["inputs"]["cfg"], 1.0)
         self.assertEqual(prompt["10"]["inputs"]["denoise"], 0.35)
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+
+    def test_anima_packs_patch_t2i_and_i2i_graphs(self):
+        ComfyHandler.reset(_anima_object_info("anima_t2i_i2i"))
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "anima.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local Anima text to image",
+                neg_prompt="blur",
+                width=1024,
+                height=1024,
+                steps=25,
+                guidance=4.0,
+                seed=2401,
+                anima_model="anima-preview3-base.safetensors",
+                anima_text_encoder="qwen_3_06b_base.safetensors",
+                anima_clip_type="stable_diffusion",
+                anima_vae="qwen_image_vae.safetensors",
+                anima_sampler="er_sde",
+                anima_scheduler="simple",
+                anima_denoise=1.0,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/anima_t2i_i2i",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(ComfyHandler.upload_bodies, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "anima-preview3-base.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["clip_name"], "qwen_3_06b_base.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["type"], "stable_diffusion")
+        self.assertEqual(prompt["3"]["inputs"]["vae_name"], "qwen_image_vae.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["text"], "local Anima text to image")
+        self.assertEqual(prompt["5"]["inputs"]["text"], "blur")
+        self.assertEqual(prompt["6"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["6"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["7"]["inputs"]["seed"], 2401)
+        self.assertEqual(prompt["7"]["inputs"]["steps"], 25)
+        self.assertEqual(prompt["7"]["inputs"]["cfg"], 4.0)
+        self.assertEqual(prompt["7"]["inputs"]["sampler_name"], "er_sde")
+        self.assertEqual(prompt["7"]["inputs"]["scheduler"], "simple")
+
+        ComfyHandler.reset(_anima_object_info("anima_t2i_i2i_img2img"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            destination = Path(tmp) / "anima_i2i.png"
+            source.write_bytes(b"local source image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs.image = str(source)
+            inputs.prompt = "local Anima image to image"
+            inputs.seed = 2402
+            inputs.anima_denoise = 0.35
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/anima_t2i_i2i_img2img",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 1)
+        self.assertEqual(prompt["4"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["5"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["5"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["7"]["inputs"]["text"], "local Anima image to image")
+        self.assertEqual(prompt["8"]["inputs"]["text"], "blur")
+        self.assertEqual(prompt["9"]["inputs"]["seed"], 2402)
+        self.assertEqual(prompt["9"]["inputs"]["steps"], 25)
+        self.assertEqual(prompt["9"]["inputs"]["cfg"], 4.0)
+        self.assertEqual(prompt["9"]["inputs"]["sampler_name"], "er_sde")
+        self.assertEqual(prompt["9"]["inputs"]["scheduler"], "simple")
+        self.assertAlmostEqual(prompt["9"]["inputs"]["denoise"], 0.35)
         self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):

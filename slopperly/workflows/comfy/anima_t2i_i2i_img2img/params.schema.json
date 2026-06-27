@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "workflow_id": "anima_t2i_i2i_img2img",
+  "description": "Patch schema for Anima Preview 3 img2img through Comfy core nodes.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "7",
+        "input": "text"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "8",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "5",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "5",
+        "input": "height"
+      }
+    ],
+    "steps": [
+      {
+        "node": "9",
+        "input": "steps"
+      }
+    ],
+    "guidance": [
+      {
+        "node": "9",
+        "input": "cfg"
+      }
+    ],
+    "seed": [
+      {
+        "node": "9",
+        "input": "seed"
+      }
+    ],
+    "anima_denoise": [
+      {
+        "node": "9",
+        "input": "denoise"
+      }
+    ],
+    "anima_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "anima_text_encoder": [
+      {
+        "node": "2",
+        "input": "clip_name"
+      }
+    ],
+    "anima_clip_type": [
+      {
+        "node": "2",
+        "input": "type"
+      }
+    ],
+    "anima_vae": [
+      {
+        "node": "3",
+        "input": "vae_name"
+      }
+    ],
+    "anima_sampler": [
+      {
+        "node": "9",
+        "input": "sampler_name"
+      }
+    ],
+    "anima_scheduler": [
+      {
+        "node": "9",
+        "input": "scheduler"
+      }
+    ]
+  },
+  "uploads": {
+    "image": [
+      {
+        "node": "4",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "strength": "Mapped as anima_denoise = 1.0 - strength for compatibility with the previous Diffusers img2img wrapper.",
+    "lora": "Project LoRA UI is preserved, but this certified graph does not dynamically inject arbitrary LoRA files yet."
+  },
+  "output": {
+    "node": "11",
+    "type": "image/png",
+    "contract": "Return the first SaveImage PNG artifact as the generated image path."
+  }
+}

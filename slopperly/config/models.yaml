@@ -287,6 +287,54 @@ models:
     workflows:
       - birefnet_rmbg
       - image/birefnet.py
+  - logical_name: anima_t2i_i2i
+    legacy_aliases:
+      - mrfatso/anima-preview3-diffusers
+    task: image_t2i_i2i
+    runtime: comfy
+    model_source: https://huggingface.co/circlestone-labs/Anima
+    download_mode: hf_file
+    local_cache_path: models/diffusion_models/anima-preview3-base.safetensors
+    required_files:
+      - path: split_files/diffusion_models/anima-preview3-base.safetensors
+        target: anima-preview3-base.safetensors
+    auxiliary_sources:
+      - id: anima_text_encoder
+        model_source: https://huggingface.co/circlestone-labs/Anima
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/qwen_3_06b_base.safetensors
+        required_files:
+          - path: split_files/text_encoders/qwen_3_06b_base.safetensors
+            target: qwen_3_06b_base.safetensors
+      - id: anima_vae
+        model_source: https://huggingface.co/circlestone-labs/Anima
+        download_mode: hf_file
+        local_cache_path: models/vae/qwen_image_vae.safetensors
+        required_files:
+          - path: split_files/vae/qwen_image_vae.safetensors
+            target: qwen_image_vae.safetensors
+    required_node_pack: comfyui core anima
+    supported_resolutions:
+      - 1024x1024
+      - 1280x720
+      - 720x1280
+    context_limits: {}
+    default_parameters:
+      diffusion_model: anima-preview3-base.safetensors
+      text_encoder: qwen_3_06b_base.safetensors
+      clip_type: stable_diffusion
+      vae: qwen_image_vae.safetensors
+      steps: 25
+      guidance: 4.0
+      sampler: er_sde
+      scheduler: simple
+      denoise_formula: 1.0 - image_strength
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_anima.py --device cuda
+    workflows:
+      - anima_t2i_i2i
+      - anima_t2i_i2i_img2img
+      - image/anima.py
   - logical_name: local_image_vsr_upscale
     legacy_aliases:
       - nvidia/maxine-vsr
