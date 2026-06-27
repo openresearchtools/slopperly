@@ -26,6 +26,8 @@ OMNIVOICE_PIPELINE_RELATIVE = (
     "site-packages/vllm_omni/diffusion/models/omnivoice/pipeline_omnivoice.py"
 )
 OMNIVOICE_CONTROL_PATCH_MARKER = "Slopperly patch: request-time OmniVoice sampling controls"
+MOSS_SERVING_RELATIVE = "site-packages/vllm_omni/entrypoints/openai/serving_speech.py"
+MOSS_NANO_CONTROL_PATCH_MARKER = "Slopperly patch: request-time MOSS-TTS-Nano controls"
 
 
 def _site_packages_roots(venv_dir: Path) -> list[Path]:
@@ -83,6 +85,66 @@ def patch_omnivoice_sampling_controls(venv_dir: Path, *, dry_run: bool = False) 
     return InstallStep("PASS", "omnivoice-patch", f"patched {pipeline_path}")
 
 
+def patch_moss_tts_nano_controls(venv_dir: Path, *, dry_run: bool = False) -> InstallStep:
+    """Patch vLLM-Omni 0.22 MOSS-Nano serving to forward UI generation controls."""
+    candidates = [root / MOSS_SERVING_RELATIVE.removeprefix("site-packages/") for root in _site_packages_roots(venv_dir)]
+    serving_path = next((path for path in candidates if path.is_file()), None)
+    if dry_run:
+        return InstallStep(
+            "PLAN",
+            "moss-tts-nano-patch",
+            f"patch {venv_dir}/lib/python*/{MOSS_SERVING_RELATIVE}",
+        )
+    if serving_path is None:
+        return InstallStep(
+            "BLOCKED",
+            "moss-tts-nano-patch",
+            f"missing vLLM-Omni serving_speech.py under {venv_dir}",
+        )
+
+    source = serving_path.read_text(encoding="utf-8")
+    if MOSS_NANO_CONTROL_PATCH_MARKER in source:
+        return InstallStep("PASS", "moss-tts-nano-patch", f"already patched {serving_path}")
+
+    nano_block = '''            if request.max_new_tokens is not None:
+                params["max_new_frames"] = [request.max_new_tokens]
+            wav_list, sr = await self._resolve_ref_audio(request.ref_audio)
+            params["prompt_audio_array"] = [[wav_list, sr]]
+            return params
+'''
+    patched_nano_block = f'''            extra = request.extra_params or {{}}
+            # {MOSS_NANO_CONTROL_PATCH_MARKER}.
+            max_new_frames = extra.get("max_new_frames", request.max_new_tokens)
+            if max_new_frames is not None:
+                params["max_new_frames"] = [int(max_new_frames)]
+            if getattr(request, "seed", None) is not None:
+                params["seed"] = [int(request.seed)]
+            for request_key, param_key, caster in (
+                ("text_temperature", "text_temperature", float),
+                ("text_top_p", "text_top_p", float),
+                ("text_top_k", "text_top_k", int),
+                ("audio_temperature", "audio_temperature", float),
+                ("audio_top_p", "audio_top_p", float),
+                ("audio_top_k", "audio_top_k", int),
+                ("audio_repetition_penalty", "audio_repetition_penalty", float),
+            ):
+                if request_key in extra and extra[request_key] is not None:
+                    params[param_key] = [caster(extra[request_key])]
+            wav_list, sr = await self._resolve_ref_audio(request.ref_audio)
+            params["prompt_audio_array"] = [[wav_list, sr]]
+            return params
+'''
+    if nano_block not in source:
+        return InstallStep(
+            "BLOCKED",
+            "moss-tts-nano-patch",
+            f"vLLM-Omni MOSS serving path changed; manual patch review required at {serving_path}",
+        )
+    source = source.replace(nano_block, patched_nano_block, 1)
+    serving_path.write_text(source, encoding="utf-8")
+    return InstallStep("PASS", "moss-tts-nano-patch", f"patched {serving_path}")
+
+
 def install_vllm_omni(
     *,
     venv_dir: Path,
@@ -93,6 +155,7 @@ def install_vllm_omni(
     if not skip_pip:
         steps.append(pip_install(venv_pip(venv_dir), VLLM_OMNI_PACKAGES, dry_run=dry_run))
     steps.append(patch_omnivoice_sampling_controls(venv_dir, dry_run=dry_run))
+    steps.append(patch_moss_tts_nano_controls(venv_dir, dry_run=dry_run))
     steps.append(
         write_manifest(
             venv_dir.parent / "vllm-omni-install-manifest.json",
@@ -100,7 +163,7 @@ def install_vllm_omni(
                 "runtime": "vllm_omni",
                 "venv": str(venv_dir),
                 "packages": VLLM_OMNI_PACKAGES,
-                "patches": [OMNIVOICE_CONTROL_PATCH_MARKER],
+                "patches": [OMNIVOICE_CONTROL_PATCH_MARKER, MOSS_NANO_CONTROL_PATCH_MARKER],
             },
             dry_run=dry_run,
         )

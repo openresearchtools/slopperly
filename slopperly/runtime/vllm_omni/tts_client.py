@@ -58,6 +58,7 @@ class VllmOmniTtsClient:
         instructions: str | None = None,
         language: str | None = None,
         seed: int | None = None,
+        max_new_tokens: int | None = None,
         extra_params: dict | None = None,
         response_format: str = "wav",
     ) -> str:
@@ -81,6 +82,8 @@ class VllmOmniTtsClient:
             payload["language"] = language
         if seed is not None:
             payload["seed"] = seed
+        if max_new_tokens is not None:
+            payload["max_new_tokens"] = max_new_tokens
         if extra_params:
             payload["extra_params"] = extra_params
 

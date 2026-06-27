@@ -1600,6 +1600,14 @@ models:
     local_cache_path: models/vllm_omni/OpenMOSS-Team/MOSS-TTS-Nano
     required_files:
       - config.json
+    auxiliary_sources:
+      - id: moss_audio_tokenizer_nano
+        model_source: https://huggingface.co/OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano
+        download_mode: hf_snapshot
+        local_cache_path: models/vllm_omni/OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano
+        required_files:
+          - config.json
+          - model-00001-of-00001.safetensors
     required_node_pack: vllm-omni
     supported_resolutions: []
     default_parameters:

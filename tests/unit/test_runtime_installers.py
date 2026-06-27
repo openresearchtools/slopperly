@@ -17,6 +17,7 @@ from slopperly.runtime.llamacpp.install import (
 )
 from slopperly.runtime.vllm.install import install_vllm
 from slopperly.runtime.vllm_omni.install import install_vllm_omni
+from slopperly.runtime.vllm_omni.install import patch_moss_tts_nano_controls
 from slopperly.runtime.vllm_omni.install import patch_omnivoice_sampling_controls
 
 
@@ -86,6 +87,7 @@ class RuntimeInstallerTests(unittest.TestCase):
         self.assertIn("vllm-omni==0.22.0", details)
         self.assertIn("vllm==0.22.0", details)
         self.assertIn("omnivoice-patch", names)
+        self.assertIn("moss-tts-nano-patch", names)
         self.assertIn("vllm-omni-install-manifest.json", details)
 
     def test_vllm_omni_omnivoice_patch_maps_sampling_controls(self):
@@ -114,6 +116,31 @@ class RuntimeInstallerTests(unittest.TestCase):
         self.assertIn("guidance_scale = float(extra.get(\"guidance_scale\", self.guidance_scale))", patched)
         self.assertIn("num_step=num_step", patched)
         self.assertIn("guidance_scale=guidance_scale", patched)
+
+    def test_vllm_omni_moss_patch_maps_request_controls(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            serving = (
+                Path(tmp)
+                / "vllm-omni-venv/lib/python3.12/site-packages/vllm_omni/entrypoints/openai/serving_speech.py"
+            )
+            serving.parent.mkdir(parents=True)
+            serving.write_text(
+                '''            if request.max_new_tokens is not None:
+                params["max_new_frames"] = [request.max_new_tokens]
+            wav_list, sr = await self._resolve_ref_audio(request.ref_audio)
+            params["prompt_audio_array"] = [[wav_list, sr]]
+            return params
+''',
+                encoding="utf-8",
+            )
+            step = patch_moss_tts_nano_controls(Path(tmp) / "vllm-omni-venv")
+            patched = serving.read_text(encoding="utf-8")
+        self.assertEqual(step.status, "PASS")
+        self.assertIn("request-time MOSS-TTS-Nano controls", patched)
+        self.assertIn("max_new_frames = extra.get(\"max_new_frames\", request.max_new_tokens)", patched)
+        self.assertIn("params[\"seed\"] = [int(request.seed)]", patched)
+        self.assertIn("(\"text_temperature\", \"text_temperature\", float)", patched)
+        self.assertIn("(\"audio_top_k\", \"audio_top_k\", int)", patched)
 
     def test_llamacpp_selects_matching_archive_asset(self):
         release_data = {

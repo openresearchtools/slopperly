@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 from dataclasses import dataclass
@@ -17,6 +18,9 @@ GENERIC_FILE_MARKERS = (
     "configured by",
     "downloaded by",
 )
+MOSS_TTS_NANO_LOGICAL_NAME = "moss_tts_nano_vllm_omni"
+MOSS_AUDIO_TOKENIZER_AUX_ID = "moss_audio_tokenizer_nano"
+MOSS_AUDIO_TOKENIZER_CONFIG_KEY = "audio_tokenizer_pretrained_name_or_path"
 
 
 @dataclass
@@ -157,6 +161,54 @@ def artifact_entry_name(parent_name: str, entry: dict) -> str:
     return artifact_id if artifact_id == parent_name else f"{parent_name}:{artifact_id}"
 
 
+def moss_audio_tokenizer_entry(entry: dict) -> dict | None:
+    for auxiliary in auxiliary_entries(entry):
+        if str(auxiliary.get("id") or "") == MOSS_AUDIO_TOKENIZER_AUX_ID:
+            return auxiliary
+    return None
+
+
+def rewrite_moss_tts_nano_config(
+    *,
+    entry: dict,
+    name: str,
+    cache_root: Path,
+    dry_run: bool,
+) -> DownloadResult | None:
+    if str(entry.get("logical_name") or "") != MOSS_TTS_NANO_LOGICAL_NAME:
+        return None
+    tokenizer_entry = moss_audio_tokenizer_entry(entry)
+    if tokenizer_entry is None:
+        return DownloadResult("BLOCKED", name, "MOSS audio tokenizer auxiliary source is missing")
+
+    model_config = snapshot_path(cache_root, entry) / "config.json"
+    tokenizer_dir = snapshot_path(cache_root, tokenizer_entry)
+    if dry_run:
+        return DownloadResult(
+            "PLAN",
+            f"{name}:moss_local_tokenizer_config",
+            f"would point MOSS config at local audio tokenizer {tokenizer_dir}",
+            str(model_config),
+        )
+    if not model_config.is_file():
+        return DownloadResult("BLOCKED", name, f"MOSS config is missing: {model_config}", str(model_config))
+    if not (tokenizer_dir / "config.json").is_file():
+        return DownloadResult(
+            "BLOCKED",
+            name,
+            f"MOSS audio tokenizer snapshot is missing: {tokenizer_dir}",
+            str(tokenizer_dir),
+        )
+
+    data = json.loads(model_config.read_text(encoding="utf-8"))
+    desired = str(tokenizer_dir.resolve())
+    if data.get(MOSS_AUDIO_TOKENIZER_CONFIG_KEY) == desired:
+        return DownloadResult("PASS", name, "MOSS config already points at local audio tokenizer", str(model_config))
+    data[MOSS_AUDIO_TOKENIZER_CONFIG_KEY] = desired
+    model_config.write_text(json.dumps(data, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+    return DownloadResult("PASS", name, "MOSS config updated to local audio tokenizer", str(model_config))
+
+
 def download_models(
     *,
     root: Path,
@@ -195,6 +247,14 @@ def download_models(
                     dry_run=dry_run,
                 )
             )
+        postprocess = rewrite_moss_tts_nano_config(
+            entry=entry,
+            name=str(name),
+            cache_root=cache_root,
+            dry_run=dry_run,
+        )
+        if postprocess:
+            results.append(postprocess)
     return results
 
 

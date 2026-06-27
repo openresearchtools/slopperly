@@ -1198,7 +1198,7 @@ class LocalPluginPathTests(unittest.TestCase):
             ref = Path(tmp) / "speaker.wav"
             _tiny_wav(ref)
             module.solve_path = lambda filename: str(Path(tmp) / filename)
-            inputs = self.base.ModelInputs(prompt="local moss voice", seed=321)
+            inputs = self.base.ModelInputs(prompt="local moss voice", audio_ref=str(ref), seed=321)
             scene = SimpleNamespace(
                 moss_model_variant="nano",
                 moss_ref_audio_path=str(ref),
@@ -1216,9 +1216,20 @@ class LocalPluginPathTests(unittest.TestCase):
             self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
 
         payload = RuntimeHandler.speech_payloads[-1]
-        self.assertEqual(payload["model"], "OpenMOSS-Team/MOSS-TTS-Nano")
+        self.assertEqual(payload["model"], "local-model")
         self.assertTrue(payload["ref_audio"].startswith("data:audio/x-wav;base64,"))
-        self.assertIn("duration_tokens=128", payload["instructions"])
+        self.assertNotIn("voice", payload)
+        self.assertNotIn("instructions", payload)
+        self.assertEqual(payload["language"], "English")
+        self.assertEqual(payload["seed"], 321)
+        self.assertEqual(payload["max_new_tokens"], 128)
+        self.assertEqual(payload["extra_params"]["max_new_frames"], 128)
+        self.assertEqual(payload["extra_params"]["text_temperature"], 1.1)
+        self.assertEqual(payload["extra_params"]["text_top_p"], 0.7)
+        self.assertEqual(payload["extra_params"]["text_top_k"], 20)
+        self.assertEqual(payload["extra_params"]["audio_temperature"], 1.1)
+        self.assertEqual(payload["extra_params"]["audio_top_p"], 0.7)
+        self.assertEqual(payload["extra_params"]["audio_top_k"], 20)
 
     def test_faster_whisper_generate_uses_vllm_plugin_path(self):
         module = load_plugin_module("text", "faster_whisper_transcribe")

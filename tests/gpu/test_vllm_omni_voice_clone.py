@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+import json
 
 from slopperly.audit.network_guard import local_only_network
 from slopperly.runtime.errors import RuntimeUnavailableError
@@ -32,6 +33,7 @@ def test_vllm_omni_voice_clone(gpu_cert, plugin_loader, base_models, repo_root):
     )
     inputs = base_models.ModelInputs(
         prompt="This local voice clone test should produce a short spoken sentence.",
+        audio_ref=str(ref_audio),
         seed=27182,
     )
     prefs = SimpleNamespace(vllm_omni_url=runtime_url)
@@ -46,9 +48,35 @@ def test_vllm_omni_voice_clone(gpu_cert, plugin_loader, base_models, repo_root):
     except ArtifactValidationError as exc:
         gpu_cert.fail(LOGICAL_NAME, f"vLLM-Omni voice-clone artifact validation failed: {exc}")
 
+    manifest_path = gpu_cert.artifact_path(LOGICAL_NAME, "moss_tts_nano_manifest.json")
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "runtime_url": runtime_url,
+                "model": "OpenMOSS-Team/MOSS-TTS-Nano",
+                "clone": {
+                    "path": result_path,
+                    "reference": str(ref_audio),
+                    "prompt": inputs.prompt,
+                    "validation": validation,
+                },
+                "controls": {
+                    "seed": inputs.seed,
+                    "duration_tokens": scene.moss_duration_tokens,
+                    "max_new_tokens": scene.moss_max_new_tokens,
+                    "temperature": scene.moss_temperature,
+                    "top_p": scene.moss_top_p,
+                    "top_k": scene.moss_top_k,
+                },
+            },
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
     gpu_cert.pass_artifact(
         LOGICAL_NAME,
-        output_path,
+        manifest_path,
         validation,
         metadata={
             "runtime_url": runtime_url,

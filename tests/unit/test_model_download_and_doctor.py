@@ -17,6 +17,7 @@ from slopperly.models.download import (
     is_exact_file,
     is_safe_relative_file,
     mirror_torchaudio_asset,
+    rewrite_moss_tts_nano_config,
 )
 
 
@@ -94,7 +95,43 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertIn(("llamacpp_prompt_rewriter", "PLAN"), statuses)
         self.assertIn(("omnivoice_vllm_omni", "PLAN"), statuses)
         self.assertIn(("moss_tts_nano_vllm_omni", "PLAN"), statuses)
+        self.assertIn(("moss_tts_nano_vllm_omni:moss_audio_tokenizer_nano", "PLAN"), statuses)
+        self.assertIn(("moss_tts_nano_vllm_omni:moss_local_tokenizer_config", "PLAN"), statuses)
         self.assertFalse([result for result in results if result.status == "BLOCKED"])
+
+    def test_moss_download_postprocess_points_config_to_local_tokenizer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_root = Path(tmp)
+            entry = {
+                "logical_name": "moss_tts_nano_vllm_omni",
+                "local_cache_path": "models/vllm_omni/OpenMOSS-Team/MOSS-TTS-Nano",
+                "auxiliary_sources": [
+                    {
+                        "id": "moss_audio_tokenizer_nano",
+                        "local_cache_path": "models/vllm_omni/OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano",
+                    }
+                ],
+            }
+            model_dir = cache_root / entry["local_cache_path"]
+            tokenizer_dir = cache_root / entry["auxiliary_sources"][0]["local_cache_path"]
+            model_dir.mkdir(parents=True)
+            tokenizer_dir.mkdir(parents=True)
+            (tokenizer_dir / "config.json").write_text("{}", encoding="utf-8")
+            config_path = model_dir / "config.json"
+            config_path.write_text(
+                '{"audio_tokenizer_pretrained_name_or_path": "OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano"}',
+                encoding="utf-8",
+            )
+
+            result = rewrite_moss_tts_nano_config(
+                entry=entry,
+                name="moss_tts_nano_vllm_omni",
+                cache_root=cache_root,
+                dry_run=False,
+            )
+
+            self.assertEqual(result.status, "PASS")
+            self.assertIn(str(tokenizer_dir.resolve()), config_path.read_text(encoding="utf-8"))
 
     def test_torchaudio_asset_mirror_copies_to_hub_cache(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -190,6 +190,7 @@ class LocalRuntimeClientTests(unittest.TestCase):
                 ref_text="hello",
                 speed=1.1,
                 seed=123,
+                max_new_tokens=128,
                 extra_params={"num_step": 24, "guidance_scale": 1.8},
             )
             self.assertEqual(result, str(out))
@@ -197,6 +198,7 @@ class LocalRuntimeClientTests(unittest.TestCase):
         self.assertTrue(RuntimeHandler.last_json["ref_audio"].startswith("data:audio/x-wav;base64,"))
         self.assertEqual(RuntimeHandler.last_json["speed"], 1.1)
         self.assertEqual(RuntimeHandler.last_json["seed"], 123)
+        self.assertEqual(RuntimeHandler.last_json["max_new_tokens"], 128)
         self.assertEqual(RuntimeHandler.last_json["extra_params"]["num_step"], 24)
         self.assertEqual(RuntimeHandler.last_json["extra_params"]["guidance_scale"], 1.8)
 

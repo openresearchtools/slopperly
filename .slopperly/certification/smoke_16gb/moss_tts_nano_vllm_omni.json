@@ -1,0 +1,23 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/moss_tts_nano_vllm_omni/moss_tts_nano_manifest.json",
+  "command": "pytest tests/gpu/test_vllm_omni_voice_clone.py::test_vllm_omni_voice_clone --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T17:30:39+00:00",
+  "logical_name": "moss_tts_nano_vllm_omni",
+  "metadata": {
+    "model": "OpenMOSS-Team/MOSS-TTS-Nano",
+    "reference_audio": "/home/user/Documents/Slopperly/Voices/Reading_Female_Girl_Emma.wav",
+    "runtime_url": "http://127.0.0.1:8091"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "channels": 1,
+    "duration": 4.8,
+    "format": "WAV",
+    "kind": "audio",
+    "rms": 4441.058497322528,
+    "sample_rate": 48000
+  }
+}
