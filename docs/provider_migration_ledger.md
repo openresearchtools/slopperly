@@ -309,3 +309,19 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 ### Blocked / Not Yet Certified
 
 - These are integration tests against local fake runtime servers. They do not start real llama.cpp, vLLM, or vLLM-Omni servers and do not produce GPU artifacts.
+
+## 2026-06-27 Indexed Comfy media schema block
+
+### Runtime Gateway Behavior Added
+
+- Comfy workflow-pack schemas can now reference indexed `ModelInputs` fields in both scalar input mappings and media upload mappings.
+- Supported indexed schema forms include `images[0]`, `images.1`, `image_prompts[1]`, and tuple attributes such as `middle_images_paths[0].path`.
+- This prepares the runner for Qwen Image Edit, OmniGen, FLUX multi-reference, and LTX staged/middle-anchor workflow packs without adding workflow-specific Python branches.
+
+### Verification
+
+- `python tests/integration/test_comfy_workflow_runner.py`
+
+### Blocked / Not Yet Certified
+
+- This is runner-path coverage against a local fake Comfy server. Real Qwen/OmniGen/LTX multi-anchor workflow packs, model downloads, Comfy execution, and GPU artifact certification remain pending.

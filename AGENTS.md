@@ -748,3 +748,12 @@ The following upstream sources are the factual basis for this spec:
 - Comfy Anima docs: https://docs.comfy.org/tutorials/image/anima/anima
 - ComfyUI Chatterbox node packs: https://github.com/filliptm/ComfyUI_Fill-ChatterBox and https://github.com/wildminder/ComfyUI-Chatterbox
 - Comfy Z-Image docs: https://docs.comfy.org/tutorials/image/z-image/z-image and https://docs.comfy.org/tutorials/image/z-image/z-image-turbo
+
+## 18. Implementation work log
+
+### 2026-06-27 indexed Comfy media schema block
+
+- Completed: Comfy workflow-pack schemas can now patch indexed scalar fields such as `image_prompts[1]`.
+- Completed: Comfy workflow-pack schemas can now upload indexed media fields such as `images[0]`, `images[1]`, and `middle_images_paths[0].path`.
+- Evidence: `tests/integration/test_comfy_workflow_runner.py` covers the indexed field path against a local fake Comfy server under the runtime network guard.
+- Still blocked: real Qwen/OmniGen/LTX multi-reference workflow packs, owned Comfy runtime execution, model downloads, and GPU artifact certification.

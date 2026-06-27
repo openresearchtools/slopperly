@@ -27,6 +27,11 @@ class ComfyWorkflowRunner:
         "README.md",
     }
     URL_RE = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
+    INDEXED_FIELD_RE = re.compile(
+        r"^(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?:\[(?P<bracket>\d+)\]|\.(?P<dot>\d+))"
+        r"(?:\.(?P<attr>[A-Za-z_][A-Za-z0-9_]*))?$"
+    )
+    MISSING = object()
     BANNED_WORKFLOW_STRINGS = (
         _token("queue.", "fal", ".run"),
         _token("fal", ".ai"),
@@ -132,24 +137,23 @@ class ComfyWorkflowRunner:
     def patched_workflow(self, workflow: dict, schema: dict, inputs, scene) -> dict:
         patched = json.loads(json.dumps(workflow))
         mappings = schema.get("inputs", {})
-        values = self._input_values(inputs, scene)
         for field, targets in mappings.items():
-            if field not in values:
+            value = self._input_value(inputs, scene, field)
+            if value is self.MISSING:
                 continue
             for target in targets:
                 node_id = str(target["node"])
                 input_name = target["input"]
                 if node_id not in patched:
                     raise WorkflowValidationError(f"schema points to missing node {node_id!r}")
-                patched[node_id].setdefault("inputs", {})[input_name] = values[field]
+                patched[node_id].setdefault("inputs", {})[input_name] = value
         return patched
 
     def patch_media_uploads(self, workflow: dict, schema: dict, inputs) -> list[Path]:
         temp_paths: list[Path] = []
-        media_values = self._media_input_values(inputs)
         try:
             for field, targets in self._schema_targets(schema, "uploads"):
-                value = media_values.get(field)
+                value = self._media_input_value(inputs, field)
                 if value is None:
                     continue
                 upload_path, cleanup = self._coerce_media_file(value, field)
@@ -182,11 +186,13 @@ class ComfyWorkflowRunner:
                 "ComfyUI is missing required workflow node classes: " + ", ".join(missing)
             )
 
-    @staticmethod
-    def _input_values(inputs, scene) -> dict:
-        return {
+    @classmethod
+    def _input_value(cls, inputs, scene, field: str):
+        explicit = {
             "prompt": getattr(inputs, "prompt", ""),
             "negative_prompt": getattr(inputs, "neg_prompt", ""),
+            "text_ref": getattr(inputs, "text_ref", ""),
+            "mode": getattr(inputs, "mode", ""),
             "width": int(getattr(inputs, "width", 0) or 0),
             "height": int(getattr(inputs, "height", 0) or 0),
             "frames": int(getattr(inputs, "frames", 0) or 0),
@@ -195,7 +201,66 @@ class ComfyWorkflowRunner:
             "guidance": float(getattr(inputs, "guidance", 0.0) or 0.0),
             "strength": float(getattr(inputs, "strength", 0.0) or 0.0),
             "seed": int(getattr(inputs, "seed", 0) or 0),
+            "batch": int(getattr(inputs, "batch", 1) or 1),
+            "audio_length": float(getattr(inputs, "audio_length", 0.0) or 0.0),
+            "speed": float(getattr(inputs, "speed", 0.0) or 0.0),
+            "exaggeration": float(getattr(inputs, "exaggeration", 0.0) or 0.0),
+            "pace": float(getattr(inputs, "pace", 0.0) or 0.0),
+            "temperature": float(getattr(inputs, "temperature", 0.0) or 0.0),
+            "illumination_style": getattr(inputs, "illumination_style", ""),
+            "light_direction": getattr(inputs, "light_direction", ""),
         }
+        if field in explicit:
+            return explicit[field]
+        value = cls._indexed_or_direct_value(inputs, field)
+        if value is cls.MISSING:
+            return cls._scene_value(scene, field)
+        return value
+
+    @classmethod
+    def _indexed_or_direct_value(cls, inputs, field: str):
+        match = cls.INDEXED_FIELD_RE.match(field)
+        if match:
+            sequence = getattr(inputs, match.group("name"), None)
+            if sequence is None:
+                return cls.MISSING
+            index = int(match.group("bracket") or match.group("dot"))
+            try:
+                value = sequence[index]
+            except (IndexError, TypeError):
+                return cls.MISSING
+            attr = match.group("attr")
+            return cls._extract_indexed_attr(value, attr) if attr else value
+        return getattr(inputs, field, cls.MISSING)
+
+    @classmethod
+    def _extract_indexed_attr(cls, value, attr: str | None):
+        if attr is None:
+            return value
+        if isinstance(value, dict):
+            return value.get(attr, cls.MISSING)
+        if hasattr(value, attr):
+            return getattr(value, attr)
+        if isinstance(value, (list, tuple)):
+            tuple_aliases = {
+                "path": 0,
+                "file": 0,
+                "value": 0,
+                "image": 0,
+                "fraction": 1,
+                "time": 1,
+                "weight": 1,
+            }
+            offset = tuple_aliases.get(attr)
+            if offset is not None and len(value) > offset:
+                return value[offset]
+        return cls.MISSING
+
+    @classmethod
+    def _scene_value(cls, scene, field: str):
+        if scene is None:
+            return cls.MISSING
+        return getattr(scene, field, cls.MISSING)
 
     @staticmethod
     def _set_phase(inputs, label: str) -> None:
@@ -209,17 +274,19 @@ class ComfyWorkflowRunner:
         if progress_fn is not None:
             progress_fn(step, total)
 
-    @staticmethod
-    def _media_input_values(inputs) -> dict:
-        return {
-            "image": getattr(inputs, "image", None),
-            "input_image": getattr(inputs, "image", None),
-            "last_image": getattr(inputs, "last_image", None),
-            "video": getattr(inputs, "video_path", None),
-            "video_path": getattr(inputs, "video_path", None),
-            "audio": getattr(inputs, "audio_ref", None),
-            "audio_ref": getattr(inputs, "audio_ref", None),
+    @classmethod
+    def _media_input_value(cls, inputs, field: str):
+        aliases = {
+            "input_image": "image",
+            "video": "video_path",
+            "audio": "audio_ref",
         }
+        value = cls._indexed_or_direct_value(inputs, aliases.get(field, field))
+        if value is cls.MISSING:
+            return None
+        if isinstance(value, (list, tuple)) and value and isinstance(value[0], (str, Path)):
+            return value[0]
+        return value
 
     @staticmethod
     def _coerce_media_file(value, field: str) -> tuple[Path, bool]:
