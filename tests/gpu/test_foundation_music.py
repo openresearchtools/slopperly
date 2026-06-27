@@ -15,7 +15,7 @@ def test_foundation_music(gpu_cert, plugin_loader, base_models):
 
     module = plugin_loader("audio", "foundation_music")
     plugin = module.FoundationMusicPlugin()
-    output_dir = gpu_cert.artifact_path(LOGICAL_NAME, "foundation1.flac").parent
+    output_dir = gpu_cert.artifact_path(LOGICAL_NAME, "foundation1.wav").parent
     module.solve_path = lambda filename: str(output_dir / filename)
 
     scene = SimpleNamespace(

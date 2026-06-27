@@ -1,0 +1,22 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/foundation1_music_loop/424242_warm_analog_bass_clipped_hous_foundation1.wav",
+  "command": "pytest tests/gpu/test_foundation_music.py::test_foundation_music --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T15:37:20+00:00",
+  "logical_name": "foundation1_music_loop",
+  "metadata": {
+    "output": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/foundation1_music_loop/424242_warm_analog_bass_clipped_hous_foundation1.wav",
+    "runtime_url": "http://127.0.0.1:8190"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "channels": 2,
+    "duration": 9.984580498866213,
+    "format": "WAV",
+    "kind": "audio",
+    "rms": 2850.181327278113,
+    "sample_rate": 44100
+  }
+}

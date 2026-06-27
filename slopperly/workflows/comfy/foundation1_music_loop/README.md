@@ -48,16 +48,17 @@ The legacy plugin ID `tintwotin/Foundation-1-Diffusers` remains a compatibility 
 - Optional scene field `foundation1_unload_after_generate` -> `Foundation1Generate.unload_after_generate`
 - Optional scene field `foundation1_torch_compile` -> `Foundation1Generate.torch_compile`
 - Optional scene field `foundation1_init_noise_level` -> `Foundation1Generate.init_noise_level`
+- Runtime field `foundation1_filename_prefix` -> `SaveAudio.filename_prefix`
 
 The existing plugin UI does expose a negative prompt. The native Foundation-1 Comfy node does not expose separate negative conditioning, so the production wrapper preserves the field by adding it to the structured tags as an avoidance phrase.
 
 ## Output Contract
 
-`SaveAudio` writes one local audio artifact with prefix `slopperly_foundation1`. The plugin copies the first returned artifact to the existing audio-result file path and returns that path to the queue, preserving VSE insertion behavior for a single generated audio file.
+`SaveAudio` writes one local FLAC artifact with a per-invocation `slopperly_foundation1_<seed>_<nonce>` prefix so repeated identical prompts still produce a fresh file. The plugin converts the first returned artifact to the existing `.wav` audio-result file path and returns that path to the queue, preserving VSE insertion behavior for a single generated audio file.
 
 Expected validation:
 
-- file is readable by `ffprobe` or `soundfile`
+- WAV file is readable by `ffprobe` or `soundfile`
 - sample rate is 44100
 - duration matches the selected BPM/bar mapping within tolerance
 - waveform is non-silent

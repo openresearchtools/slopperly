@@ -2884,6 +2884,9 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["2"]["inputs"]["sampler_type"], "k-dpm-fast")
         self.assertEqual(prompt["3"]["class_type"], "SaveAudio")
         self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
+        self.assertTrue(
+            prompt["3"]["inputs"]["filename_prefix"].startswith("slopperly_foundation1_4242_")
+        )
 
     def test_chatterbox_uses_comfy_tts_plugin_path(self):
         module = load_plugin_module("audio", "chatterbox")

@@ -92,6 +92,12 @@
         "node": "2",
         "input": "init_noise_level"
       }
+    ],
+    "foundation1_filename_prefix": [
+      {
+        "node": "3",
+        "input": "filename_prefix"
+      }
     ]
   },
   "uploads": {},
@@ -104,6 +110,6 @@
   "output": {
     "node": "3",
     "type": "audio/flac",
-    "contract": "Return one readable FLAC audio artifact at 44100 Hz with duration matching the selected Foundation-1 BPM/bar mapping within tolerance."
+    "contract": "Comfy SaveAudio returns one readable FLAC artifact at 44100 Hz with duration matching the selected Foundation-1 BPM/bar mapping within tolerance; FoundationMusicPlugin converts that local artifact to a real WAV before returning to the Blender UI path."
   }
 }
