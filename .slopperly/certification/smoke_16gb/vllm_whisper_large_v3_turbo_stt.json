@@ -1,0 +1,33 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/vllm_whisper_large_v3_turbo_stt/transcript.txt",
+  "command": "pytest tests/gpu/test_vllm_stt.py::test_vllm_stt --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T18:28:43+00:00",
+  "logical_name": "vllm_whisper_large_v3_turbo_stt",
+  "metadata": {
+    "runtime_url": "http://127.0.0.1:8090",
+    "source_audio": "/home/user/Documents/Slopperly/tests/fixtures/vllm_stt_hello_local_world.wav",
+    "source_audio_validation": {
+      "channels": 1,
+      "duration": 2.76,
+      "format": "WAV",
+      "kind": "audio",
+      "rms": 4883.239675826595,
+      "sample_rate": 16000
+    }
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "chars": 43,
+    "expected_words": [
+      "hello",
+      "local",
+      "world",
+      "whisper",
+      "test"
+    ],
+    "kind": "text"
+  }
+}

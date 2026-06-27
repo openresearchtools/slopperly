@@ -1254,7 +1254,7 @@ class LocalPluginPathTests(unittest.TestCase):
             with local_only_network():
                 plugin.generate(None, inputs, scene, prefs)
 
-        self.assertIn(b"openai/whisper-large-v3-turbo", RuntimeHandler.transcription_body)
+        self.assertIn(b"local-model", RuntimeHandler.transcription_body)
         self.assertEqual(len(editor.created), 2)
         self.assertEqual(editor.created[0].channel, 2)
         self.assertIn("hello local", editor.created[0].text)

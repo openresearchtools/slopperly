@@ -157,8 +157,19 @@ class LocalRuntimeClientTests(unittest.TestCase):
                 language="en",
             )
         self.assertEqual(result["text"], "hello local world")
-        self.assertIn(b"openai/whisper-large-v3-turbo", RuntimeHandler.last_multipart)
+        self.assertIn(b"local-model", RuntimeHandler.last_multipart)
         self.assertIn(b'name="file"; filename="speech.wav"', RuntimeHandler.last_multipart)
+
+    def test_vllm_stt_preserves_explicit_model_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            wav_path = Path(tmp) / "speech.wav"
+            _tiny_wav(wav_path)
+            VllmSttClient(self.base_url).transcribe(
+                str(wav_path),
+                model="custom/whisper",
+                language="en",
+            )
+        self.assertIn(b"custom/whisper", RuntimeHandler.last_multipart)
 
     def test_vllm_vlm_posts_local_video_chat(self):
         with tempfile.TemporaryDirectory() as tmp:

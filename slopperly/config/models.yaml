@@ -730,6 +730,11 @@ models:
     default_parameters:
       language: auto
       response_format: verbose_json
+      served_model_name: openai/whisper-large-v3-turbo
+      max_num_batched_tokens: 2048
+      gpu_memory_utilization: 0.35
+      max_num_seqs: 1
+      enforce_eager: true
     minimum_vram_gb: 16
     validation_command: pytest tests/gpu/test_vllm_stt.py --device cuda
     workflows:

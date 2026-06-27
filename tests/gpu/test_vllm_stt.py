@@ -1,6 +1,6 @@
 from slopperly.audit.network_guard import local_only_network
 from slopperly.runtime.errors import RuntimeUnavailableError
-from slopperly.validation.artifacts import ArtifactValidationError, validate_text
+from slopperly.validation.artifacts import ArtifactValidationError, validate_audio, validate_text
 
 
 LOGICAL_NAME = "vllm_whisper_large_v3_turbo_stt"
@@ -11,8 +11,13 @@ def test_vllm_stt(gpu_cert, plugin_loader, base_models, repo_root, sequence_scen
     runtime_url = gpu_cert.require_runtime(LOGICAL_NAME, "vllm")
     audio_path = gpu_cert.require_file(
         LOGICAL_NAME,
-        repo_root / "Voices" / "Reading_Female_Girl_Emma.wav",
-        "speech WAV fixture",
+        repo_root / "tests" / "fixtures" / "vllm_stt_hello_local_world.wav",
+        "known speech WAV fixture",
+    )
+    audio_validation = validate_audio(
+        str(audio_path),
+        expected_sample_rate=16000,
+        require_non_silent=True,
     )
     module = plugin_loader("text", "faster_whisper_transcribe")
     plugin = module.FasterWhisperTranscribePlugin()
@@ -37,6 +42,14 @@ def test_vllm_stt(gpu_cert, plugin_loader, base_models, repo_root, sequence_scen
             max_chars=20000,
             forbidden_fragments=["provider error", "connection refused"],
         )
+        transcript_lower = transcript.lower()
+        expected_words = ["hello", "local", "world", "whisper", "test"]
+        missing = [word for word in expected_words if word not in transcript_lower]
+        if missing:
+            raise ArtifactValidationError(
+                f"transcript missing expected words {missing}: {transcript!r}"
+            )
+        validation["expected_words"] = expected_words
     except RuntimeUnavailableError as exc:
         gpu_cert.block(LOGICAL_NAME, f"vLLM STT plugin path runtime error: {exc}")
     except ArtifactValidationError as exc:
@@ -48,5 +61,9 @@ def test_vllm_stt(gpu_cert, plugin_loader, base_models, repo_root, sequence_scen
         LOGICAL_NAME,
         artifact,
         validation,
-        metadata={"runtime_url": runtime_url, "source_audio": str(audio_path)},
+        metadata={
+            "runtime_url": runtime_url,
+            "source_audio": str(audio_path),
+            "source_audio_validation": audio_validation,
+        },
     )

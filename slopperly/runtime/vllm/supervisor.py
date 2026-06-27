@@ -43,6 +43,7 @@ class VllmSupervisor:
         served_model_name: str | None = None,
         download_dir: str | Path | None = None,
         max_model_len: int | None = None,
+        max_num_batched_tokens: int | None = None,
         gpu_memory_utilization: float | None = None,
         cpu_offload_gb: float | None = None,
         max_num_seqs: int | None = None,
@@ -71,6 +72,8 @@ class VllmSupervisor:
             command.extend(["--download-dir", str(Path(download_dir).resolve())])
         if max_model_len is not None:
             command.extend(["--max-model-len", str(int(max_model_len))])
+        if max_num_batched_tokens is not None:
+            command.extend(["--max-num-batched-tokens", str(int(max_num_batched_tokens))])
         if gpu_memory_utilization is not None:
             command.extend(["--gpu-memory-utilization", str(float(gpu_memory_utilization))])
         if cpu_offload_gb is not None:

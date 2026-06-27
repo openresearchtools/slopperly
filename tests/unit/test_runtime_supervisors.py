@@ -50,6 +50,29 @@ class RuntimeSupervisorTests(unittest.TestCase):
         allowed_idx = command.index("--allowed-local-media-path") + 1
         self.assertEqual(command[allowed_idx], str(Path(".").resolve()))
 
+    def test_vllm_launch_accepts_stt_profile_flags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            venv = Path(tmp) / "vllm-venv"
+            make_executable(venv / "bin/python")
+            supervisor = VllmSupervisor(venv=venv, url="http://127.0.0.1:8090")
+            command = supervisor.launch_command(
+                "openai/whisper-large-v3-turbo",
+                served_model_name="openai/whisper-large-v3-turbo",
+                max_num_batched_tokens=2048,
+                gpu_memory_utilization=0.35,
+                max_num_seqs=1,
+                enforce_eager=True,
+            )
+        self.assertIn("--served-model-name", command)
+        self.assertIn("openai/whisper-large-v3-turbo", command)
+        self.assertIn("--max-num-batched-tokens", command)
+        self.assertIn("2048", command)
+        self.assertIn("--gpu-memory-utilization", command)
+        self.assertIn("0.35", command)
+        self.assertIn("--max-num-seqs", command)
+        self.assertIn("1", command)
+        self.assertIn("--enforce-eager", command)
+
     def test_vllm_launch_accepts_multimodal_profile_flags(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

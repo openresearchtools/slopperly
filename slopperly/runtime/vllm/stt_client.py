@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from ..errors import RuntimeUnavailableError
 from ..http_utils import LocalHttpClient, file_part
+
+DEFAULT_STT_MODEL = "openai/whisper-large-v3-turbo"
 
 
 class VllmSttClient:
@@ -16,16 +19,29 @@ class VllmSttClient:
     def health(self) -> dict:
         return self.http.get_json("/v1/models")
 
+    def served_model_id(self, requested_model: str) -> str:
+        """Use vLLM's single advertised local-path ID for the default STT model."""
+        try:
+            models = self.health().get("data", [])
+        except RuntimeUnavailableError:
+            return requested_model
+        served_ids = [str(item.get("id")) for item in models if item.get("id")]
+        if requested_model in served_ids:
+            return requested_model
+        if requested_model == DEFAULT_STT_MODEL and len(served_ids) == 1:
+            return served_ids[0]
+        return requested_model
+
     def transcribe(
         self,
         audio_path: str,
         *,
-        model: str = "openai/whisper-large-v3-turbo",
+        model: str = DEFAULT_STT_MODEL,
         language: str | None = None,
         response_format: str = "verbose_json",
     ) -> dict:
         fields = {
-            "model": model,
+            "model": self.served_model_id(model),
             "response_format": response_format,
         }
         if language:
