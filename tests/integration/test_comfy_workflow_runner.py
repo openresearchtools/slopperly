@@ -2146,16 +2146,6 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             destination = Path(tmp) / "ernie.png"
             runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
-            sampling = {
-                "sampling_mode": "on",
-                "temperature": 0.6,
-                "top_k": 64,
-                "top_p": 0.8,
-                "min_p": 0.05,
-                "repetition_penalty": 1.05,
-                "presence_penalty": 0.0,
-                "seed": 3101,
-            }
             inputs = SimpleNamespace(
                 neg_prompt="text, watermark",
                 width=1024,
@@ -2174,7 +2164,14 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 ernie_denoise=1.0,
                 ernie_prompt_request="enhance local ERNIE base prompt",
                 ernie_textgen_max_length=2048,
-                ernie_textgen_sampling_mode=sampling,
+                ernie_textgen_sampling_mode="on",
+                ernie_textgen_temperature=0.6,
+                ernie_textgen_top_k=64,
+                ernie_textgen_top_p=0.8,
+                ernie_textgen_min_p=0.05,
+                ernie_textgen_repetition_penalty=1.05,
+                ernie_textgen_presence_penalty=0.0,
+                ernie_textgen_seed=3101,
                 ernie_textgen_thinking=False,
                 ernie_textgen_use_default_template=True,
             )
@@ -2199,7 +2196,9 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["3"]["inputs"]["vae_name"], "flux2-vae.safetensors")
         self.assertEqual(prompt["4"]["inputs"]["clip_name"], "ernie-image-prompt-enhancer.safetensors")
         self.assertEqual(prompt["5"]["inputs"]["prompt"], "enhance local ERNIE base prompt")
-        self.assertEqual(prompt["5"]["inputs"]["sampling_mode"], sampling)
+        self.assertEqual(prompt["5"]["inputs"]["sampling_mode"], "on")
+        self.assertEqual(prompt["5"]["inputs"]["sampling_mode.seed"], 3101)
+        self.assertEqual(prompt["5"]["inputs"]["sampling_mode.temperature"], 0.6)
         self.assertEqual(prompt["6"]["inputs"]["text"], ["5", 0])
         self.assertEqual(prompt["7"]["inputs"]["text"], "text, watermark")
         self.assertEqual(prompt["8"]["inputs"]["width"], 1024)
@@ -2220,7 +2219,7 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
             inputs.seed = 3201
             inputs.steps = 8
             inputs.guidance = 1.0
-            inputs.ernie_textgen_sampling_mode = {**sampling, "seed": 3201}
+            inputs.ernie_textgen_seed = 3201
 
             with local_only_network():
                 result = runner.run_pack(
@@ -2237,7 +2236,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         prompt = ComfyHandler.last_prompt
         self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image-turbo.safetensors")
         self.assertEqual(prompt["5"]["inputs"]["prompt"], "enhance local ERNIE turbo prompt")
-        self.assertEqual(prompt["5"]["inputs"]["sampling_mode"]["seed"], 3201)
+        self.assertEqual(prompt["5"]["inputs"]["sampling_mode"], "on")
+        self.assertEqual(prompt["5"]["inputs"]["sampling_mode.seed"], 3201)
         self.assertEqual(prompt["7"]["class_type"], "ConditioningZeroOut")
         self.assertEqual(prompt["7"]["inputs"]["conditioning"], ["6", 0])
         self.assertEqual(prompt["9"]["inputs"]["seed"], 3201)

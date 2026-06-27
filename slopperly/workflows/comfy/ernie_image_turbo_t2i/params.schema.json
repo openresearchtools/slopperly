@@ -53,6 +53,48 @@
         "input": "sampling_mode"
       }
     ],
+    "ernie_textgen_temperature": [
+      {
+        "node": "5",
+        "input": "sampling_mode.temperature"
+      }
+    ],
+    "ernie_textgen_top_k": [
+      {
+        "node": "5",
+        "input": "sampling_mode.top_k"
+      }
+    ],
+    "ernie_textgen_top_p": [
+      {
+        "node": "5",
+        "input": "sampling_mode.top_p"
+      }
+    ],
+    "ernie_textgen_min_p": [
+      {
+        "node": "5",
+        "input": "sampling_mode.min_p"
+      }
+    ],
+    "ernie_textgen_repetition_penalty": [
+      {
+        "node": "5",
+        "input": "sampling_mode.repetition_penalty"
+      }
+    ],
+    "ernie_textgen_presence_penalty": [
+      {
+        "node": "5",
+        "input": "sampling_mode.presence_penalty"
+      }
+    ],
+    "ernie_textgen_seed": [
+      {
+        "node": "5",
+        "input": "sampling_mode.seed"
+      }
+    ],
     "ernie_textgen_thinking": [
       {
         "node": "5",

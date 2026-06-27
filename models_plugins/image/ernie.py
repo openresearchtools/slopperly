@@ -73,16 +73,14 @@ def _prepare_ernie_inputs(inputs: ModelInputs, *, model_name: str, use_prompt_en
     inputs.ernie_denoise = 1.0
     inputs.ernie_prompt_request = _prompt_enhancement_request(inputs)
     inputs.ernie_textgen_max_length = 2048
-    inputs.ernie_textgen_sampling_mode = {
-        "sampling_mode": "on" if use_prompt_enhancer else "off",
-        "temperature": 0.6,
-        "top_k": 64,
-        "top_p": 0.8,
-        "min_p": 0.05,
-        "repetition_penalty": 1.05,
-        "presence_penalty": 0.0,
-        "seed": int(inputs.seed or 0),
-    }
+    inputs.ernie_textgen_sampling_mode = "on" if use_prompt_enhancer else "off"
+    inputs.ernie_textgen_temperature = 0.6
+    inputs.ernie_textgen_top_k = 64
+    inputs.ernie_textgen_top_p = 0.8
+    inputs.ernie_textgen_min_p = 0.05
+    inputs.ernie_textgen_repetition_penalty = 1.05
+    inputs.ernie_textgen_presence_penalty = 0.0
+    inputs.ernie_textgen_seed = int(inputs.seed or 0)
     inputs.ernie_textgen_thinking = False
     inputs.ernie_textgen_use_default_template = True
 
