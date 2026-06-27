@@ -23,6 +23,9 @@ class LlamaCppClient:
         except RuntimeUnavailableError:
             return self.http.get_json("/v1/models")
 
+    def props(self) -> dict:
+        return self.http.get_json("/props")
+
     def chat(
         self,
         messages: list[dict],
@@ -42,14 +45,29 @@ class LlamaCppClient:
         }
         if model:
             payload["model"] = model
+        runtime_props = self._props_or_empty()
         resp = self.http.post_json("/v1/chat/completions", payload)
         text = self._extract_text(resp)
+        served_context = _served_context_length(runtime_props)
         diagnostics = {
             "requested_context_length": context_length,
             "requested_max_new_tokens": max_new_tokens,
+            "served_context_length": served_context,
             "usage": resp.get("usage") if isinstance(resp, dict) else None,
         }
+        if served_context is not None and served_context < context_length:
+            diagnostics["context_fallback"] = (
+                f"llama.cpp served n_ctx={served_context} after Slopperly requested "
+                f"n_ctx={context_length}; model/runtime capped the context window."
+            )
         return text, diagnostics
+
+    def _props_or_empty(self) -> dict:
+        try:
+            props = self.props()
+        except RuntimeUnavailableError:
+            return {}
+        return props if isinstance(props, dict) else {}
 
     @staticmethod
     def _extract_text(resp: dict) -> str:
@@ -63,3 +81,21 @@ class LlamaCppClient:
         except Exception as exc:
             raise RuntimeUnavailableError(f"llama.cpp response parse failed: {exc}") from exc
         raise RuntimeUnavailableError(f"llama.cpp returned no text: {resp}")
+
+
+def _served_context_length(props: dict) -> int | None:
+    settings = props.get("default_generation_settings") if isinstance(props, dict) else None
+    if isinstance(settings, dict):
+        try:
+            return int(settings.get("n_ctx"))
+        except (TypeError, ValueError):
+            pass
+    data = props.get("data") if isinstance(props, dict) else None
+    if isinstance(data, list) and data:
+        meta = data[0].get("meta") if isinstance(data[0], dict) else None
+        if isinstance(meta, dict):
+            try:
+                return int(meta.get("n_ctx"))
+            except (TypeError, ValueError):
+                pass
+    return None

@@ -122,6 +122,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path in {"/health", "/v1/models"}:
             return self._json({"data": [{"id": "local-model"}], "status": "ok"})
+        if self.path == "/props":
+            return self._json({"default_generation_settings": {"n_ctx": 32768}})
         if self.path == "/object_info":
             return self._json({
                 "LoadImage": {},
@@ -1155,6 +1157,7 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(RuntimeHandler.chat_payload["n_ctx"], 60000)
         self.assertEqual(RuntimeHandler.chat_payload["n_predict"], 30000)
         self.assertIn("llama.cpp usage", inputs.usage_note)
+        self.assertIn("n_ctx=32768", inputs.usage_note)
 
     def test_omnivoice_generate_uses_vllm_omni_plugin_path(self):
         module = load_plugin_module("audio", "omnivoice")

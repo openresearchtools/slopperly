@@ -141,6 +141,12 @@ class RuntimeSupervisorTests(unittest.TestCase):
         self.assertIn("60000", command)
         self.assertIn("--n-predict", command)
         self.assertIn("30000", command)
+        self.assertIn("--n-gpu-layers", command)
+        self.assertIn("999", command)
+        self.assertIn("--flash-attn", command)
+        self.assertIn("on", command)
+        self.assertIn("--parallel", command)
+        self.assertIn("1", command)
         self.assertIn(str(model), command)
 
 

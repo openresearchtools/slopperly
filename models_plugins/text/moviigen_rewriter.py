@@ -45,7 +45,12 @@ class MoviiGenRewriterPlugin(ModelPlugin):
         )
         text = remove_duplicate_phrases(text)
         usage = diagnostics.get("usage") or {}
+        notes = []
         if usage:
-            inputs.usage_note = f"llama.cpp usage: {usage}"
+            notes.append(f"llama.cpp usage: {usage}")
+        if diagnostics.get("context_fallback"):
+            notes.append(str(diagnostics["context_fallback"]))
+        if notes:
+            inputs.usage_note = "; ".join(notes)
         print("MoviiGen enhanced prompt:", text)
         return text

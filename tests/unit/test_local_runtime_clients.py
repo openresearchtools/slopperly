@@ -46,6 +46,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/v1/models":
             return self._json({"data": [{"id": "local-model"}]})
+        if self.path == "/props":
+            return self._json({"default_generation_settings": {"n_ctx": 32768}})
         if self.path == "/health":
             return self._json({"status": "ok"})
         self.send_response(404)
@@ -146,6 +148,8 @@ class LocalRuntimeClientTests(unittest.TestCase):
         self.assertEqual(RuntimeHandler.last_json["n_ctx"], 60000)
         self.assertEqual(RuntimeHandler.last_json["n_predict"], 30000)
         self.assertEqual(diagnostics["usage"]["completion_tokens"], 8)
+        self.assertEqual(diagnostics["served_context_length"], 32768)
+        self.assertIn("model/runtime capped", diagnostics["context_fallback"])
 
     def test_vllm_stt_posts_audio_multipart(self):
         with tempfile.TemporaryDirectory() as tmp:

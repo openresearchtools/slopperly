@@ -39,6 +39,9 @@ class LlamaCppSupervisor:
         *,
         context_length: int = 60000,
         max_new_tokens: int = 30000,
+        gpu_layers: int = 999,
+        flash_attention: str = "on",
+        parallel: int = 1,
     ) -> list[str]:
         host, port = local_host_port(self.url, default_port=8092, label="llama.cpp")
         return [
@@ -53,6 +56,12 @@ class LlamaCppSupervisor:
             str(context_length),
             "--n-predict",
             str(max_new_tokens),
+            "--n-gpu-layers",
+            str(gpu_layers),
+            "--flash-attn",
+            flash_attention,
+            "--parallel",
+            str(parallel),
         ]
 
     def preflight(self, model_path: str) -> list[InstallStep]:

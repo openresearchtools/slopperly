@@ -1,0 +1,24 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/llamacpp_prompt_rewriter/prompt_rewrite.txt",
+  "command": "pytest tests/gpu/test_llamacpp_prompt_rewrite.py::test_llamacpp_prompt_rewrite --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T18:49:03+00:00",
+  "logical_name": "llamacpp_prompt_rewriter",
+  "metadata": {
+    "runtime_url": "http://127.0.0.1:8092",
+    "usage_note": "llama.cpp usage: {'completion_tokens': 52, 'prompt_tokens': 64, 'total_tokens': 116, 'prompt_tokens_details': {'cached_tokens': 3}}; llama.cpp served n_ctx=32768 after Slopperly requested n_ctx=60000; model/runtime capped the context window."
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "chars": 242,
+    "context_fallback_recorded": true,
+    "expected_concepts": [
+      "train",
+      "station",
+      "robot"
+    ],
+    "kind": "text"
+  }
+}

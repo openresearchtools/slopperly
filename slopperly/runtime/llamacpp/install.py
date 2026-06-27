@@ -33,9 +33,10 @@ def select_release_asset(release_data: dict, artifact: str) -> dict | None:
     if not isinstance(assets, list):
         return None
     wanted = normalize_asset_name(artifact)
+    wanted_tokens = [token for token in wanted.split("-") if token]
     matches = [
         asset for asset in assets
-        if wanted in normalize_asset_name(str(asset.get("name", "")))
+        if asset_matches(normalize_asset_name(str(asset.get("name", ""))), wanted, wanted_tokens)
     ]
     if not matches:
         return None
@@ -48,6 +49,13 @@ def select_release_asset(release_data: dict, artifact: str) -> dict | None:
 
 def normalize_asset_name(value: str) -> str:
     return value.lower().replace("_", "-").replace(".", "-")
+
+
+def asset_matches(normalized_name: str, wanted: str, wanted_tokens: list[str]) -> bool:
+    if wanted in normalized_name:
+        return True
+    name_tokens = {token for token in normalized_name.split("-") if token}
+    return bool(wanted_tokens) and all(token in name_tokens for token in wanted_tokens)
 
 
 def fetch_release_asset_url(release: str, artifact: str) -> tuple[str | None, str]:

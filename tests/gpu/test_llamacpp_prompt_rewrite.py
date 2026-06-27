@@ -28,6 +28,19 @@ def test_llamacpp_prompt_rewrite(gpu_cert, plugin_loader, base_models):
             max_chars=20000,
             forbidden_fragments=["provider error", "connection refused"],
         )
+        lowered = result.lower()
+        missing = [term for term in ["train", "station", "robot"] if term not in lowered]
+        if missing:
+            raise ArtifactValidationError(
+                f"llama.cpp rewrite dropped expected prompt concepts {missing}: {result!r}"
+            )
+        validation["expected_concepts"] = ["train", "station", "robot"]
+        usage_note = getattr(inputs, "usage_note", "")
+        if "n_ctx=32768" not in usage_note:
+            raise ArtifactValidationError(
+                f"llama.cpp context fallback diagnostic missing from usage_note: {usage_note!r}"
+            )
+        validation["context_fallback_recorded"] = True
     except RuntimeUnavailableError as exc:
         gpu_cert.block(LOGICAL_NAME, f"llama.cpp plugin path runtime error: {exc}")
     except ArtifactValidationError as exc:

@@ -153,11 +153,28 @@ class RuntimeInstallerTests(unittest.TestCase):
                     "name": "llama.cpp-b9803-ubuntu-x64-cuda13.tar.gz",
                     "browser_download_url": "https://example.invalid/cuda.tar.gz",
                 },
+                {
+                    "name": "llama-b9803-bin-ubuntu-cuda13-x64.tar.gz",
+                    "browser_download_url": "https://example.invalid/cuda-real.tar.gz",
+                },
             ]
         }
         asset = select_release_asset(release_data, "ubuntu-x64-cuda13")
         self.assertIsNotNone(asset)
         self.assertEqual(asset["browser_download_url"], "https://example.invalid/cuda.tar.gz")
+
+    def test_llamacpp_selects_reordered_cuda_archive_asset(self):
+        release_data = {
+            "assets": [
+                {
+                    "name": "llama-b9803-bin-ubuntu-cuda13-x64.tar.gz",
+                    "browser_download_url": "https://example.invalid/cuda-real.tar.gz",
+                }
+            ]
+        }
+        asset = select_release_asset(release_data, "ubuntu-x64-cuda13")
+        self.assertIsNotNone(asset)
+        self.assertEqual(asset["browser_download_url"], "https://example.invalid/cuda-real.tar.gz")
 
     def test_llamacpp_dry_run_does_not_query_network(self):
         with tempfile.TemporaryDirectory() as tmp:

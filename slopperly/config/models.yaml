@@ -1591,6 +1591,11 @@ models:
       max_new_tokens_default: 30000
     default_parameters:
       temperature: 0.7
+      context_length: 60000
+      max_new_tokens: 30000
+      gpu_layers: 999
+      flash_attention: "on"
+      parallel: 1
     minimum_vram_gb: 16
     validation_command: pytest tests/gpu/test_llamacpp_prompt_rewrite.py --device cuda
     workflows:
