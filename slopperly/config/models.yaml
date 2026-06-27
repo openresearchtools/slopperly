@@ -364,6 +364,45 @@ models:
     workflows:
       - foundation1_music_loop
       - audio/foundation_music.py
+  - logical_name: chatterbox_tts_vc_comfy
+    legacy_aliases:
+      - Chatterbox
+    task: tts_voice_clone
+    runtime: comfy
+    model_source: https://huggingface.co/ResembleAI/chatterbox
+    download_mode: hf_snapshot
+    local_cache_path: models/chatterbox/chatterbox
+    required_files:
+      - ve.safetensors
+      - t3_cfg.safetensors
+      - s3gen.safetensors
+      - tokenizer.json
+      - conds.pt
+    auxiliary_sources:
+      - id: chatterbox_vc
+        model_source: https://huggingface.co/ResembleAI/chatterbox
+        download_mode: hf_snapshot
+        local_cache_path: models/chatterbox/chatterbox_vc
+        required_files:
+          - s3gen.pt
+          - conds.pt
+    required_node_pack: comfyui_chatterbox + comfyui core audio
+    supported_resolutions: []
+    supported_fps: []
+    context_limits: {}
+    default_parameters:
+      sample_rate: 24000
+      exaggeration: 0.5
+      cfg_weight: 0.5
+      temperature: 0.8
+      keep_model_loaded: false
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_chatterbox.py --device cuda
+    workflows:
+      - chatterbox_tts_comfy
+      - chatterbox_tts_vc_comfy
+      - chatterbox_vc_comfy
+      - audio/chatterbox.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter

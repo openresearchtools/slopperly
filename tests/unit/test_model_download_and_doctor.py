@@ -60,6 +60,8 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertIn(("stable_audio_3_medium_base", "PLAN"), statuses)
         self.assertIn(("ace_step_15_music", "PLAN"), statuses)
         self.assertIn(("foundation1_music_loop", "PLAN"), statuses)
+        self.assertIn(("chatterbox_tts_vc_comfy", "PLAN"), statuses)
+        self.assertIn(("chatterbox_tts_vc_comfy:chatterbox_vc", "PLAN"), statuses)
         self.assertIn(("llamacpp_prompt_rewriter", "PLAN"), statuses)
         self.assertIn(("omnivoice_vllm_omni", "PLAN"), statuses)
         self.assertIn(("moss_tts_nano_vllm_omni", "PLAN"), statuses)

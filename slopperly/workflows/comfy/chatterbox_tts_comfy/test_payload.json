@@ -1,0 +1,8 @@
+{
+  "prompt": "A calm local Chatterbox voice confirms the workflow is running.",
+  "audio_length": 2.0,
+  "exaggeration": 0.5,
+  "pace": 0.5,
+  "temperature": 0.8,
+  "seed": 1234
+}

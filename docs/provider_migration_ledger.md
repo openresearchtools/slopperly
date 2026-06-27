@@ -649,3 +649,32 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with ComfyUI-Foundation-1, core `SaveAudio`, `Foundation_1.safetensors`, and `model_config.json` installed in `models/stable_audio/Foundation-1/`.
+
+## 2026-06-27 Chatterbox Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/audio/chatterbox.py` now routes the legacy `Chatterbox` TTS/VC path through the local Comfy gateway instead of importing Torch, Torchaudio, `chatterbox.tts`, `chatterbox.vc`, or spaCy in the add-on process.
+- The existing audio plugin contract is preserved for prompt, reference audio, chat params (`exaggeration`, `pace`, `temperature`), seed, and returned artifact path.
+- When a reference audio file is supplied, the wrapper uses Chatterbox zero-shot reference TTS through `FL_ChatterboxTTS.audio_prompt`.
+- When the legacy voice-clone mode is selected from one sound strip, the wrapper uses a local `FL_ChatterboxVC` compatibility graph that wires the single legacy audio picker to both `input_audio` and `target_voice`, and records the limitation in `inputs.usage_note` and the workflow schema.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/chatterbox_tts_comfy/`, `slopperly/workflows/comfy/chatterbox_tts_vc_comfy/`, and `slopperly/workflows/comfy/chatterbox_vc_comfy/` with editable/API workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- The TTS workflows use `FL_ChatterboxTTS -> SaveAudio`, with optional `LoadAudio` feeding `audio_prompt` for reference voice generation.
+- The VC compatibility workflow uses `LoadAudio -> FL_ChatterboxVC -> SaveAudio`.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` so the Chatterbox node pack asserts exact `/object_info` class keys: `FL_ChatterboxTTS`, `FL_ChatterboxTurboTTS`, `FL_ChatterboxMultilingualTTS`, `FL_ChatterboxVC`, and `FL_ChatterboxDialogTTS`.
+- Registered `chatterbox_tts_vc_comfy` in `slopperly/config/models.yaml` with legacy alias `Chatterbox`, Hugging Face artifact source `ResembleAI/chatterbox`, and an auxiliary VC artifact source for `s3gen.pt` and `conds.pt`.
+
+### Verification
+
+- Integration coverage calls `ChatterboxPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies plain TTS, reference TTS upload/patching, and VC compatibility graph patching plus FLAC artifact collection.
+- Workflow-runner integration coverage verifies the committed `chatterbox_tts_vc_comfy` pack uploads WAV input and collects one Comfy audio artifact, and verifies `chatterbox_vc_comfy` wires the single legacy audio upload to both VC inputs.
+- GPU certification coverage is registered in `tests/gpu/test_chatterbox.py` and validates a 24 kHz non-silent FLAC artifact when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with ComfyUI_Fill-ChatterBox, core `LoadAudio`/`SaveAudio`, `ve.safetensors`, `t3_cfg.safetensors`, `s3gen.safetensors`, `tokenizer.json`, and `conds.pt` installed under `models/chatterbox/chatterbox/`.
+- True cross-speaker Chatterbox VC remains blocked until the UI/runtime contract carries a separate target voice audio path for `FL_ChatterboxVC.target_voice`; the committed compatibility graph is local-only and non-breaking for the current one-audio UI.

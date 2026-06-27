@@ -1,0 +1,34 @@
+{
+  "1": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": "source_and_target_voice.wav"
+    }
+  },
+  "2": {
+    "class_type": "FL_ChatterboxVC",
+    "inputs": {
+      "input_audio": [
+        "1",
+        0
+      ],
+      "target_voice": [
+        "1",
+        0
+      ],
+      "seed": 0,
+      "use_cpu": false,
+      "keep_model_loaded": false
+    }
+  },
+  "3": {
+    "class_type": "SaveAudio",
+    "inputs": {
+      "audio": [
+        "2",
+        0
+      ],
+      "filename_prefix": "slopperly_chatterbox_vc"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+workflow_id: chatterbox_vc_comfy
+runtime: comfy
+required_custom_nodes:
+  - id: chatterbox
+    repo: https://github.com/filliptm/ComfyUI_Fill-ChatterBox.git
+    commit: 596850bc61665e9318914841b41ee4154253f020
+    node_classes:
+      - FL_ChatterboxVC
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    node_classes:
+      - LoadAudio
+      - SaveAudio
+model_files:
+  - source: https://huggingface.co/ResembleAI/chatterbox
+    download_mode: hf_snapshot
+    files:
+      - path: s3gen.pt
+        target: models/chatterbox/chatterbox_vc/s3gen.pt
+      - path: conds.pt
+        target: models/chatterbox/chatterbox_vc/conds.pt
+artifact_contract:
+  type: audio/flac
+  sample_rate: 24000
+  non_silent: true
+  output_shape: single artifact path

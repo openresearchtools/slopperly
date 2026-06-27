@@ -1,0 +1,54 @@
+{
+  "last_node_id": 3,
+  "last_link_id": 2,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadAudio",
+      "title": "Reference voice audio",
+      "widgets_values": [
+        "speaker_reference.wav"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "FL_ChatterboxTTS",
+      "title": "Chatterbox reference TTS",
+      "widgets_values": [
+        "",
+        0.5,
+        0.5,
+        0.8,
+        0,
+        false,
+        false
+      ]
+    },
+    {
+      "id": 3,
+      "type": "SaveAudio",
+      "title": "Save Chatterbox reference audio",
+      "widgets_values": [
+        "slopperly_chatterbox_ref"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "AUDIO"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      0,
+      "AUDIO"
+    ]
+  ]
+}

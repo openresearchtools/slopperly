@@ -152,6 +152,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "MMAudioVoCoderLoader": {},
                 "Foundation1ModelLoader": {},
                 "Foundation1Generate": {},
+                "FL_ChatterboxTTS": {},
+                "FL_ChatterboxVC": {},
             })
         if self.path.startswith("/view"):
             if ".mp4" in self.path:
@@ -259,6 +261,52 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "audio": [
                                     {
                                         "filename": "slopperly_foundation1_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "FL_ChatterboxVC"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "3": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_chatterbox_vc_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "FL_ChatterboxTTS"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                output_node = "3" if "3" in RuntimeHandler.comfy_prompt else "2"
+                filename = (
+                    "slopperly_chatterbox_ref_00001_.flac"
+                    if output_node == "3"
+                    else "slopperly_chatterbox_00001_.flac"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "audio": [
+                                    {
+                                        "filename": filename,
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -948,6 +996,106 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["2"]["inputs"]["cfg_scale"], 6.5)
         self.assertEqual(prompt["2"]["inputs"]["seed"], 4242)
         self.assertEqual(prompt["2"]["inputs"]["sampler_type"], "k-dpm-fast")
+        self.assertEqual(prompt["3"]["class_type"], "SaveAudio")
+        self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
+
+    def test_chatterbox_uses_comfy_tts_plugin_path(self):
+        module = load_plugin_module("audio", "chatterbox")
+        plugin = module.ChatterboxPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(chatterbox_keep_model_loaded=True)
+            inputs = self.base.ModelInputs(
+                prompt="local chatterbox narration",
+                audio_length=2.0,
+                exaggeration=0.65,
+                pace=0.35,
+                temperature=0.9,
+                seed=5150,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["class_type"], "FL_ChatterboxTTS")
+        self.assertEqual(prompt["1"]["inputs"]["text"], "local chatterbox narration")
+        self.assertEqual(prompt["1"]["inputs"]["exaggeration"], 0.65)
+        self.assertEqual(prompt["1"]["inputs"]["cfg_weight"], 0.35)
+        self.assertEqual(prompt["1"]["inputs"]["temperature"], 0.9)
+        self.assertEqual(prompt["1"]["inputs"]["seed"], 5150)
+        self.assertTrue(prompt["1"]["inputs"]["keep_model_loaded"])
+        self.assertEqual(prompt["2"]["class_type"], "SaveAudio")
+        self.assertEqual(prompt["2"]["inputs"]["audio"], ["1", 0])
+
+    def test_chatterbox_uses_comfy_reference_tts_plugin_path(self):
+        module = load_plugin_module("audio", "chatterbox")
+        plugin = module.ChatterboxPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            wav_path = Path(tmp) / "speaker.wav"
+            _tiny_wav(wav_path)
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(chatterbox_use_cpu=False)
+            inputs = self.base.ModelInputs(
+                prompt="match the supplied local reference",
+                audio_ref=str(wav_path),
+                exaggeration=0.55,
+                pace=0.45,
+                temperature=0.75,
+                seed=6160,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["class_type"], "LoadAudio")
+        self.assertEqual(prompt["1"]["inputs"]["audio"], "uploaded_audio.wav")
+        self.assertEqual(prompt["2"]["class_type"], "FL_ChatterboxTTS")
+        self.assertEqual(prompt["2"]["inputs"]["audio_prompt"], ["1", 0])
+        self.assertEqual(prompt["2"]["inputs"]["text"], "match the supplied local reference")
+        self.assertEqual(prompt["2"]["inputs"]["seed"], 6160)
+        self.assertEqual(prompt["3"]["class_type"], "SaveAudio")
+        self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
+        self.assertIn(b'name="image"; filename="speaker.wav"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_chatterbox_voice_clone_uses_comfy_vc_plugin_path(self):
+        module = load_plugin_module("audio", "chatterbox")
+        plugin = module.ChatterboxPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            wav_path = Path(tmp) / "source.wav"
+            _tiny_wav(wav_path)
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace()
+            inputs = self.base.ModelInputs(
+                audio_ref=str(wav_path),
+                is_voice_clone=True,
+                seed=7170,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["class_type"], "LoadAudio")
+        self.assertEqual(prompt["1"]["inputs"]["audio"], "uploaded_audio.wav")
+        self.assertEqual(prompt["2"]["class_type"], "FL_ChatterboxVC")
+        self.assertEqual(prompt["2"]["inputs"]["input_audio"], ["1", 0])
+        self.assertEqual(prompt["2"]["inputs"]["target_voice"], ["1", 0])
+        self.assertEqual(prompt["2"]["inputs"]["seed"], 7170)
+        self.assertIn("legacy single audio picker", inputs.usage_note)
         self.assertEqual(prompt["3"]["class_type"], "SaveAudio")
         self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
 

@@ -1,0 +1,32 @@
+workflow_id: chatterbox_tts_comfy
+runtime: comfy
+required_custom_nodes:
+  - id: chatterbox
+    repo: https://github.com/filliptm/ComfyUI_Fill-ChatterBox.git
+    commit: 596850bc61665e9318914841b41ee4154253f020
+    node_classes:
+      - FL_ChatterboxTTS
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    node_classes:
+      - SaveAudio
+model_files:
+  - source: https://huggingface.co/ResembleAI/chatterbox
+    download_mode: hf_snapshot
+    files:
+      - path: ve.safetensors
+        target: models/chatterbox/chatterbox/ve.safetensors
+      - path: t3_cfg.safetensors
+        target: models/chatterbox/chatterbox/t3_cfg.safetensors
+      - path: s3gen.safetensors
+        target: models/chatterbox/chatterbox/s3gen.safetensors
+      - path: tokenizer.json
+        target: models/chatterbox/chatterbox/tokenizer.json
+      - path: conds.pt
+        target: models/chatterbox/chatterbox/conds.pt
+artifact_contract:
+  type: audio/flac
+  sample_rate: 24000
+  non_silent: true
+  output_shape: single artifact path

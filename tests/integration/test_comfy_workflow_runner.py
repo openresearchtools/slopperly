@@ -164,6 +164,50 @@ class ComfyHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
+                node.get("class_type") == "FL_ChatterboxVC"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "3": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_chatterbox_vc_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "FL_ChatterboxTTS"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                output_node = "3" if "3" in ComfyHandler.last_prompt else "2"
+                filename = (
+                    "slopperly_chatterbox_ref_00001_.flac"
+                    if output_node == "3"
+                    else "slopperly_chatterbox_00001_.flac"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "audio": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
                 node.get("class_type") == "VAEDecodeAudio"
                 for node in ComfyHandler.last_prompt.values()
             ):
@@ -224,6 +268,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "stable_audio_3" in parsed.query
                 or "ace_step_15" in parsed.query
                 or "foundation1" in parsed.query
+                or "chatterbox" in parsed.query
             ):
                 return self._binary(self.audio_bytes, "audio/flac")
             return self._binary(self.video_bytes)
@@ -309,6 +354,15 @@ def _ace_step_object_info() -> dict:
 def _foundation1_object_info() -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy/foundation1_music_loop/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _chatterbox_object_info(workflow_id: str) -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -703,6 +757,77 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertTrue(prompt["2"]["inputs"]["unload_after_generate"])
         self.assertFalse(prompt["2"]["inputs"]["torch_compile"])
         self.assertEqual(prompt["2"]["inputs"]["init_noise_level"], 0.6)
+        self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
+
+    def test_chatterbox_reference_tts_pack_uploads_audio_and_patches_graph(self):
+        ComfyHandler.reset(_chatterbox_object_info("chatterbox_tts_vc_comfy"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "speaker.wav"
+            destination = Path(tmp) / "chatterbox.flac"
+            source.write_bytes(b"local wav fixture bytes")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local reference speech",
+                audio_ref=str(source),
+                exaggeration=0.6,
+                pace=0.4,
+                temperature=0.7,
+                seed=24601,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/chatterbox_tts_vc_comfy",
+                    inputs,
+                    SimpleNamespace(chatterbox_keep_model_loaded=True),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.audio_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["class_type"], "LoadAudio")
+        self.assertEqual(prompt["1"]["inputs"]["audio"], "uploaded_audio.wav")
+        self.assertEqual(prompt["2"]["class_type"], "FL_ChatterboxTTS")
+        self.assertEqual(prompt["2"]["inputs"]["audio_prompt"], ["1", 0])
+        self.assertEqual(prompt["2"]["inputs"]["text"], "local reference speech")
+        self.assertEqual(prompt["2"]["inputs"]["exaggeration"], 0.6)
+        self.assertEqual(prompt["2"]["inputs"]["cfg_weight"], 0.4)
+        self.assertEqual(prompt["2"]["inputs"]["temperature"], 0.7)
+        self.assertEqual(prompt["2"]["inputs"]["seed"], 24601)
+        self.assertTrue(prompt["2"]["inputs"]["keep_model_loaded"])
+        self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
+        self.assertIn(b'name="image"; filename="speaker.wav"', ComfyHandler.upload_bodies[0])
+
+    def test_chatterbox_vc_pack_uses_single_legacy_audio_for_both_inputs(self):
+        ComfyHandler.reset(_chatterbox_object_info("chatterbox_vc_comfy"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.wav"
+            destination = Path(tmp) / "chatterbox_vc.flac"
+            source.write_bytes(b"local wav fixture bytes")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(audio_ref=str(source), seed=1357)
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/chatterbox_vc_comfy",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.audio_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["inputs"]["audio"], "uploaded_audio.wav")
+        self.assertEqual(prompt["2"]["class_type"], "FL_ChatterboxVC")
+        self.assertEqual(prompt["2"]["inputs"]["input_audio"], ["1", 0])
+        self.assertEqual(prompt["2"]["inputs"]["target_voice"], ["1", 0])
+        self.assertEqual(prompt["2"]["inputs"]["seed"], 1357)
         self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):

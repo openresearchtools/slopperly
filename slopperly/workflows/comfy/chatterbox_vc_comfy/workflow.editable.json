@@ -1,0 +1,50 @@
+{
+  "last_node_id": 3,
+  "last_link_id": 2,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadAudio",
+      "title": "Legacy source/target voice audio",
+      "widgets_values": [
+        "source_and_target_voice.wav"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "FL_ChatterboxVC",
+      "title": "Chatterbox VC compatibility",
+      "widgets_values": [
+        0,
+        false,
+        false
+      ]
+    },
+    {
+      "id": 3,
+      "type": "SaveAudio",
+      "title": "Save Chatterbox VC audio",
+      "widgets_values": [
+        "slopperly_chatterbox_vc"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "AUDIO"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      0,
+      "AUDIO"
+    ]
+  ]
+}

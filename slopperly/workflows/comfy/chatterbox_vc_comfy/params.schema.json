@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "workflow_id": "chatterbox_vc_comfy",
+  "description": "Patch schema for local Chatterbox VC compatibility using the legacy single audio picker.",
+  "inputs": {
+    "seed": [
+      {
+        "node": "2",
+        "input": "seed"
+      }
+    ],
+    "chatterbox_use_cpu": [
+      {
+        "node": "2",
+        "input": "use_cpu"
+      }
+    ],
+    "chatterbox_keep_model_loaded": [
+      {
+        "node": "2",
+        "input": "keep_model_loaded"
+      }
+    ]
+  },
+  "uploads": {
+    "audio_ref": [
+      {
+        "node": "1",
+        "input": "audio",
+        "type": "input",
+        "endpoint": "/upload/image",
+        "form_field": "image"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "prompt": "FL_ChatterboxVC is speech-to-speech and does not use a text prompt.",
+    "audio_length": "The VC node preserves generated speech timing from the input audio and exposes no duration control.",
+    "exaggeration": "The pinned VC node exposes no exaggeration control.",
+    "pace": "The pinned VC node exposes no cfg_weight/pace control.",
+    "temperature": "The pinned VC node exposes no temperature control.",
+    "target_voice_audio": "The existing Chatterbox UI supplies one audio path. The committed compatibility graph wires that path to both input_audio and target_voice; true cross-speaker VC requires a second target voice selector."
+  },
+  "output": {
+    "node": "3",
+    "type": "audio/flac",
+    "contract": "Return one readable FLAC audio artifact from the local Chatterbox VC node using the legacy single audio input."
+  }
+}

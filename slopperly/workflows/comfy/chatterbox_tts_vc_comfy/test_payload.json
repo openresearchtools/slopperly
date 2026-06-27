@@ -1,0 +1,9 @@
+{
+  "prompt": "A calm local Chatterbox voice uses the supplied reference audio.",
+  "audio_ref": "tests/fixtures/chatterbox_ref.wav",
+  "audio_length": 2.0,
+  "exaggeration": 0.5,
+  "pace": 0.5,
+  "temperature": 0.8,
+  "seed": 2345
+}

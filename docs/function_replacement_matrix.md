@@ -22,5 +22,6 @@ This matrix is the working replacement plan for production-visible functions.
 | `cocktailpeanut/stable-audio-3-medium-base` | Migrated wrapper, GPU/server test pending | ComfyUI | `stable_audio_3_medium_base` |
 | `ACE-Step/acestep-v15-xl-turbo-diffusers` | Migrated wrapper, GPU/server test pending | ComfyUI | `ace_step_15_music` |
 | `tintwotin/Foundation-1-Diffusers` | Migrated wrapper, GPU/server test pending | ComfyUI | `foundation1_music_loop` |
+| `Chatterbox` | Migrated wrapper, GPU/server test pending | ComfyUI | `chatterbox_tts_vc_comfy` |
 
 Entries are complete only after the corresponding GPU artifact test produces a real artifact through the addon plugin path.

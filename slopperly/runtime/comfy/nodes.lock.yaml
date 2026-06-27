@@ -110,11 +110,11 @@ custom_nodes:
     install_command: pip install -r requirements.txt
     python_extras: []
     required_node_classes:
-      - FL Chatterbox TTS
-      - FL Chatterbox Turbo TTS
-      - FL Chatterbox Multilingual TTS
-      - FL Chatterbox VC
-      - FL Chatterbox Dialog TTS
+      - FL_ChatterboxTTS
+      - FL_ChatterboxTurboTTS
+      - FL_ChatterboxMultilingualTTS
+      - FL_ChatterboxVC
+      - FL_ChatterboxDialogTTS
   - id: foundation_1
     repo: https://github.com/Saganaki22/ComfyUI-Foundation-1.git
     commit: 41f4692dd20268d40cc806989063a7a1f4b5b3fe
