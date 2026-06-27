@@ -28,6 +28,7 @@ This matrix is the working replacement plan for production-visible functions.
 | `OzzyGT/Krea_2_Turbo_sdnq_dynamic_8bit` | Migrated wrapper, GPU/server test pending | ComfyUI | `krea2_turbo_t2i` |
 | `Alpha-VLLM/Lumina-Image-2.0` | Migrated wrapper, GPU/server test pending | ComfyUI | `lumina2_t2i` |
 | `ideogram-ai/ideogram-4-nf4-diffusers` | Migrated wrapper, GPU/server test pending | ComfyUI | `ideogram4_t2i` |
+| `black-forest-labs/FLUX.2-klein-4B` | Migrated wrapper, GPU/server test pending | ComfyUI | `flux2_klein_4b_t2i_edit`, `flux2_klein_4b_t2i_edit_img2img` |
 | `StemSplitter` | Migrated wrapper, GPU/server test pending | ComfyUI | `audio_stem_split_demucs` |
 | `MMAudio` | Migrated wrapper, GPU/server test pending | ComfyUI | `mmaudio_video_to_audio` |
 | `cocktailpeanut/stable-audio-3-medium-base` | Migrated wrapper, GPU/server test pending | ComfyUI | `stable_audio_3_medium_base` |

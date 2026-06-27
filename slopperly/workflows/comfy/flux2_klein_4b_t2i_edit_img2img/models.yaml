@@ -1,0 +1,38 @@
+workflow_id: flux2_klein_4b_t2i_edit_img2img
+required_custom_nodes:
+  - comfyui core
+required_node_classes:
+  - LoadImage
+  - ImageScale
+  - UNETLoader
+  - CLIPLoader
+  - VAELoader
+  - CLIPTextEncode
+  - ConditioningZeroOut
+  - VAEEncode
+  - ReferenceLatent
+  - CFGGuider
+  - RandomNoise
+  - KSamplerSelect
+  - Flux2Scheduler
+  - EmptyFlux2LatentImage
+  - SamplerCustomAdvanced
+  - VAEDecode
+  - SaveImage
+model_files:
+  - source: https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8
+    file: flux-2-klein-4b-fp8.safetensors
+    destination: models/diffusion_models/flux-2-klein-4b-fp8.safetensors
+  - source: https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-4b
+    file: split_files/text_encoders/qwen_3_4b.safetensors
+    destination: models/text_encoders/qwen_3_4b.safetensors
+  - source: https://huggingface.co/Comfy-Org/flux2-dev
+    file: split_files/vae/flux2-vae.safetensors
+    destination: models/vae/flux2-vae.safetensors
+supported_resolutions:
+  - 1024x1024
+  - 1344x768
+  - 768x1344
+artifact_contract:
+  type: image/png
+  validation: readable PNG with requested or mapped dimensions

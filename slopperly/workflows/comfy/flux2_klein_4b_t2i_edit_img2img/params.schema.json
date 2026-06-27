@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "workflow_id": "flux2_klein_4b_t2i_edit_img2img",
+  "description": "Patch schema for local FLUX.2 Klein 4B reference image editing through Comfy core ReferenceLatent nodes.",
+  "inputs": {
+    "flux2_klein_model": [
+      {
+        "node": "3",
+        "input": "unet_name"
+      }
+    ],
+    "flux2_klein_text_encoder": [
+      {
+        "node": "4",
+        "input": "clip_name"
+      }
+    ],
+    "flux2_klein_clip_type": [
+      {
+        "node": "4",
+        "input": "type"
+      }
+    ],
+    "flux2_klein_vae": [
+      {
+        "node": "5",
+        "input": "vae_name"
+      }
+    ],
+    "prompt": [
+      {
+        "node": "6",
+        "input": "text"
+      }
+    ],
+    "flux2_klein_guidance": [
+      {
+        "node": "11",
+        "input": "cfg"
+      }
+    ],
+    "seed": [
+      {
+        "node": "12",
+        "input": "noise_seed"
+      }
+    ],
+    "flux2_klein_sampler": [
+      {
+        "node": "13",
+        "input": "sampler_name"
+      }
+    ],
+    "steps": [
+      {
+        "node": "14",
+        "input": "steps"
+      }
+    ],
+    "width": [
+      {
+        "node": "2",
+        "input": "width"
+      },
+      {
+        "node": "14",
+        "input": "width"
+      },
+      {
+        "node": "15",
+        "input": "width"
+      },
+      {
+        "node": "20",
+        "input": "width"
+      },
+      {
+        "node": "25",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "2",
+        "input": "height"
+      },
+      {
+        "node": "14",
+        "input": "height"
+      },
+      {
+        "node": "15",
+        "input": "height"
+      },
+      {
+        "node": "20",
+        "input": "height"
+      },
+      {
+        "node": "25",
+        "input": "height"
+      }
+    ],
+    "batch": [
+      {
+        "node": "15",
+        "input": "batch_size"
+      }
+    ]
+  },
+  "uploads": {
+    "images[0]": [
+      {
+        "node": "1",
+        "input": "image",
+        "type": "input"
+      }
+    ],
+    "images[1]": [
+      {
+        "node": "19",
+        "input": "image",
+        "type": "input",
+        "optional": true,
+        "disconnects": [
+          {
+            "node": "22",
+            "input": "latent"
+          },
+          {
+            "node": "23",
+            "input": "latent"
+          }
+        ]
+      }
+    ],
+    "images[2]": [
+      {
+        "node": "24",
+        "input": "image",
+        "type": "input",
+        "optional": true,
+        "disconnects": [
+          {
+            "node": "27",
+            "input": "latent"
+          },
+          {
+            "node": "28",
+            "input": "latent"
+          }
+        ]
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "strength": "The official FLUX.2 Klein reference-edit graph does not expose a denoise/strength input; the plugin records a usage note when image edit is used.",
+    "custom_loras": "The workflow keeps the LoRA UI visible but dynamic project LoRA injection is not mapped in this certified graph yet.",
+    "inpaint_mask": "Masked inpaint is blocked until an official local FLUX.2 Klein mask workflow is certified."
+  },
+  "outputs": [
+    {
+      "node": "18",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ]
+}

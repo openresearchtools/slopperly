@@ -1011,3 +1011,16 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: integration coverage calls `Ideogram4Plugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus LoRA/prompt-upsampling usage notes.
 - Evidence: workflow-runner integration coverage verifies the committed Ideogram pack directly, and `tests/gpu/test_ideogram4.py` now performs a text-to-image plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core Ideogram node classes and `ideogram4_fp8_scaled.safetensors`, `ideogram4_unconditional_fp8_scaled.safetensors`, `qwen3vl_8b_fp8_scaled.safetensors`, and `flux2-vae.safetensors` installed locally.
+
+### 2026-06-27 FLUX.2 Klein 4B Comfy workflow block
+
+- Completed: `image/flux2_klein_4b.py` now routes `black-forest-labs/FLUX.2-klein-4B` through the local Comfy workflow gateway instead of direct Torch/Diffusers `Flux2KleinPipeline` execution and generation-time Hugging Face loading in the add-on process.
+- Completed: the existing prompt, image strip, three Klein reference selectors, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present; the wrapper selects text-to-image or reference-edit workflow packs from `ModelInputs.mode` and `ModelInputs.image`.
+- Completed: `flux2_klein_4b_t2i_edit` and `flux2_klein_4b_t2i_edit_img2img` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Completed: the workflows use official Comfy core FLUX.2 Klein nodes and graph structure: `UNETLoader`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`; edit adds `LoadImage`, `ImageScale`, `VAEEncode`, and `ReferenceLatent`.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `flux-2-klein-4b-fp8.safetensors`, `qwen_3_4b.safetensors`, and `flux2-vae.safetensors`.
+- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `CFGGuider`, `Flux2Scheduler`, and `ReferenceLatent` from pinned Comfy core.
+- Evidence: integration coverage calls `Flux2Klein4BPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching, reference image uploads, optional reference-slot disconnects, and PNG artifact collection.
+- Evidence: workflow-runner integration coverage verifies both committed FLUX.2 Klein packs directly, and `tests/gpu/test_flux2_klein_4b.py` now performs text-to-image and image-edit plugin-path certification attempts.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with core FLUX.2 Klein node classes and `flux-2-klein-4b-fp8.safetensors`, `qwen_3_4b.safetensors`, and `flux2-vae.safetensors` installed locally.
+- Still blocked: dynamic project LoRA injection, masked inpaint, and image-strength/denoise mapping are not dynamically mapped in these workflow packs yet; the wrapper preserves the UI and records usage notes rather than loading placeholder filenames or silently claiming unsupported behavior.

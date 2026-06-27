@@ -1,0 +1,28 @@
+{
+  "workflow_id": "flux2_klein_4b_t2i_edit",
+  "source_template": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_flux2_klein_text_to_image.json",
+  "format": "editable-reference",
+  "description": "Editable reference for the official FLUX.2 Klein 4B text-to-image template. The production submission graph in workflow.api.json expands the Comfy subgraph into plain API nodes.",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "title": "FLUX.2 Klein 4B FP8 model"
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoader",
+      "title": "Qwen 3 4B FLUX.2 text encoder"
+    },
+    {
+      "id": 9,
+      "type": "Flux2Scheduler",
+      "title": "FLUX.2 scheduler"
+    },
+    {
+      "id": 13,
+      "type": "SaveImage",
+      "title": "Slopperly PNG output"
+    }
+  ]
+}

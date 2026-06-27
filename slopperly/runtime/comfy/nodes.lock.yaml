@@ -17,10 +17,13 @@ comfyui:
     - EmptyAceStep1.5LatentAudio
     - EmptySD3LatentImage
     - ConditioningZeroOut
+    - CFGGuider
     - ConditioningStableAudio
     - EmptyLatentAudio
     - EmptyLatentImage
     - EmptyFlux2LatentImage
+    - Flux2Scheduler
+    - ReferenceLatent
     - TextGenerate
     - CFGOverride
     - DualModelGuider

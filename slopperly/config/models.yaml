@@ -90,6 +90,47 @@ models:
     validation_command: pytest tests/gpu/test_qwen_image_edit_2511.py --device cuda
     workflows:
       - qwen_image_edit_2511_multi_gguf
+  - logical_name: flux2_klein_4b_t2i_edit
+    legacy_aliases:
+      - black-forest-labs/FLUX.2-klein-4B
+    task: image_t2i_i2i
+    runtime: comfy
+    model_source: https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8
+    download_mode: hf_file
+    local_cache_path: models/diffusion_models/flux-2-klein-4b-fp8.safetensors
+    required_files:
+      - flux-2-klein-4b-fp8.safetensors
+    auxiliary_sources:
+      - id: flux2_klein_4b_text_encoder
+        model_source: https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-4b
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/qwen_3_4b.safetensors
+        required_files:
+          - path: split_files/text_encoders/qwen_3_4b.safetensors
+            target: qwen_3_4b.safetensors
+      - id: flux2_klein_4b_vae
+        model_source: https://huggingface.co/Comfy-Org/flux2-dev
+        download_mode: hf_file
+        local_cache_path: models/vae/flux2-vae.safetensors
+        required_files:
+          - path: split_files/vae/flux2-vae.safetensors
+            target: flux2-vae.safetensors
+    required_node_pack: comfyui core flux2 klein
+    supported_resolutions:
+      - 1024x1024
+      - 1344x768
+      - 768x1344
+    default_parameters:
+      steps: 4
+      cfg: 1.0
+      sampler: euler
+      fps: null
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_flux2_klein_4b.py --device cuda
+    workflows:
+      - flux2_klein_4b_t2i_edit
+      - flux2_klein_4b_t2i_edit_img2img
+      - image/flux2_klein_4b.py
   - logical_name: zimage_t2i_i2i
     legacy_aliases:
       - Tongyi-MAI/Z-Image

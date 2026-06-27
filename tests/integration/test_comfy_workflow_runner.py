@@ -336,6 +336,34 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 })
             if (
                 any(
+                    node.get("class_type") == "UNETLoader"
+                    and str((node.get("inputs") or {}).get("unet_name", "")).startswith("flux-2-klein-4b")
+                    for node in ComfyHandler.last_prompt.values()
+                )
+            ):
+                output_node = "18" if "18" in ComfyHandler.last_prompt else "13"
+                filename = (
+                    "slopperly_flux2_klein_4b_edit_00001_.png"
+                    if output_node == "18"
+                    else "slopperly_flux2_klein_4b_00001_.png"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "images": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if (
+                any(
                     node.get("class_type") == "UnetLoaderGGUF"
                     for node in ComfyHandler.last_prompt.values()
                 )
@@ -564,6 +592,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "krea2" in parsed.query
                 or "lumina2" in parsed.query
                 or "ideogram4" in parsed.query
+                or "flux2_klein" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
@@ -720,6 +749,15 @@ def _ernie_object_info(workflow_id: str) -> dict:
 
 
 def _krea_object_info(workflow_id: str) -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _flux2_klein_object_info(workflow_id: str) -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
             encoding="utf-8"
@@ -1955,6 +1993,92 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["8"]["inputs"]["seed"], 4201)
         self.assertEqual(prompt["8"]["inputs"]["steps"], 8)
         self.assertEqual(prompt["8"]["inputs"]["cfg"], 1.0)
+
+    def test_flux2_klein_4b_packs_patch_t2i_and_reference_edit_graphs(self):
+        ComfyHandler.reset(_flux2_klein_object_info("flux2_klein_4b_t2i_edit"))
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "flux2_klein.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local FLUX.2 Klein 4B workflow render",
+                width=1024,
+                height=1024,
+                batch=1,
+                seed=42004,
+                steps=4,
+                flux2_klein_guidance=1.0,
+                flux2_klein_sampler="euler",
+                flux2_klein_model="flux-2-klein-4b-fp8.safetensors",
+                flux2_klein_text_encoder="qwen_3_4b.safetensors",
+                flux2_klein_clip_type="flux2",
+                flux2_klein_vae="flux2-vae.safetensors",
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/flux2_klein_4b_t2i_edit",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(ComfyHandler.upload_bodies, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "flux-2-klein-4b-fp8.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["clip_name"], "qwen_3_4b.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["type"], "flux2")
+        self.assertEqual(prompt["3"]["inputs"]["vae_name"], "flux2-vae.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["text"], "local FLUX.2 Klein 4B workflow render")
+        self.assertEqual(prompt["6"]["inputs"]["cfg"], 1.0)
+        self.assertEqual(prompt["7"]["inputs"]["noise_seed"], 42004)
+        self.assertEqual(prompt["8"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["9"]["inputs"]["steps"], 4)
+        self.assertEqual(prompt["9"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["10"]["inputs"]["height"], 1024)
+
+        ComfyHandler.reset(_flux2_klein_object_info("flux2_klein_4b_t2i_edit_img2img"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            ref = Path(tmp) / "ref.png"
+            destination = Path(tmp) / "flux2_klein_edit.png"
+            source.write_bytes(b"local flux source image")
+            ref.write_bytes(b"local flux reference image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs.images = [str(source), str(ref), None]
+            inputs.prompt = "local FLUX.2 Klein reference edit"
+            inputs.seed = 42005
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/flux2_klein_4b_t2i_edit_img2img",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 2)
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["19"]["inputs"]["image"], "uploaded_source_2.png")
+        self.assertEqual(prompt["6"]["inputs"]["text"], "local FLUX.2 Klein reference edit")
+        self.assertEqual(prompt["11"]["inputs"]["positive"], ["27", 0])
+        self.assertEqual(prompt["11"]["inputs"]["negative"], ["28", 0])
+        self.assertEqual(prompt["12"]["inputs"]["noise_seed"], 42005)
+        self.assertEqual(prompt["14"]["inputs"]["steps"], 4)
+        self.assertEqual(prompt["22"]["inputs"]["latent"], ["21", 0])
+        self.assertEqual(prompt["23"]["inputs"]["latent"], ["21", 0])
+        self.assertNotIn("latent", prompt["27"]["inputs"])
+        self.assertNotIn("latent", prompt["28"]["inputs"])
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+        self.assertIn(b'filename="ref.png"', ComfyHandler.upload_bodies[1])
 
     def test_lumina2_pack_patches_t2i_graph(self):
         ComfyHandler.reset(_lumina_object_info())
