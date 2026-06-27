@@ -178,3 +178,26 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - These tests do not start real runtime servers.
 - GPU artifact generation remains blocked until runtime installs, model downloads, plugin wrappers, and workflow packs are complete.
+
+## 2026-06-27 Model artifact registry explicitness block
+
+### Registry Tightened
+
+- Replaced generic vLLM/vLLM-Omni required-file placeholders with explicit `download_mode: hf_snapshot` entries and required local evidence files.
+- Replaced the llama.cpp prompt-rewriter placeholder with a concrete Hugging Face GGUF source: `bartowski/Qwen2.5-7B-Instruct-GGUF`, file `Qwen2.5-7B-Instruct-Q5_K_M.gguf`.
+- Kept the current logical model IDs and legacy aliases stable so UI/save compatibility is not disturbed.
+
+### Downloader Behavior
+
+- `slopperly.models.download` now supports both exact Hugging Face file downloads and full Hugging Face snapshot downloads into the local model cache.
+- Snapshot entries must still declare required evidence files such as `config.json`; unsafe paths and generic placeholder strings are rejected.
+
+### Verification
+
+- Unit tests cover snapshot dry-run planning, exact file planning, and safe relative evidence-file validation.
+- Dry-run download planning no longer reports generic registry blockers for vLLM, vLLM-Omni, or llama.cpp entries.
+
+### Blocked / Not Yet Certified
+
+- No model files were downloaded in this block.
+- The selected llama.cpp GGUF and snapshot models still require real download, runtime launch, and plugin-path artifact tests before certification.

@@ -45,12 +45,29 @@ def is_exact_file(value: str) -> bool:
     return "/" not in text and "\\" not in text
 
 
+def is_safe_relative_file(value: str) -> bool:
+    text = str(value).strip()
+    if not text:
+        return False
+    lowered = text.lower()
+    if any(marker in lowered for marker in GENERIC_FILE_MARKERS):
+        return False
+    path = Path(text)
+    if path.is_absolute() or ".." in path.parts:
+        return False
+    return True
+
+
 def target_path(cache_root: Path, entry: dict, filename: str) -> Path:
     local_cache = Path(str(entry.get("local_cache_path") or entry.get("logical_name")))
     base = cache_root / local_cache
     if base.name == filename:
         return base
     return base / filename
+
+
+def snapshot_path(cache_root: Path, entry: dict) -> Path:
+    return cache_root / Path(str(entry.get("local_cache_path") or entry.get("logical_name")))
 
 
 def selected_entries(root: Path, names: list[str] | None = None) -> list[dict]:
@@ -80,6 +97,7 @@ def download_models(
         name = entry.get("logical_name", "<unnamed>")
         source = str(entry.get("model_source") or "")
         repo_id = huggingface_repo_id(source)
+        download_mode = str(entry.get("download_mode") or "hf_file")
         required_files = entry.get("required_files") or []
         if not isinstance(required_files, list) or not required_files:
             results.append(DownloadResult("BLOCKED", name, "required_files is empty or invalid"))
@@ -90,6 +108,30 @@ def download_models(
                     "BLOCKED",
                     name,
                     f"model_source is not a Hugging Face artifact URL: {source!r}",
+                )
+            )
+            continue
+
+        if download_mode == "hf_snapshot":
+            results.extend(
+                download_snapshot(
+                    entry=entry,
+                    name=name,
+                    repo_id=repo_id,
+                    required_files=required_files,
+                    cache_root=cache_root,
+                    profile=profile,
+                    accept_licenses=accept_licenses,
+                    dry_run=dry_run,
+                )
+            )
+            continue
+        if download_mode != "hf_file":
+            results.append(
+                DownloadResult(
+                    "BLOCKED",
+                    name,
+                    f"unsupported download_mode {download_mode!r}",
                 )
             )
             continue
@@ -164,6 +206,100 @@ def download_models(
             if final_path != dest and final_path.is_file() and not dest.exists():
                 final_path.replace(dest)
             results.append(DownloadResult("PASS", name, "artifact downloaded", str(dest)))
+    return results
+
+
+def download_snapshot(
+    *,
+    entry: dict,
+    name: str,
+    repo_id: str,
+    required_files: list,
+    cache_root: Path,
+    profile: str,
+    accept_licenses: bool,
+    dry_run: bool,
+) -> list[DownloadResult]:
+    results: list[DownloadResult] = []
+    dest = snapshot_path(cache_root, entry)
+    invalid = [str(filename) for filename in required_files if not is_safe_relative_file(str(filename))]
+    if invalid:
+        return [
+            DownloadResult(
+                "BLOCKED",
+                name,
+                f"snapshot required_files contain unsafe or generic entries: {invalid!r}",
+                str(dest),
+            )
+        ]
+    missing = [
+        str(filename)
+        for filename in required_files
+        if not (dest / str(filename)).is_file() or (dest / str(filename)).stat().st_size <= 0
+    ]
+    if not missing:
+        return [DownloadResult("PASS", name, "snapshot already cached", str(dest))]
+    if dry_run:
+        return [
+            DownloadResult(
+                "PLAN",
+                name,
+                f"would snapshot_download {repo_id} for profile {profile}; missing evidence files: {missing}",
+                str(dest),
+            )
+        ]
+    if not accept_licenses:
+        return [
+            DownloadResult(
+                "BLOCKED",
+                name,
+                "snapshot download requires --accept-licenses",
+                str(dest),
+            )
+        ]
+    try:
+        from huggingface_hub import snapshot_download
+    except Exception as exc:
+        return [
+            DownloadResult(
+                "BLOCKED",
+                name,
+                f"huggingface_hub is required for snapshot downloads: {exc}",
+                str(dest),
+            )
+        ]
+    try:
+        snapshot_download(
+            repo_id=repo_id,
+            local_dir=str(dest),
+            local_dir_use_symlinks=False,
+            allow_patterns=entry.get("allow_patterns"),
+            ignore_patterns=entry.get("ignore_patterns"),
+        )
+    except Exception as exc:
+        return [
+            DownloadResult(
+                "BLOCKED",
+                name,
+                f"snapshot download failed for {repo_id}: {exc}",
+                str(dest),
+            )
+        ]
+    remaining = [
+        str(filename)
+        for filename in required_files
+        if not (dest / str(filename)).is_file() or (dest / str(filename)).stat().st_size <= 0
+    ]
+    if remaining:
+        return [
+            DownloadResult(
+                "BLOCKED",
+                name,
+                f"snapshot downloaded but required evidence files are missing: {remaining}",
+                str(dest),
+            )
+        ]
+    results.append(DownloadResult("PASS", name, "snapshot downloaded", str(dest)))
     return results
 
 

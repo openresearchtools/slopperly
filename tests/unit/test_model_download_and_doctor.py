@@ -12,6 +12,7 @@ from slopperly.models.download import (
     download_models,
     huggingface_repo_id,
     is_exact_file,
+    is_safe_relative_file,
 )
 
 
@@ -31,8 +32,11 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertTrue(is_exact_file("model-Q5_K_M.gguf"))
         self.assertFalse(is_exact_file("model artifacts downloaded by vLLM"))
         self.assertFalse(is_exact_file("nested/path/model.gguf"))
+        self.assertTrue(is_safe_relative_file("config.json"))
+        self.assertTrue(is_safe_relative_file("subdir/config.json"))
+        self.assertFalse(is_safe_relative_file("../config.json"))
 
-    def test_download_dry_run_plans_exact_hf_files_and_blocks_generic_entries(self):
+    def test_download_dry_run_plans_files_and_snapshots(self):
         with tempfile.TemporaryDirectory() as tmp:
             results = download_models(
                 root=ROOT,
@@ -43,8 +47,11 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         statuses = {(result.model, result.status) for result in results}
         self.assertIn(("qwen_image_edit_2511_multi_gguf", "PLAN"), statuses)
         self.assertIn(("wan22_ti2v_5b_720p24_gguf", "PLAN"), statuses)
-        self.assertIn(("vllm_whisper_large_v3_turbo_stt", "BLOCKED"), statuses)
-        self.assertIn(("llamacpp_prompt_rewriter", "BLOCKED"), statuses)
+        self.assertIn(("vllm_whisper_large_v3_turbo_stt", "PLAN"), statuses)
+        self.assertIn(("llamacpp_prompt_rewriter", "PLAN"), statuses)
+        self.assertIn(("omnivoice_vllm_omni", "PLAN"), statuses)
+        self.assertIn(("moss_tts_nano_vllm_omni", "PLAN"), statuses)
+        self.assertFalse([result for result in results if result.status == "BLOCKED"])
 
     def test_doctor_local_only_checks_pass_without_runtime_probe(self):
         checks = run_checks(root=ROOT, local_only=True, cuda=False, runtimes="none")
