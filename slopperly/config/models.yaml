@@ -1283,11 +1283,19 @@ models:
     task: text_to_audio
     runtime: comfy
     model_source: https://huggingface.co/Comfy-Org/stable-audio-3
-    download_mode: hf_snapshot
-    local_cache_path: models/comfy/Comfy-Org/stable-audio-3
+    download_mode: hf_file
+    local_cache_path: models/checkpoints/stable_audio_3_medium_base.safetensors
     required_files:
-      - checkpoints/stable_audio_3_medium_base.safetensors
-      - text_encoders/t5gemma_b_b_ul2.safetensors
+      - path: checkpoints/stable_audio_3_medium_base.safetensors
+        target: stable_audio_3_medium_base.safetensors
+    auxiliary_sources:
+      - id: stable_audio_3_t5gemma_text_encoder
+        model_source: https://huggingface.co/Comfy-Org/stable-audio-3
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/t5gemma_b_b_ul2.safetensors
+        required_files:
+          - path: text_encoders/t5gemma_b_b_ul2.safetensors
+            target: t5gemma_b_b_ul2.safetensors
     required_node_pack: comfyui core stable audio
     supported_resolutions: []
     supported_fps: []

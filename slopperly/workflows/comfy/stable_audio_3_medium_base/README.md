@@ -37,7 +37,7 @@ Primary artifact source:
 - Required checkpoint in `ComfyUI/models/checkpoints/`: `stable_audio_3_medium_base.safetensors`
 - Required text encoder in `ComfyUI/models/text_encoders/`: `t5gemma_b_b_ul2.safetensors`
 
-Runtime generation is not allowed to download these artifacts. Use `python -m slopperly.models.download --model stable_audio_3_medium_base --accept-licenses` before certification, then sync the downloaded files into the owned Comfy model folders.
+Runtime generation is not allowed to download these artifacts. Use `python -m slopperly.models.download --model stable_audio_3_medium_base --cache-root .slopperly/runtimes/ComfyUI --accept-licenses` before certification so the files land directly in the owned Comfy model folders.
 
 ## UI Parameter Mapping
 

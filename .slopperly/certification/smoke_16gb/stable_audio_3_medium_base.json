@@ -1,0 +1,22 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/stable_audio_3_medium_base/31415_warm_lo-fi_electric_piano_chords_soft_brushed_drums_rounded_bass_stable_audio_3.flac",
+  "command": "pytest tests/gpu/test_stable_audio_3.py::test_stable_audio_3 --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T15:21:46+00:00",
+  "logical_name": "stable_audio_3_medium_base",
+  "metadata": {
+    "output": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/stable_audio_3_medium_base/31415_warm_lo-fi_electric_piano_chords_soft_brushed_drums_rounded_bass_stable_audio_3.flac",
+    "runtime_url": "http://127.0.0.1:8190"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "channels": 2,
+    "duration": 2.043356,
+    "format": "FLAC",
+    "kind": "audio",
+    "rms": 1.0,
+    "sample_rate": 44100
+  }
+}

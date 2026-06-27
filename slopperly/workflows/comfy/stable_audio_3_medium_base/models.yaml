@@ -15,14 +15,13 @@ required_custom_nodes:
       - VAEDecodeAudio
       - SaveAudio
 model_files:
-  primary_source:
-    repo: Comfy-Org/stable-audio-3
-    target_dirs:
-      checkpoints: models/checkpoints
-      text_encoders: models/text_encoders
+  - source: https://huggingface.co/Comfy-Org/stable-audio-3
+    download_mode: hf_file
     files:
-      - checkpoints/stable_audio_3_medium_base.safetensors
-      - text_encoders/t5gemma_b_b_ul2.safetensors
+      - path: checkpoints/stable_audio_3_medium_base.safetensors
+        target: models/checkpoints/stable_audio_3_medium_base.safetensors
+      - path: text_encoders/t5gemma_b_b_ul2.safetensors
+        target: models/text_encoders/t5gemma_b_b_ul2.safetensors
 supported_profiles:
   - input: text
     output: flac
