@@ -918,3 +918,29 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with core Lumina node classes and `lumina_2.safetensors` installed in `models/checkpoints/`.
+
+## 2026-06-27 Ideogram 4 Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/image/ideogram4.py` now routes `ideogram-ai/ideogram-4-nf4-diffusers` through the local Comfy gateway instead of importing Torch/Diffusers and running `Ideogram4Pipeline` in the add-on process.
+- The existing prompt, resolution, frames, steps, guidance, seed, LoRA UI sections, and prompt-upsampling post-enhance toggle remain present. Active LoRA or prompt-upsampling use records a usage note because the committed official Comfy graph does not yet include dynamic project LoRA injection or the previous Diffusers prompt enhancer head.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/ideogram4_t2i/` with editable/API workflow JSON, schema, model manifest, smoke payload, and README.
+- The workflow uses Comfy core `UNETLoader`, `CLIPLoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `CFGOverride`, `DualModelGuider`, `EmptyFlux2LatentImage`, `RandomNoise`, `KSamplerSelect`, `Ideogram4Scheduler`, `SamplerCustomAdvanced`, `VAELoader`, `VAEDecode`, and `SaveImage`.
+- Registered `ideogram4_t2i` in `slopperly/config/models.yaml` with legacy alias `ideogram-ai/ideogram-4-nf4-diffusers`, Hugging Face artifact source `Comfy-Org/Ideogram-4`, and exact file mappings for the conditional diffusion model, unconditional diffusion model, Qwen3-VL text encoder, and `flux2-vae.safetensors`.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` to assert the pinned core Ideogram/custom-sampler node classes required by the API graph.
+
+### Verification
+
+- Integration coverage calls `Ideogram4Plugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus LoRA/prompt-upsampling usage notes.
+- Workflow-runner integration coverage verifies the committed Ideogram pack directly and collects a single PNG artifact from Comfy history outputs.
+- GPU certification coverage is registered in `tests/gpu/test_ideogram4.py` and validates a text-to-image PNG artifact when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with core Ideogram node classes and `ideogram4_fp8_scaled.safetensors`, `ideogram4_unconditional_fp8_scaled.safetensors`, `qwen3vl_8b_fp8_scaled.safetensors`, and `flux2-vae.safetensors` installed locally.
+- Arbitrary project LoRA injection and prompt upsampling are not dynamically mapped in this workflow pack yet; the wrapper preserves the UI and records those paths as follow-ups rather than loading placeholder filenames.

@@ -22,6 +22,12 @@ comfyui:
     - EmptyLatentImage
     - EmptyFlux2LatentImage
     - TextGenerate
+    - CFGOverride
+    - DualModelGuider
+    - RandomNoise
+    - KSamplerSelect
+    - Ideogram4Scheduler
+    - SamplerCustomAdvanced
     - KSampler
     - ModelSamplingAuraFlow
     - FluxKontextImageScale

@@ -148,6 +148,12 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "CLIPTextEncode": {},
                 "EmptyFlux2LatentImage": {},
                 "TextGenerate": {},
+                "CFGOverride": {},
+                "DualModelGuider": {},
+                "RandomNoise": {},
+                "KSamplerSelect": {},
+                "Ideogram4Scheduler": {},
+                "SamplerCustomAdvanced": {},
                 "ConditioningStableAudio": {},
                 "EmptyLatentAudio": {},
                 "EmptyLatentImage": {},
@@ -668,6 +674,27 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "images": [
                                     {
                                         "filename": "slopperly_lumina2_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "UNETLoader"
+                and (node.get("inputs") or {}).get("unet_name") == "ideogram4_fp8_scaled.safetensors"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "15": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_ideogram4_00001_.png",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -1611,6 +1638,54 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["6"]["inputs"]["cfg"], 4.0)
         self.assertEqual(prompt["6"]["inputs"]["sampler_name"], "res_multistep")
         self.assertEqual(prompt["6"]["inputs"]["scheduler"], "simple")
+
+    def test_ideogram4_uses_comfy_t2i_plugin_path(self):
+        module = load_plugin_module("image", "ideogram4")
+        plugin = module.Ideogram4Plugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Ideogram 4 poster with readable text",
+                width=1024,
+                height=1024,
+                steps=20,
+                guidance=4.0,
+                seed=4404,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+            scene = SimpleNamespace(ideogram_prompt_upsampling=True)
+            enabled = [SimpleNamespace(name="local_style", weight_value=0.75, enabled=True)]
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene, enabled_items=enabled)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(RuntimeHandler.comfy_uploads, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ideogram4_fp8_scaled.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["unet_name"], "ideogram4_unconditional_fp8_scaled.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name"], "qwen3vl_8b_fp8_scaled.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["type"], "ideogram4")
+        self.assertEqual(prompt["4"]["inputs"]["text"], "local Ideogram 4 poster with readable text")
+        self.assertEqual(prompt["6"]["inputs"]["cfg"], 3.0)
+        self.assertEqual(prompt["6"]["inputs"]["start_percent"], 0.7)
+        self.assertEqual(prompt["6"]["inputs"]["end_percent"], 1.0)
+        self.assertEqual(prompt["7"]["class_type"], "DualModelGuider")
+        self.assertEqual(prompt["7"]["inputs"]["cfg"], 4.0)
+        self.assertEqual(prompt["8"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["9"]["inputs"]["noise_seed"], 4404)
+        self.assertEqual(prompt["10"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["11"]["inputs"]["steps"], 20)
+        self.assertEqual(prompt["11"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["11"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["11"]["inputs"]["std"], 1.75)
+        self.assertEqual(prompt["13"]["inputs"]["vae_name"], "flux2-vae.safetensors")
+        self.assertIn("dynamic project LoRA injection is not mapped", inputs.usage_note)
+        self.assertIn("prompt upsampling UI is preserved", inputs.usage_note)
 
     def test_google_nano_banana_alias_uses_local_qwen_workflow(self):
         module = load_plugin_module("image", "google_nano_banana")

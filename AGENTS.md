@@ -999,3 +999,15 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: integration coverage calls `Lumina2Plugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching.
 - Evidence: workflow-runner integration coverage verifies the committed Lumina pack directly, and `tests/gpu/test_lumina2.py` now performs a text-to-image plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core Lumina node classes and `lumina_2.safetensors` installed locally in `models/checkpoints/`.
+
+### 2026-06-27 Ideogram 4 Comfy workflow block
+
+- Completed: `image/ideogram4.py` now routes `ideogram-ai/ideogram-4-nf4-diffusers` through the local Comfy workflow gateway instead of direct Torch/Diffusers `Ideogram4Pipeline` execution and generation-time Hugging Face loading in the add-on process.
+- Completed: the existing prompt, resolution, frames, steps, guidance, seed, LoRA UI sections, and prompt-upsampling post-enhance toggle remain present; active LoRA or prompt-upsampling use records a usage note because those paths are not in the certified Comfy graph yet.
+- Completed: `ideogram4_t2i` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Completed: the workflow uses official Comfy core Ideogram/custom sampling nodes: `UNETLoader`, `CLIPLoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `CFGOverride`, `DualModelGuider`, `EmptyFlux2LatentImage`, `RandomNoise`, `KSamplerSelect`, `Ideogram4Scheduler`, `SamplerCustomAdvanced`, `VAELoader`, `VAEDecode`, and `SaveImage`.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact source `Comfy-Org/Ideogram-4` with the conditional/unconditional diffusion files, Qwen3-VL text encoder, and `flux2-vae.safetensors`.
+- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the pinned core Ideogram/custom-sampler node classes used by the workflow.
+- Evidence: integration coverage calls `Ideogram4Plugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus LoRA/prompt-upsampling usage notes.
+- Evidence: workflow-runner integration coverage verifies the committed Ideogram pack directly, and `tests/gpu/test_ideogram4.py` now performs a text-to-image plugin-path certification attempt.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with core Ideogram node classes and `ideogram4_fp8_scaled.safetensors`, `ideogram4_unconditional_fp8_scaled.safetensors`, `qwen3vl_8b_fp8_scaled.safetensors`, and `flux2-vae.safetensors` installed locally.

@@ -1,0 +1,9 @@
+{
+  "prompt": "a clean poster on a studio table with readable text SLOPPERLY LOCAL",
+  "width": 1024,
+  "height": 1024,
+  "steps": 20,
+  "guidance": 4.0,
+  "seed": 404404,
+  "frames": 1
+}

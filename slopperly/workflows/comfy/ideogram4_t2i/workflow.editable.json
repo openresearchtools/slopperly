@@ -1,0 +1,38 @@
+{
+  "workflow_id": "ideogram4_t2i",
+  "source_template": "Comfy-Org workflow_templates image_ideogram4_t2i.json",
+  "format": "editable-reference",
+  "description": "Editable reference for the Ideogram 4 text-to-image graph. The production submission graph is workflow.api.json.",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "title": "Ideogram 4 Conditional Model"
+    },
+    {
+      "id": 2,
+      "type": "UNETLoader",
+      "title": "Ideogram 4 Unconditional Model"
+    },
+    {
+      "id": 3,
+      "type": "CLIPLoader",
+      "title": "Qwen3-VL Ideogram Text Encoder"
+    },
+    {
+      "id": 7,
+      "type": "DualModelGuider",
+      "title": "Asymmetric CFG"
+    },
+    {
+      "id": 11,
+      "type": "Ideogram4Scheduler",
+      "title": "Ideogram 4 Scheduler"
+    },
+    {
+      "id": 15,
+      "type": "SaveImage",
+      "title": "Slopperly PNG Output"
+    }
+  ]
+}

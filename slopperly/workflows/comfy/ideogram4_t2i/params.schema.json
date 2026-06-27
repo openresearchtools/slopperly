@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "workflow_id": "ideogram4_t2i",
+  "description": "Patch schema for Ideogram 4 text-to-image through Comfy core Ideogram nodes.",
+  "inputs": {
+    "ideogram_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "ideogram_unconditional_model": [
+      {
+        "node": "2",
+        "input": "unet_name"
+      }
+    ],
+    "ideogram_text_encoder": [
+      {
+        "node": "3",
+        "input": "clip_name"
+      }
+    ],
+    "ideogram_clip_type": [
+      {
+        "node": "3",
+        "input": "type"
+      }
+    ],
+    "prompt": [
+      {
+        "node": "4",
+        "input": "text"
+      }
+    ],
+    "ideogram_cfg_override": [
+      {
+        "node": "6",
+        "input": "cfg"
+      }
+    ],
+    "ideogram_cfg_override_start": [
+      {
+        "node": "6",
+        "input": "start_percent"
+      }
+    ],
+    "ideogram_cfg_override_end": [
+      {
+        "node": "6",
+        "input": "end_percent"
+      }
+    ],
+    "ideogram_guidance": [
+      {
+        "node": "7",
+        "input": "cfg"
+      }
+    ],
+    "width": [
+      {
+        "node": "8",
+        "input": "width"
+      },
+      {
+        "node": "11",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "8",
+        "input": "height"
+      },
+      {
+        "node": "11",
+        "input": "height"
+      }
+    ],
+    "batch": [
+      {
+        "node": "8",
+        "input": "batch_size"
+      }
+    ],
+    "seed": [
+      {
+        "node": "9",
+        "input": "noise_seed"
+      }
+    ],
+    "ideogram_sampler": [
+      {
+        "node": "10",
+        "input": "sampler_name"
+      }
+    ],
+    "ideogram_steps": [
+      {
+        "node": "11",
+        "input": "steps"
+      }
+    ],
+    "ideogram_scheduler_mu": [
+      {
+        "node": "11",
+        "input": "mu"
+      }
+    ],
+    "ideogram_scheduler_std": [
+      {
+        "node": "11",
+        "input": "std"
+      }
+    ],
+    "ideogram_vae": [
+      {
+        "node": "13",
+        "input": "vae_name"
+      }
+    ]
+  },
+  "uploads": {},
+  "outputs": [
+    {
+      "node": "15",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ],
+  "notes": [
+    "The existing prompt field maps directly to CLIPTextEncode; users may pass plain text or Ideogram's structured JSON prompt format.",
+    "Ideogram 4 uses an unconditional transformer model through DualModelGuider, so there is no negative prompt UI in the existing plugin.",
+    "The LoRA and prompt upsampling UI hooks are preserved at the plugin layer and recorded as unmapped until certified local graph support is added."
+  ]
+}

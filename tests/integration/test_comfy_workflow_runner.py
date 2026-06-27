@@ -508,6 +508,26 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "UNETLoader"
+                and (node.get("inputs") or {}).get("unet_name") == "ideogram4_fp8_scaled.safetensors"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "15": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_ideogram4_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -543,6 +563,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "ernie_image" in parsed.query
                 or "krea2" in parsed.query
                 or "lumina2" in parsed.query
+                or "ideogram4" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
@@ -710,6 +731,15 @@ def _krea_object_info(workflow_id: str) -> dict:
 def _lumina_object_info() -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy/lumina2_t2i/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _ideogram_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/ideogram4_t2i/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -1975,6 +2005,66 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["6"]["inputs"]["cfg"], 4.0)
         self.assertEqual(prompt["6"]["inputs"]["sampler_name"], "res_multistep")
         self.assertEqual(prompt["6"]["inputs"]["scheduler"], "simple")
+
+    def test_ideogram4_pack_patches_t2i_graph(self):
+        ComfyHandler.reset(_ideogram_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "ideogram4.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local Ideogram 4 workflow render with readable sign text",
+                width=1024,
+                height=1024,
+                batch=1,
+                seed=4404,
+                ideogram_model="ideogram4_fp8_scaled.safetensors",
+                ideogram_unconditional_model="ideogram4_unconditional_fp8_scaled.safetensors",
+                ideogram_text_encoder="qwen3vl_8b_fp8_scaled.safetensors",
+                ideogram_clip_type="ideogram4",
+                ideogram_vae="flux2-vae.safetensors",
+                ideogram_sampler="euler",
+                ideogram_steps=20,
+                ideogram_guidance=4.0,
+                ideogram_scheduler_mu=0.0,
+                ideogram_scheduler_std=1.75,
+                ideogram_cfg_override=3.0,
+                ideogram_cfg_override_start=0.7,
+                ideogram_cfg_override_end=1.0,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/ideogram4_t2i",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(ComfyHandler.upload_bodies, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ideogram4_fp8_scaled.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["unet_name"], "ideogram4_unconditional_fp8_scaled.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name"], "qwen3vl_8b_fp8_scaled.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["type"], "ideogram4")
+        self.assertEqual(prompt["4"]["inputs"]["text"], "local Ideogram 4 workflow render with readable sign text")
+        self.assertEqual(prompt["6"]["inputs"]["cfg"], 3.0)
+        self.assertEqual(prompt["6"]["inputs"]["start_percent"], 0.7)
+        self.assertEqual(prompt["6"]["inputs"]["end_percent"], 1.0)
+        self.assertEqual(prompt["7"]["class_type"], "DualModelGuider")
+        self.assertEqual(prompt["7"]["inputs"]["cfg"], 4.0)
+        self.assertEqual(prompt["8"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["9"]["inputs"]["noise_seed"], 4404)
+        self.assertEqual(prompt["10"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["11"]["class_type"], "Ideogram4Scheduler")
+        self.assertEqual(prompt["11"]["inputs"]["steps"], 20)
+        self.assertEqual(prompt["11"]["inputs"]["mu"], 0.0)
+        self.assertEqual(prompt["11"]["inputs"]["std"], 1.75)
+        self.assertEqual(prompt["13"]["inputs"]["vae_name"], "flux2-vae.safetensors")
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):
         with tempfile.TemporaryDirectory() as tmp:

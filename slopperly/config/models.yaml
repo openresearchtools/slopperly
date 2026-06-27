@@ -573,6 +573,66 @@ models:
     workflows:
       - lumina2_t2i
       - image/lumina2.py
+  - logical_name: ideogram4_t2i
+    legacy_aliases:
+      - ideogram-ai/ideogram-4-nf4-diffusers
+    task: image_t2i
+    runtime: comfy
+    model_source: https://huggingface.co/Comfy-Org/Ideogram-4
+    download_mode: hf_file
+    local_cache_path: models/diffusion_models/ideogram4_fp8_scaled.safetensors
+    required_files:
+      - path: diffusion_models/ideogram4_fp8_scaled.safetensors
+        target: ideogram4_fp8_scaled.safetensors
+    auxiliary_sources:
+      - id: ideogram4_unconditional_model
+        model_source: https://huggingface.co/Comfy-Org/Ideogram-4
+        download_mode: hf_file
+        local_cache_path: models/diffusion_models/ideogram4_unconditional_fp8_scaled.safetensors
+        required_files:
+          - path: diffusion_models/ideogram4_unconditional_fp8_scaled.safetensors
+            target: ideogram4_unconditional_fp8_scaled.safetensors
+      - id: ideogram4_text_encoder
+        model_source: https://huggingface.co/Comfy-Org/Ideogram-4
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/qwen3vl_8b_fp8_scaled.safetensors
+        required_files:
+          - path: text_encoders/qwen3vl_8b_fp8_scaled.safetensors
+            target: qwen3vl_8b_fp8_scaled.safetensors
+      - id: ideogram4_vae
+        model_source: https://huggingface.co/Comfy-Org/Ideogram-4
+        download_mode: hf_file
+        local_cache_path: models/vae/flux2-vae.safetensors
+        required_files:
+          - path: vae/flux2-vae.safetensors
+            target: flux2-vae.safetensors
+    required_node_pack: comfyui core ideogram4
+    supported_resolutions:
+      - 1024x1024
+      - 1280x720
+      - 720x1280
+    context_limits: {}
+    default_parameters:
+      diffusion_model: ideogram4_fp8_scaled.safetensors
+      unconditional_model: ideogram4_unconditional_fp8_scaled.safetensors
+      text_encoder: qwen3vl_8b_fp8_scaled.safetensors
+      clip_type: ideogram4
+      vae: flux2-vae.safetensors
+      steps: 20
+      guidance: 4.0
+      sampler: euler
+      scheduler: ideogram4_logit_normal
+      scheduler_mu: 0.0
+      scheduler_std: 1.75
+      cfg_override: 3.0
+      cfg_override_range: 0.7-1.0
+      lora_injection: unmapped_until_certified
+      prompt_upsampling: unmapped_until_llamacpp_prompt_builder_certified
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_ideogram4.py --device cuda
+    workflows:
+      - ideogram4_t2i
+      - image/ideogram4.py
   - logical_name: local_image_vsr_upscale
     legacy_aliases:
       - nvidia/maxine-vsr
