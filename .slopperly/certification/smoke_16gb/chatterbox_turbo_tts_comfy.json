@@ -1,0 +1,45 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/chatterbox_turbo_tts_comfy/chatterbox_turbo_manifest.json",
+  "command": "pytest tests/gpu/test_chatterbox_turbo.py::test_chatterbox_turbo --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T16:37:23+00:00",
+  "logical_name": "chatterbox_turbo_tts_comfy",
+  "metadata": {
+    "prompt_tts": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/chatterbox_turbo_tts_comfy/9191_A_quick_local_Chatterbox_Turbo_voice_confirms_th_chatterbox_turbo.wav",
+    "reference_input": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/chatterbox_turbo_tts_comfy/9191_A_quick_local_Chatterbox_Turbo_voice_confirms_th_chatterbox_turbo.wav",
+    "reference_tts": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/chatterbox_turbo_tts_comfy/9192_This_Chatterbox_Turbo_line_uses_a_local_generate_chatterbox_turbo.wav",
+    "runtime_url": "http://127.0.0.1:8190"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "kind": "manifest",
+    "modes": {
+      "prompt_tts": {
+        "channels": 1,
+        "duration": 11.28,
+        "format": "WAV",
+        "kind": "audio",
+        "rms": 1361.585502489212,
+        "sample_rate": 24000
+      },
+      "reference_input": {
+        "channels": 1,
+        "duration": 11.28,
+        "format": "WAV",
+        "kind": "audio",
+        "rms": 1361.585502489212,
+        "sample_rate": 24000
+      },
+      "reference_tts": {
+        "channels": 1,
+        "duration": 4.16,
+        "format": "WAV",
+        "kind": "audio",
+        "rms": 1400.9420064187375,
+        "sample_rate": 24000
+      }
+    }
+  }
+}
