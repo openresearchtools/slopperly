@@ -1,0 +1,41 @@
+workflow_id: stable_audio_3_medium_base
+task: text_to_audio
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    classes:
+      - CheckpointLoaderSimple
+      - CLIPLoader
+      - CLIPTextEncode
+      - ConditioningStableAudio
+      - EmptyLatentAudio
+      - KSampler
+      - VAEDecodeAudio
+      - SaveAudio
+model_files:
+  primary_source:
+    repo: Comfy-Org/stable-audio-3
+    target_dirs:
+      checkpoints: models/checkpoints
+      text_encoders: models/text_encoders
+    files:
+      - checkpoints/stable_audio_3_medium_base.safetensors
+      - text_encoders/t5gemma_b_b_ul2.safetensors
+supported_profiles:
+  - input: text
+    output: flac
+    sample_rate: 44100
+    default_duration: 30.0
+    default_steps: 50
+    default_cfg: 7.0
+    sampler: lcm
+    scheduler: simple
+artifact_contract:
+  output_type: audio
+  validation:
+    - one FLAC or WAV-readable audio artifact is returned
+    - sample rate is 44100 for the committed Stable Audio 3 profile
+    - duration matches requested audio_length within tolerance
+    - waveform is non-silent for real GPU certification

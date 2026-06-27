@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "workflow_id": "stable_audio_3_medium_base",
+  "description": "Patch schema for local Stable Audio 3 Medium Base generation through ComfyUI.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "3",
+        "input": "text"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "4",
+        "input": "text"
+      }
+    ],
+    "audio_length": [
+      {
+        "node": "5",
+        "input": "seconds_total"
+      },
+      {
+        "node": "6",
+        "input": "seconds"
+      }
+    ],
+    "steps": [
+      {
+        "node": "7",
+        "input": "steps"
+      }
+    ],
+    "guidance": [
+      {
+        "node": "7",
+        "input": "cfg"
+      }
+    ],
+    "seed": [
+      {
+        "node": "7",
+        "input": "seed"
+      }
+    ],
+    "stable_audio_3_checkpoint": [
+      {
+        "node": "1",
+        "input": "ckpt_name"
+      }
+    ],
+    "stable_audio_3_text_encoder": [
+      {
+        "node": "2",
+        "input": "clip_name"
+      }
+    ],
+    "stable_audio_3_clip_type": [
+      {
+        "node": "2",
+        "input": "type"
+      }
+    ],
+    "stable_audio_3_clip_device": [
+      {
+        "node": "2",
+        "input": "device"
+      }
+    ],
+    "stable_audio_3_seconds_start": [
+      {
+        "node": "5",
+        "input": "seconds_start"
+      }
+    ],
+    "stable_audio_3_batch_size": [
+      {
+        "node": "6",
+        "input": "batch_size"
+      }
+    ],
+    "stable_audio_3_sampler": [
+      {
+        "node": "7",
+        "input": "sampler_name"
+      }
+    ],
+    "stable_audio_3_scheduler": [
+      {
+        "node": "7",
+        "input": "scheduler"
+      }
+    ],
+    "stable_audio_3_denoise": [
+      {
+        "node": "7",
+        "input": "denoise"
+      }
+    ]
+  },
+  "uploads": {},
+  "unmapped_ui_parameters": {
+    "low_vram": "Device placement is handled by the owned ComfyUI runtime and CLIPLoader device option rather than by direct plugin code.",
+    "hf_cache_dir": "Model downloads are handled by the Slopperly model manager, not by generation-time Hugging Face calls."
+  },
+  "output": {
+    "node": "9",
+    "type": "audio/flac",
+    "contract": "Return one readable audio artifact at 44.1 kHz with duration matching audio_length within tolerance."
+  }
+}

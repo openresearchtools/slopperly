@@ -843,3 +843,14 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: integration coverage calls `MMAudioPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies `/upload/video`, exact node/input patching, and FLAC artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed `mmaudio_video_to_audio` pack uploads the MP4 fixture and collects one Comfy audio artifact.
 - Still blocked: real RTX 4090 MMAudio artifact certification requires owned ComfyUI running with VideoHelperSuite, ComfyUI-MMAudio, core `SaveAudio`, the MMAudio safetensors in `models/mmaudio`, and the NVIDIA BigVGAN 44k snapshot pre-cached locally.
+
+### 2026-06-27 Stable Audio 3 Comfy workflow block
+
+- Completed: `audio/_stable_audio_3.py` now routes the legacy Stable Audio 3 plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/stable-audio-tools execution and generation-time Hugging Face downloads in the add-on process.
+- Completed: `stable_audio_3_medium_base` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Completed: The workflow uses `CheckpointLoaderSimple -> CLIPLoader -> CLIPTextEncode -> ConditioningStableAudio -> EmptyLatentAudio -> KSampler -> VAEDecodeAudio -> SaveAudio`, preserving prompt, negative prompt, duration, steps, guidance, and seed.
+- Completed: `stable_audio_3_medium_base` is registered in `slopperly/config/models.yaml` with legacy alias `cocktailpeanut/stable-audio-3-medium-base` and artifact source `Comfy-Org/stable-audio-3`.
+- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts core Stable Audio node classes including `ConditioningStableAudio`, `EmptyLatentAudio`, and `VAEDecodeAudio`.
+- Evidence: integration coverage calls `StableAudio3Plugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies exact node/input patching plus FLAC artifact collection.
+- Evidence: workflow-runner integration coverage verifies the committed `stable_audio_3_medium_base` pack patches the graph and collects one Comfy audio artifact.
+- Still blocked: real RTX 4090 Stable Audio 3 artifact certification requires owned ComfyUI running with core Stable Audio nodes, `stable_audio_3_medium_base.safetensors` in `models/checkpoints`, and `t5gemma_b_b_ul2.safetensors` in `models/text_encoders`.

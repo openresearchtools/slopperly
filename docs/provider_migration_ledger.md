@@ -568,3 +568,29 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with VideoHelperSuite, ComfyUI-MMAudio, core `SaveAudio`, the four MMAudio safetensors in `models/mmaudio`, and the NVIDIA BigVGAN 44k snapshot pre-cached locally.
+
+## 2026-06-27 Stable Audio 3 Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/audio/_stable_audio_3.py` now routes the legacy `cocktailpeanut/stable-audio-3-medium-base` text-to-audio path through the local Comfy gateway instead of importing Torch, Torchaudio, `stable_audio_tools`, and Hugging Face download helpers in the add-on process.
+- The existing audio plugin contract is preserved for prompt, negative prompt, audio duration, steps, guidance, seed, and returned artifact path.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/stable_audio_3_medium_base/` with editable/API workflow JSON, schema, model manifest, test payload, and README.
+- The workflow uses Comfy core `CheckpointLoaderSimple`, `CLIPLoader`, `CLIPTextEncode`, `ConditioningStableAudio`, `EmptyLatentAudio`, `KSampler`, `VAEDecodeAudio`, and `SaveAudio`.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` so the core Stable Audio 3 node classes are asserted by owned Comfy runtime preflight.
+- Registered `stable_audio_3_medium_base` in `slopperly/config/models.yaml` with legacy alias `cocktailpeanut/stable-audio-3-medium-base` and Hugging Face artifact source `Comfy-Org/stable-audio-3`.
+- Required local files are `checkpoints/stable_audio_3_medium_base.safetensors` and `text_encoders/t5gemma_b_b_ul2.safetensors`.
+
+### Verification
+
+- Integration coverage calls `StableAudio3Plugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies exact node/input patching plus FLAC artifact collection.
+- Workflow-runner integration coverage verifies the committed `stable_audio_3_medium_base` pack patches the audio generation graph and collects one audio output.
+- GPU certification coverage is registered in `tests/gpu/test_stable_audio_3.py` and validates a 44.1 kHz non-silent audio artifact when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with core Stable Audio nodes, `stable_audio_3_medium_base.safetensors` in `models/checkpoints`, and `t5gemma_b_b_ul2.safetensors` in `models/text_encoders`.

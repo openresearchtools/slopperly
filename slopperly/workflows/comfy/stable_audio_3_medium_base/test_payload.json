@@ -1,0 +1,15 @@
+{
+  "prompt": "warm lo-fi electric piano chords, soft brushed drums, rounded bass, intimate tape texture",
+  "negative_prompt": "speech, vocals, clipping, harsh distortion",
+  "audio_length": 2.0,
+  "steps": 8,
+  "guidance": 5.0,
+  "seed": 31415,
+  "expected": {
+    "type": "audio",
+    "sample_rate": 44100,
+    "duration_seconds": 2.0,
+    "duration_tolerance": 0.35,
+    "non_silent": true
+  }
+}

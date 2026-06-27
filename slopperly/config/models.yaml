@@ -261,6 +261,37 @@ models:
     workflows:
       - mmaudio_video_to_audio
       - audio/mmaudio.py
+  - logical_name: stable_audio_3_medium_base
+    legacy_aliases:
+      - cocktailpeanut/stable-audio-3-medium-base
+    task: text_to_audio
+    runtime: comfy
+    model_source: https://huggingface.co/Comfy-Org/stable-audio-3
+    download_mode: hf_snapshot
+    local_cache_path: models/comfy/Comfy-Org/stable-audio-3
+    required_files:
+      - checkpoints/stable_audio_3_medium_base.safetensors
+      - text_encoders/t5gemma_b_b_ul2.safetensors
+    required_node_pack: comfyui core stable audio
+    supported_resolutions: []
+    supported_fps: []
+    context_limits: {}
+    default_parameters:
+      checkpoint: stable_audio_3_medium_base.safetensors
+      text_encoder: t5gemma_b_b_ul2.safetensors
+      clip_type: stable_audio
+      sample_rate: 44100
+      steps: 50
+      guidance: 7.0
+      duration: 30.0
+      sampler: lcm
+      scheduler: simple
+      denoise: 1.0
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_stable_audio_3.py --device cuda
+    workflows:
+      - stable_audio_3_medium_base
+      - audio/_stable_audio_3.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter

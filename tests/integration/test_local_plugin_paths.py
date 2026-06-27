@@ -132,6 +132,13 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "LoadAudio": {},
                 "AudioSeparation": {},
                 "SaveAudio": {},
+                "CheckpointLoaderSimple": {},
+                "CLIPLoader": {},
+                "CLIPTextEncode": {},
+                "ConditioningStableAudio": {},
+                "EmptyLatentAudio": {},
+                "KSampler": {},
+                "VAEDecodeAudio": {},
                 "MMAudioModelLoader": {},
                 "MMAudioFeatureUtilsLoader": {},
                 "MMAudioSampler": {},
@@ -203,6 +210,26 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "audio": [
                                     {
                                         "filename": "slopperly_mmaudio_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "VAEDecodeAudio"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "9": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_stable_audio_3_00001_.flac",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -726,6 +753,53 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["5"]["class_type"], "SaveAudio")
         self.assertEqual(prompt["5"]["inputs"]["audio"], ["4", 0])
         self.assertIn(b'name="video"; filename="clip.mp4"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_stable_audio_3_uses_comfy_plugin_path(self):
+        module = load_plugin_module("audio", "_stable_audio_3")
+        plugin = module.StableAudio3Plugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(
+                stable_audio_3_sampler="dpmpp_3m_sde",
+                stable_audio_3_scheduler="karras",
+            )
+            inputs = self.base.ModelInputs(
+                prompt="warm tape piano, brushed drums, rounded bass",
+                neg_prompt="speech, clipping",
+                audio_length=2.0,
+                steps=9,
+                guidance=5.5,
+                seed=31415,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["class_type"], "CheckpointLoaderSimple")
+        self.assertEqual(prompt["1"]["inputs"]["ckpt_name"], "stable_audio_3_medium_base.safetensors")
+        self.assertEqual(prompt["2"]["class_type"], "CLIPLoader")
+        self.assertEqual(prompt["2"]["inputs"]["clip_name"], "t5gemma_b_b_ul2.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["type"], "stable_audio")
+        self.assertEqual(prompt["3"]["inputs"]["text"], "warm tape piano, brushed drums, rounded bass")
+        self.assertEqual(prompt["4"]["inputs"]["text"], "speech, clipping")
+        self.assertEqual(prompt["5"]["class_type"], "ConditioningStableAudio")
+        self.assertEqual(prompt["5"]["inputs"]["seconds_total"], 2.0)
+        self.assertEqual(prompt["6"]["class_type"], "EmptyLatentAudio")
+        self.assertEqual(prompt["6"]["inputs"]["seconds"], 2.0)
+        self.assertEqual(prompt["7"]["class_type"], "KSampler")
+        self.assertEqual(prompt["7"]["inputs"]["steps"], 9)
+        self.assertEqual(prompt["7"]["inputs"]["cfg"], 5.5)
+        self.assertEqual(prompt["7"]["inputs"]["seed"], 31415)
+        self.assertEqual(prompt["7"]["inputs"]["sampler_name"], "dpmpp_3m_sde")
+        self.assertEqual(prompt["7"]["inputs"]["scheduler"], "karras")
+        self.assertEqual(prompt["8"]["class_type"], "VAEDecodeAudio")
+        self.assertEqual(prompt["9"]["class_type"], "SaveAudio")
+        self.assertEqual(prompt["9"]["inputs"]["audio"], ["8", 0])
 
     def test_marlin_video_captions_uses_vllm_vlm_plugin_path(self):
         module = load_plugin_module("text", "marlin_video_captions")

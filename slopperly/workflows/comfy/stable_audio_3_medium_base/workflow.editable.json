@@ -1,0 +1,179 @@
+{
+  "last_node_id": 9,
+  "last_link_id": 11,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CheckpointLoaderSimple",
+      "title": "Stable Audio 3 checkpoint",
+      "widgets_values": [
+        "stable_audio_3_medium_base.safetensors"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoader",
+      "title": "Stable Audio text encoder",
+      "widgets_values": [
+        "t5gemma_b_b_ul2.safetensors",
+        "stable_audio",
+        "default"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "CLIPTextEncode",
+      "title": "Positive prompt",
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 4,
+      "type": "CLIPTextEncode",
+      "title": "Negative prompt",
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 5,
+      "type": "ConditioningStableAudio",
+      "title": "Stable Audio duration conditioning",
+      "widgets_values": [
+        0.0,
+        30.0
+      ]
+    },
+    {
+      "id": 6,
+      "type": "EmptyLatentAudio",
+      "title": "Audio latent",
+      "widgets_values": [
+        30.0,
+        1
+      ]
+    },
+    {
+      "id": 7,
+      "type": "KSampler",
+      "title": "Sample audio latent",
+      "widgets_values": [
+        0,
+        50,
+        7.0,
+        "lcm",
+        "simple",
+        1.0
+      ]
+    },
+    {
+      "id": 8,
+      "type": "VAEDecodeAudio",
+      "title": "Decode audio",
+      "widgets_values": []
+    },
+    {
+      "id": 9,
+      "type": "SaveAudio",
+      "title": "Save generated audio",
+      "widgets_values": [
+        "slopperly_stable_audio_3"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      3,
+      0,
+      "CLIP"
+    ],
+    [
+      2,
+      2,
+      0,
+      4,
+      0,
+      "CLIP"
+    ],
+    [
+      3,
+      3,
+      0,
+      5,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      4,
+      4,
+      0,
+      5,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      5,
+      1,
+      0,
+      7,
+      0,
+      "MODEL"
+    ],
+    [
+      6,
+      5,
+      0,
+      7,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      7,
+      5,
+      1,
+      7,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      8,
+      6,
+      0,
+      7,
+      3,
+      "LATENT"
+    ],
+    [
+      9,
+      7,
+      0,
+      8,
+      0,
+      "LATENT"
+    ],
+    [
+      10,
+      1,
+      2,
+      8,
+      1,
+      "VAE"
+    ],
+    [
+      11,
+      8,
+      0,
+      9,
+      0,
+      "AUDIO"
+    ]
+  ],
+  "extra": {
+    "slopperly_workflow_id": "stable_audio_3_medium_base",
+    "source": "Hand-authored API graph from Comfy core audio nodes and the official Stable Audio 3 Medium Base template."
+  }
+}

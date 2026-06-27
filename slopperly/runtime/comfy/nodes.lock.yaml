@@ -5,8 +5,14 @@ comfyui:
   python_extras: []
   required_node_classes:
     - LoadImage
+    - CheckpointLoaderSimple
+    - CLIPLoader
     - CLIPTextEncode
+    - ConditioningStableAudio
+    - EmptyLatentAudio
+    - KSampler
     - VAEDecode
+    - VAEDecodeAudio
     - UpscaleModelLoader
     - ImageUpscaleWithModel
     - ImageScale
