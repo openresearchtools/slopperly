@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "workflow_id": "florence2_caption_ocr",
+  "description": "Patch schema for Florence-2 caption/OCR tasks through ComfyUI-Florence2.",
+  "inputs": {
+    "florence2_task": [
+      {
+        "node": "3",
+        "input": "task"
+      }
+    ],
+    "florence2_text_input": [
+      {
+        "node": "3",
+        "input": "text_input"
+      }
+    ],
+    "seed": [
+      {
+        "node": "3",
+        "input": "seed"
+      }
+    ]
+  },
+  "uploads": {
+    "input_image": [
+      {
+        "node": "1",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "steps": "Florence2Run exposes max_new_tokens and num_beams rather than image/video sampler steps.",
+    "guidance": "Florence2Run does not expose CFG guidance."
+  },
+  "output": {
+    "node": "3",
+    "type": "text/json",
+    "contract": "Return the Florence2Run caption text and JSON data from Comfy history outputs."
+  }
+}

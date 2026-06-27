@@ -1,0 +1,33 @@
+workflow_id: florence2_caption_ocr
+task: image_caption_ocr
+runtime: comfy
+required_custom_nodes:
+  - id: florence2
+    classes:
+      - DownloadAndLoadFlorence2Model
+      - Florence2Run
+  - id: comfyui_core
+    classes:
+      - LoadImage
+model_files:
+  LLM:
+    - Florence-2-large/config.json
+    - Florence-2-large/model.safetensors
+supported_profiles:
+  - task: more_detailed_caption
+    output: text
+  - task: caption
+    output: text
+  - task: dense_region_caption
+    output: text/json
+  - task: region_proposal
+    output: text/json
+  - task: ocr_with_region
+    output: text/json
+artifact_contract:
+  output_type: text/json
+  validation:
+    - Comfy history contains a non-empty caption text output
+    - optional JSON data is parseable when returned by Florence2Run
+    - plugin caption mode returns non-empty text
+    - plugin Ideogram4 mode returns parseable JSON with the existing top-level shape

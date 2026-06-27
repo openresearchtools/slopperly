@@ -2,8 +2,10 @@
 
 import json
 import re
+from types import SimpleNamespace
 
 from ...models.base import ModelPlugin, InputSpec, ParamSpec, ModelInputs
+from ...slopperly.runtime.gateway import SlopperlyRuntimeGateway
 
 try:
     import bpy as _bpy
@@ -97,26 +99,16 @@ class Florence2Plugin(ModelPlugin):
     INPUTS       = InputSpec.IMAGE
     UI_SECTIONS  = []
     PARAMS       = ParamSpec()
-    REQUIRED_PACKAGES = ["torch", "PIL", "transformers"]
+    REQUIRED_PACKAGES = []
 
     requires_input_strip = True
     supports_batch       = False   # deterministic caption → batch makes identical copies
 
     def load(self, prefs, scene, **kw):
-        from transformers import AutoProcessor, Florence2ForConditionalGeneration
-        cache_dir = prefs.hf_cache_dir or None
-        model = Florence2ForConditionalGeneration.from_pretrained(
-            self.MODEL_ID,
-            device_map="auto",
-            cache_dir=cache_dir,
-            local_files_only=prefs.local_files_only,
-        )
-        processor = AutoProcessor.from_pretrained(
-            self.MODEL_ID,
-            cache_dir=cache_dir,
-            local_files_only=prefs.local_files_only,
-        )
-        return {"model": model, "processor": processor, "tokenizer": None}
+        return {
+            "gateway": SlopperlyRuntimeGateway(),
+            "last_model_card": "microsoft/Florence-2-large",
+        }
 
     def draw_custom_ui(self, col, context) -> bool:
         col.prop(context.scene, "florence2_mode", expand=True)
@@ -131,43 +123,126 @@ class Florence2Plugin(ModelPlugin):
 
     # ------------------------------------------------------------------
 
-    def _run_task(self, model, processor, image, task: str) -> dict:
-        proc_inputs = processor(text=task, images=image, return_tensors="pt")
-        proc_inputs = {k: v.to(model.device) for k, v in proc_inputs.items()}
-        generated_ids = model.generate(
-            **proc_inputs,
-            max_new_tokens=1024,
-            num_beams=3,
-            early_stopping=False,
-        )
-        generated_text = processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
-        # post_process_generation matches `task` by EXACT key and returns the
-        # result keyed by it.  Tasks that carry inline arguments (a region's
-        # <loc_*> tokens, a grounding phrase, …) must be reduced to their bare
-        # <TOKEN> here, or parsing falls back to pure_text and the result is
-        # stored under the wrong key — silently dropping bboxes/descriptions.
-        m = re.match(r"<[^>]+>", task)
-        task_token = m.group(0) if m else task
-        return processor.post_process_generation(
-            generated_text,
-            task=task_token,
-            image_size=(image.width, image.height),
-        )
+    def _run_task(self, task_runner, task: str) -> dict:
+        return task_runner(task)
 
     def generate(self, pipe, inputs: ModelInputs, scene, prefs) -> str:
-        model     = pipe["model"]
-        processor = pipe["processor"]
         image     = inputs.image
 
         if image is None:
             raise ValueError("Florence-2 requires an image input — select an IMAGE or MOVIE strip.")
         if image.mode != "RGB":
             image = image.convert("RGB")
+        inputs.image = image
+
+        gateway = pipe.get("gateway") if pipe else None
+        if gateway is None:
+            gateway = SlopperlyRuntimeGateway()
+        task_runner = lambda task: self._run_comfy_task(gateway, inputs, scene, prefs, image, task)
 
         mode = getattr(scene, "florence2_mode", "CAPTION")
         if mode == "IDEOGRAM4":
-            return self._ideogram4(model, processor, image, inputs)
-        return self._caption(model, processor, image, inputs)
+            return self._ideogram4(task_runner, image, inputs)
+        return self._caption(task_runner, image, inputs)
+
+    def _run_comfy_task(self, gateway, inputs, scene, prefs, image, task: str) -> dict:
+        task_token, text_input = self._split_task_token(task)
+        if task_token == "<REGION_TO_DESCRIPTION>" and text_input:
+            return {task_token: ""}
+        comfy_task = self._COMFY_TASKS.get(task_token)
+        if not comfy_task:
+            return {task_token: {}}
+
+        task_scene = SimpleNamespace(
+            florence2_task=comfy_task,
+            florence2_text_input=text_input,
+        )
+        if scene is not None:
+            for name in ("florence2_mode", "florence2_send_to_mask"):
+                if hasattr(scene, name):
+                    setattr(task_scene, name, getattr(scene, name))
+        result = gateway.run_comfy_workflow(
+            "florence2_caption_ocr",
+            inputs,
+            task_scene,
+            prefs,
+            timeout=float(getattr(prefs, "comfyui_timeout", 3600.0) or 3600.0),
+        )
+        text, data = self._split_comfy_result(result)
+        if task_token in {"<DENSE_REGION_CAPTION>", "<OD>", "<OCR_WITH_REGION>"}:
+            return {task_token: self._data_to_legacy_shape(task_token, data)}
+        if task_token.startswith("<REFERRING_") or task_token == "<OPEN_VOCABULARY_DETECTION>":
+            return {task_token: self._data_to_legacy_shape(task_token, data)}
+        if task_token == "<REGION_TO_DESCRIPTION>":
+            return {task_token: self._clean_desc(text)}
+        return {task_token: self._clean_desc(text)}
+
+    _COMFY_TASKS = {
+        "<MORE_DETAILED_CAPTION>": "more_detailed_caption",
+        "<CAPTION>": "caption",
+        "<DENSE_REGION_CAPTION>": "dense_region_caption",
+        "<OD>": "region_proposal",
+        "<OCR_WITH_REGION>": "ocr_with_region",
+        "<REGION_TO_DESCRIPTION>": "region_caption",
+        "<REFERRING_EXPRESSION_COMPREHENSION>": "caption_to_phrase_grounding",
+        "<OPEN_VOCABULARY_DETECTION>": "caption_to_phrase_grounding",
+    }
+
+    @staticmethod
+    def _split_task_token(task: str) -> tuple[str, str]:
+        match = re.match(r"(<[^>]+>)(.*)", task or "")
+        if not match:
+            return task, ""
+        return match.group(1), match.group(2).strip()
+
+    @staticmethod
+    def _split_comfy_result(result) -> tuple[str, object]:
+        items = result if isinstance(result, list) else [result]
+        text = ""
+        data = {}
+        for item in items:
+            if isinstance(item, str):
+                stripped = item.strip()
+                if not stripped:
+                    continue
+                try:
+                    parsed = json.loads(stripped)
+                except json.JSONDecodeError:
+                    if not text:
+                        text = stripped
+                else:
+                    data = parsed
+            elif isinstance(item, (dict, list)):
+                data = item
+        return text, data
+
+    @staticmethod
+    def _data_to_legacy_shape(task_token: str, data) -> dict:
+        if isinstance(data, dict):
+            if task_token == "<OD>" and "labels" not in data and "bboxes" in data:
+                labels = data.get("bboxes_labels") or ["object"] * len(data.get("bboxes", []))
+                return {"bboxes": data.get("bboxes", []), "labels": labels}
+            return data
+        if not isinstance(data, list):
+            return {}
+        bboxes = []
+        labels = []
+        quad_boxes = []
+        for item in data:
+            if isinstance(item, dict):
+                bbox = item.get("bbox") or item.get("box") or item.get("bboxes")
+                label = item.get("label") or item.get("text") or item.get("caption") or item.get("desc")
+                if bbox is not None:
+                    bboxes.append(bbox)
+                if label is not None:
+                    labels.append(str(label))
+                if item.get("quad_box"):
+                    quad_boxes.append(item["quad_box"])
+            elif isinstance(item, (list, tuple)):
+                bboxes.append(list(item))
+        if task_token == "<OCR_WITH_REGION>":
+            return {"quad_boxes": quad_boxes or bboxes, "labels": labels}
+        return {"bboxes": bboxes, "labels": labels or ["object"] * len(bboxes)}
 
     # ------------------------------------------------------------------
     # Mode: CAPTION
@@ -297,25 +372,25 @@ class Florence2Plugin(ModelPlugin):
             for (y1, y2) in rows for (x1, x2) in cols
         ]
 
-    def _region_desc(self, model, processor, image, bbox_px) -> str:
+    def _region_desc(self, task_runner, image, bbox_px) -> str:
         W, H = image.width, image.height
         x1, y1, x2, y2 = bbox_px
         lx1 = round(x1 / W * 999); ly1 = round(y1 / H * 999)
         lx2 = round(x2 / W * 999); ly2 = round(y2 / H * 999)
         task = f"<REGION_TO_DESCRIPTION><loc_{lx1}><loc_{ly1}><loc_{lx2}><loc_{ly2}>"
         return self._clean_desc(
-            self._run_task(model, processor, image, task).get("<REGION_TO_DESCRIPTION>", ""))
+            self._run_task(task_runner, task).get("<REGION_TO_DESCRIPTION>", ""))
 
-    def _caption(self, model, processor, image, inputs) -> str:
+    def _caption(self, task_runner, image, inputs) -> str:
         _PERSON_LABELS = {"person", "man", "woman", "boy", "girl", "child", "human", "people"}
 
         self.set_phase(inputs, "Captioning")
-        text = self._run_task(model, processor, image, "<MORE_DETAILED_CAPTION>").get(
+        text = self._run_task(task_runner, "<MORE_DETAILED_CAPTION>").get(
             "<MORE_DETAILED_CAPTION>", ""
         )
 
         self.set_phase(inputs, "Detecting persons")
-        od_data = self._run_task(model, processor, image, "<OD>").get("<OD>", {})
+        od_data = self._run_task(task_runner, "<OD>").get("<OD>", {})
         person_bboxes = [
             bbox for bbox, label in zip(
                 od_data.get("bboxes", []), od_data.get("labels", [])
@@ -329,7 +404,7 @@ class Florence2Plugin(ModelPlugin):
                 self.set_phase(inputs, f"Person {i + 1}")
                 angle = gaze = ""
                 try:
-                    region = self._region_desc(model, processor, image, bbox_px)
+                    region = self._region_desc(task_runner, image, bbox_px)
                     angle = self._cinematic_angle(region)
                 except Exception:
                     pass
@@ -341,12 +416,12 @@ class Florence2Plugin(ModelPlugin):
                         else f"the object person {i + 1} is looking at"
                     )
                     rec = self._run_task(
-                        model, processor, image,
+                        task_runner,
                         f"<REFERRING_EXPRESSION_COMPREHENSION>{query}",
                     ).get("<REFERRING_EXPRESSION_COMPREHENSION>", {})
                     gaze_bboxes = rec.get("bboxes", [])
                     if gaze_bboxes:
-                        gaze = self._region_desc(model, processor, image, gaze_bboxes[0])
+                        gaze = self._region_desc(task_runner, image, gaze_bboxes[0])
                 except Exception:
                     pass
                 if angle or gaze:
@@ -372,31 +447,31 @@ class Florence2Plugin(ModelPlugin):
     # ------------------------------------------------------------------
     # Mode: IDEOGRAM4
 
-    def _ideogram4(self, model, processor, image, inputs) -> str:
+    def _ideogram4(self, task_runner, image, inputs) -> str:
         W, H = image.width, image.height
 
         # ---- 1. Captions ----
         self.set_phase(inputs, "Caption")
-        caption = self._run_task(model, processor, image, "<MORE_DETAILED_CAPTION>").get(
+        caption = self._run_task(task_runner, "<MORE_DETAILED_CAPTION>").get(
             "<MORE_DETAILED_CAPTION>", ""
         ).strip()
-        background = self._run_task(model, processor, image, "<CAPTION>").get(
+        background = self._run_task(task_runner, "<CAPTION>").get(
             "<CAPTION>", ""
         ).strip()
 
         # ---- 2. Dense region captions ----
         self.set_phase(inputs, "Dense regions")
-        dense_data = self._run_task(model, processor, image, "<DENSE_REGION_CAPTION>").get(
+        dense_data = self._run_task(task_runner, "<DENSE_REGION_CAPTION>").get(
             "<DENSE_REGION_CAPTION>", {}
         )
 
         # ---- 3. Object detection ----
         self.set_phase(inputs, "Object detection")
-        od_data = self._run_task(model, processor, image, "<OD>").get("<OD>", {})
+        od_data = self._run_task(task_runner, "<OD>").get("<OD>", {})
 
         # ---- 4. OCR ----
         self.set_phase(inputs, "OCR")
-        ocr_data = self._run_task(model, processor, image, "<OCR_WITH_REGION>").get(
+        ocr_data = self._run_task(task_runner, "<OCR_WITH_REGION>").get(
             "<OCR_WITH_REGION>", {}
         )
 
@@ -427,7 +502,7 @@ class Florence2Plugin(ModelPlugin):
             ly2 = round(y2 / H * 999)
             task = f"<REGION_TO_DESCRIPTION><loc_{lx1}><loc_{ly1}><loc_{lx2}><loc_{ly2}>"
             try:
-                result = self._run_task(model, processor, image, task)
+                result = self._run_task(task_runner, task)
                 return self._clean_desc(result.get("<REGION_TO_DESCRIPTION>", ""))
             except Exception:
                 return ""
@@ -700,7 +775,7 @@ class Florence2Plugin(ModelPlugin):
         for part, query in _PART_QUERIES:
             try:
                 pr = self._run_task(
-                    model, processor, image,
+                    task_runner,
                     f"<OPEN_VOCABULARY_DETECTION>{query}",
                 )
                 pdata = pr.get("<OPEN_VOCABULARY_DETECTION>") or {}
@@ -808,7 +883,7 @@ class Florence2Plugin(ModelPlugin):
         light_element = None
         try:
             rec_result = self._run_task(
-                model, processor, image,
+                task_runner,
                 "<REFERRING_EXPRESSION_COMPREHENSION>the main light source",
             )
             light_bbox_px = (rec_result.get("<REFERRING_EXPRESSION_COMPREHENSION>") or {}).get("bboxes", [[]])[0]

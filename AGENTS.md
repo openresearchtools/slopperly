@@ -781,3 +781,12 @@ The following upstream sources are the factual basis for this spec:
 - Completed: `vllm_video_caption_vlm` is registered in `slopperly/config/models.yaml` with legacy alias `tintwotin/Marlin-2B-SDNQ-int8`.
 - Evidence: unit coverage verifies VLM chat payload normalization; integration coverage calls `MarlinVideoCaptionsPlugin.load()` and `generate()` against a loopback fake vLLM server under the local-network guard.
 - Still blocked: real RTX 4090 VLM artifact certification requires a running local vLLM multimodal server and `tests/fixtures/video_caption_smoke.mp4`.
+
+### 2026-06-27 Florence2 Comfy workflow block
+
+- Completed: `text/florence2.py` now routes Florence task inference through the local Comfy workflow pack instead of direct Transformers/PyTorch loading.
+- Completed: `florence2_caption_ocr` workflow pack is committed with API/editable workflow JSON, schema, model manifest, test payload, and README.
+- Completed: Comfy workflow output collection now supports text/JSON history outputs in addition to image/video/audio files.
+- Completed: `florence2_caption_ocr` is registered in `slopperly/config/models.yaml` with legacy alias `florence-community/Florence-2-large`.
+- Evidence: integration coverage verifies Comfy text/JSON history collection and calls `Florence2Plugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard.
+- Still blocked: real RTX 4090 Florence2 artifact certification requires owned ComfyUI, downloaded Florence-2 artifacts, and `tests/fixtures/florence2_caption.png`.

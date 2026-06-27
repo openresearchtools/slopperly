@@ -1,0 +1,10 @@
+{
+  "image": "tests/fixtures/florence2_caption.png",
+  "seed": 123,
+  "florence2_task": "more_detailed_caption",
+  "florence2_text_input": "",
+  "expected": {
+    "type": "text",
+    "min_chars": 8
+  }
+}

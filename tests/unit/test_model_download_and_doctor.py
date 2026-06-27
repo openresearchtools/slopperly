@@ -50,6 +50,7 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertIn(("wan22_ti2v_5b_720p24_gguf", "PLAN"), statuses)
         self.assertIn(("vllm_whisper_large_v3_turbo_stt", "PLAN"), statuses)
         self.assertIn(("vllm_video_caption_vlm", "PLAN"), statuses)
+        self.assertIn(("florence2_caption_ocr", "PLAN"), statuses)
         self.assertIn(("llamacpp_prompt_rewriter", "PLAN"), statuses)
         self.assertIn(("omnivoice_vllm_omni", "PLAN"), statuses)
         self.assertIn(("moss_tts_nano_vllm_omni", "PLAN"), statuses)

@@ -430,6 +430,7 @@ class ComfyWorkflowRunner:
         output_root.mkdir(parents=True, exist_ok=True)
         results: list[str] = []
         for node_out in (history.get("outputs") or {}).values():
+            self._collect_text_outputs(node_out, results, output_root, destination)
             for kind in ("images", "videos", "audio"):
                 for item in node_out.get(kind, []) or []:
                     filename = item.get("filename")
@@ -447,3 +448,43 @@ class ComfyWorkflowRunner:
             shutil.copyfile(results[0], destination)
             results[0] = destination
         return results
+
+    def _collect_text_outputs(
+        self,
+        node_out: dict,
+        results: list[str],
+        output_root: Path,
+        destination: str | None,
+    ) -> None:
+        for key in ("text", "texts", "caption", "captions", "string", "strings", "data", "json"):
+            if key not in node_out:
+                continue
+            for value in self._as_output_items(node_out.get(key)):
+                text = self._stringify_text_output(value)
+                if text is None:
+                    continue
+                if destination and not results:
+                    Path(destination).write_text(text, encoding="utf-8")
+                    results.append(destination)
+                else:
+                    results.append(text)
+
+    @staticmethod
+    def _as_output_items(value):
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        return [value]
+
+    @staticmethod
+    def _stringify_text_output(value) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            text = value.strip()
+            return text if text else None
+        if isinstance(value, (dict, list)):
+            return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+        text = str(value).strip()
+        return text if text else None

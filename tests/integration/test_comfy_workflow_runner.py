@@ -59,6 +59,25 @@ class ComfyHandler(BaseHTTPRequestHandler):
             return self._json(self.object_info_payload)
         if parsed.path == "/history/prompt-1":
             ComfyHandler.request_order.append("/history")
+            if any(
+                node.get("class_type") == "Florence2Run"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "3": {
+                                "text": ["A person stands in warm local light."],
+                                "data": [
+                                    {
+                                        "bboxes": [[10, 20, 80, 120]],
+                                        "labels": ["person"],
+                                    }
+                                ],
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -103,6 +122,15 @@ class ComfyHandler(BaseHTTPRequestHandler):
 def _ltx23_object_info() -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy/ltx23_i2v/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _florence2_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/florence2_caption_ocr/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -214,6 +242,39 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertIn("missing required workflow node classes", str(raised.exception))
         self.assertEqual(ComfyHandler.upload_bodies, [])
         self.assertNotIn("/prompt", ComfyHandler.request_order)
+
+    def test_florence_pack_collects_text_and_json_history_outputs(self):
+        ComfyHandler.reset(_florence2_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "caption.png"
+            source.write_bytes(b"local image fixture bytes")
+            inputs = SimpleNamespace(
+                image=str(source),
+                seed=123,
+                phase_fn=lambda label: None,
+                progress_fn=lambda step, total: None,
+            )
+            scene = SimpleNamespace(
+                florence2_task="more_detailed_caption",
+                florence2_text_input="",
+            )
+
+            with local_only_network():
+                result = self.gateway.run_comfy_workflow(
+                    "florence2_caption_ocr",
+                    inputs,
+                    scene,
+                    SimpleNamespace(comfyui_url=self.base_url),
+                    timeout=2,
+                )
+
+        self.assertIsInstance(result, list)
+        self.assertEqual(result[0], "A person stands in warm local light.")
+        self.assertEqual(json.loads(result[1])["labels"], ["person"])
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["3"]["inputs"]["task"], "more_detailed_caption")
+        self.assertEqual(prompt["3"]["inputs"]["seed"], 123)
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):
         with tempfile.TemporaryDirectory() as tmp:

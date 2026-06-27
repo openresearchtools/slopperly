@@ -223,6 +223,10 @@ def install_plugin_import_harness(root: Path) -> None:
     for name in [
         "slopperly",
         "slopperly.runtime",
+        "slopperly.runtime.gateway",
+        "slopperly.runtime.comfy",
+        "slopperly.runtime.comfy.api_client",
+        "slopperly.runtime.comfy.workflow_runner",
         "slopperly.runtime.llamacpp",
         "slopperly.runtime.llamacpp.client",
         "slopperly.runtime.vllm",

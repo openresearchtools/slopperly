@@ -285,6 +285,33 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - `tests/gpu/test_video_caption_vlm.py` requires `tests/fixtures/video_caption_smoke.mp4` and a reachable local vLLM multimodal server before it can produce PASS certification evidence.
 - Dropdown certification remains blocked for `vllm_video_caption_vlm` until the GPU test writes a PASS record with a real caption artifact.
 
+## 2026-06-27 Florence2 Comfy workflow migration block
+
+### Production Path Migrated
+
+- `text/florence2.py` no longer loads Florence-2 through direct Transformers/PyTorch in the production plugin path.
+- The existing Florence caption and Ideogram4 modes now run Florence tasks through `SlopperlyRuntimeGateway` and the committed local Comfy workflow pack `florence2_caption_ocr`.
+- The plugin preserves the existing output contracts: Caption mode returns a caption string, and Ideogram4 mode returns a JSON string with the existing high-level description, style, light, and compositional keys.
+
+### Runtime/Workflow Work Added
+
+- Added `slopperly/workflows/comfy/florence2_caption_ocr/` with API/editable workflow JSON, schema, model manifest, test payload, and README.
+- The workflow uses pinned node classes `LoadImage`, `DownloadAndLoadFlorence2Model`, and `Florence2Run`.
+- The Comfy workflow runner now collects text-like history outputs (`text`, `caption`, `data`, `json`, and related keys) in addition to image/video/audio file artifacts.
+- Added `florence2_caption_ocr` to `slopperly/config/models.yaml` with legacy alias `florence-community/Florence-2-large`.
+
+### Verification
+
+- `tests/integration/test_comfy_workflow_runner.py` verifies the Florence pack collects text and JSON outputs from a loopback fake Comfy server.
+- `tests/integration/test_local_plugin_paths.py` calls `Florence2Plugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard.
+- `python -m slopperly.audit.workflow_packs` validates the new workflow pack.
+
+### Blocked / Not Yet Certified
+
+- This block did not run a live owned ComfyUI server on the RTX 4090.
+- `tests/gpu/test_florence2_caption.py` requires `tests/fixtures/florence2_caption.png`, a reachable local ComfyUI runtime, and downloaded Florence-2 model files before it can produce PASS certification evidence.
+- Dropdown certification remains blocked for `florence2_caption_ocr` until the GPU test writes a PASS record with a real caption artifact.
+
 ### Downloader Behavior
 
 - `slopperly.models.download` now supports both exact Hugging Face file downloads and full Hugging Face snapshot downloads into the local model cache.

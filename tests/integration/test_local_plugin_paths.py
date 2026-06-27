@@ -60,6 +60,10 @@ def install_plugin_import_harness() -> None:
     for name in [
         "slopperly",
         "slopperly.runtime",
+        "slopperly.runtime.gateway",
+        "slopperly.runtime.comfy",
+        "slopperly.runtime.comfy.api_client",
+        "slopperly.runtime.comfy.workflow_runner",
         "slopperly.runtime.llamacpp",
         "slopperly.runtime.llamacpp.client",
         "slopperly.runtime.vllm",
@@ -79,6 +83,9 @@ def load_plugin_module(kind: str, filename: str):
 
 class RuntimeHandler(BaseHTTPRequestHandler):
     chat_payload = {}
+    comfy_prompt = {}
+    comfy_prompts = []
+    comfy_uploads = []
     speech_payloads = []
     transcription_body = b""
     wav_bytes = b"RIFF$\x00\x00\x00WAVEfmt "
@@ -104,6 +111,28 @@ class RuntimeHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path in {"/health", "/v1/models"}:
             return self._json({"data": [{"id": "local-model"}], "status": "ok"})
+        if self.path == "/object_info":
+            return self._json({
+                "LoadImage": {},
+                "DownloadAndLoadFlorence2Model": {},
+                "Florence2Run": {},
+            })
+        if self.path == "/history/prompt-1":
+            return self._json({
+                "prompt-1": {
+                    "outputs": {
+                        "3": {
+                            "text": ["A person stands in warm local light."],
+                            "data": [
+                                {
+                                    "bboxes": [[10, 20, 80, 120]],
+                                    "labels": ["person"],
+                                }
+                            ],
+                        }
+                    }
+                }
+            })
         self.send_response(404)
         self.end_headers()
 
@@ -163,6 +192,13 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                     {"start": 1.0, "end": 2.0, "text": "world"},
                 ],
             })
+        if self.path == "/upload/image":
+            RuntimeHandler.comfy_uploads.append(body)
+            return self._json({"name": "uploaded_source.png", "subfolder": "", "type": "input"})
+        if self.path == "/prompt":
+            RuntimeHandler.comfy_prompt = json.loads(body.decode("utf-8"))["prompt"]
+            RuntimeHandler.comfy_prompts.append(RuntimeHandler.comfy_prompt)
+            return self._json({"prompt_id": "prompt-1"})
         self.send_response(404)
         self.end_headers()
 
@@ -201,6 +237,22 @@ class FakeSeqEditor:
         self.strips = FakeStrips(self)
 
 
+class FakeImage:
+    mode = "RGB"
+    width = 128
+    height = 96
+
+    def save(self, path):
+        Path(path).write_bytes(b"fake rgb image")
+
+    def convert(self, mode):
+        self.mode = mode
+        return self
+
+    def resize(self, size):
+        return self
+
+
 class LocalPluginPathTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -220,6 +272,9 @@ class LocalPluginPathTests(unittest.TestCase):
 
     def setUp(self):
         RuntimeHandler.chat_payload = {}
+        RuntimeHandler.comfy_prompt = {}
+        RuntimeHandler.comfy_prompts = []
+        RuntimeHandler.comfy_uploads = []
         RuntimeHandler.speech_payloads = []
         RuntimeHandler.transcription_body = b""
 
@@ -319,6 +374,27 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(len(editor.created), 2)
         self.assertEqual(editor.created[0].channel, 2)
         self.assertIn("hello local", editor.created[0].text)
+
+    def test_florence2_caption_uses_comfy_plugin_path(self):
+        module = load_plugin_module("text", "florence2")
+        plugin = module.Florence2Plugin()
+        scene = SimpleNamespace(florence2_mode="CAPTION", florence2_send_to_mask=False)
+        inputs = self.base.ModelInputs(image=FakeImage(), seed=123)
+        prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+        with local_only_network():
+            pipe = plugin.load(prefs, scene)
+            result = plugin.generate(pipe, inputs, scene, prefs)
+
+        self.assertIn("warm local light", result)
+        self.assertEqual(RuntimeHandler.comfy_prompts[0]["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(RuntimeHandler.comfy_prompts[0]["3"]["inputs"]["task"], "more_detailed_caption")
+        self.assertEqual(RuntimeHandler.comfy_prompts[0]["3"]["inputs"]["seed"], 123)
+        self.assertTrue(
+            any(prompt["3"]["inputs"]["task"] == "caption_to_phrase_grounding"
+                for prompt in RuntimeHandler.comfy_prompts)
+        )
+        self.assertIn(b'filename="slopperly_input_image_', RuntimeHandler.comfy_uploads[0])
 
     def test_marlin_video_captions_uses_vllm_vlm_plugin_path(self):
         module = load_plugin_module("text", "marlin_video_captions")

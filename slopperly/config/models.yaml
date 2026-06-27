@@ -84,6 +84,29 @@ models:
     validation_command: pytest tests/gpu/test_video_caption_vlm.py --device cuda
     workflows:
       - text/marlin_video_captions.py
+  - logical_name: florence2_caption_ocr
+    legacy_aliases:
+      - florence-community/Florence-2-large
+    task: image_caption_ocr
+    runtime: comfy
+    model_source: https://huggingface.co/microsoft/Florence-2-large
+    download_mode: hf_snapshot
+    local_cache_path: models/LLM/Florence-2-large
+    required_files:
+      - config.json
+    required_node_pack: comfyui_florence2
+    supported_resolutions: []
+    context_limits: {}
+    default_parameters:
+      task: more_detailed_caption
+      precision: fp16
+      max_new_tokens: 1024
+      num_beams: 3
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_florence2_caption.py --device cuda
+    workflows:
+      - florence2_caption_ocr
+      - text/florence2.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter
