@@ -1,0 +1,21 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/birefnet_rmbg/birefnet_rmbg.png",
+  "command": "pytest tests/gpu/test_birefnet_rmbg.py::test_birefnet_rmbg --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T20:17:19+00:00",
+  "logical_name": "birefnet_rmbg",
+  "metadata": {
+    "runtime_url": "http://127.0.0.1:8190",
+    "source_image": "/home/user/Documents/Slopperly/tests/fixtures/birefnet_source.ppm"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "alpha": true,
+    "format": "PNG",
+    "height": 6,
+    "kind": "image",
+    "width": 8
+  }
+}
