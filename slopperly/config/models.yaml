@@ -1028,7 +1028,7 @@ models:
       sampler: euler
       scheduler: simple
       prompt_enhancement: TextGenerate
-      lora_injection: unmapped_until_certified
+      lora_injection: dynamic_lora_loader_model_only
     minimum_vram_gb: 16
     validation_command: pytest tests/gpu/test_krea2.py --device cuda
     workflows:
@@ -1077,7 +1077,7 @@ models:
       scheduler: simple
       prompt_enhancement: TextGenerate
       negative_prompt: conditioning_zero_out
-      lora_injection: unmapped_until_certified
+      lora_injection: dynamic_lora_loader_model_only
     minimum_vram_gb: 16
     validation_command: pytest tests/gpu/test_krea2.py --device cuda
     workflows:

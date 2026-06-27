@@ -45,7 +45,7 @@ The files are sourced from `Comfy-Org/Krea-2`. Hugging Face is used only as a lo
 - Krea VAE -> node `3`, input `vae_name`
 - sampler/scheduler defaults -> node `8`, inputs `sampler_name` and `scheduler`
 
-The negative prompt field remains in the UI, but the official Turbo graph uses `ConditioningZeroOut` for the negative branch. The plugin records this as a usage note when a negative prompt is supplied. The LoRA UI remains visible; arbitrary project LoRA injection is recorded as unmapped until a certified dynamic LoRA graph is added.
+The negative prompt field remains in the UI, but the official Turbo graph uses `ConditioningZeroOut` for the negative branch. The plugin records this as a usage note when a negative prompt is supplied. When the user selects LoRAs in the existing UI, the plugin inserts `LoraLoaderModelOnly` nodes between node `1` and node `8` before queueing the workflow. Comfy resolves those filenames from its local `models/loras` folder.
 
 ## Output Contract
 

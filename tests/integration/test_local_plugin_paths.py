@@ -1836,7 +1836,8 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["2"]["inputs"]["type"], "krea2")
         self.assertEqual(prompt["3"]["inputs"]["vae_name"], "qwen_image_vae.safetensors")
         self.assertIn("local Krea 2 RAW text to image", prompt["4"]["inputs"]["prompt"])
-        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"]["seed"], 4101)
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"], "on")
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode.seed"], 4101)
         self.assertEqual(prompt["5"]["inputs"]["text"], ["4", 0])
         self.assertEqual(prompt["6"]["inputs"]["text"], "text, watermark")
         self.assertEqual(prompt["7"]["inputs"]["width"], 1024)
@@ -1844,6 +1845,36 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["8"]["inputs"]["seed"], 4101)
         self.assertEqual(prompt["8"]["inputs"]["steps"], 28)
         self.assertEqual(prompt["8"]["inputs"]["cfg"], 4.5)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            lora_inputs = self.base.ModelInputs(
+                prompt="local Krea 2 RAW with selected LoRA",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                steps=28,
+                guidance=4.5,
+                seed=4102,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+            enabled = [SimpleNamespace(name="krea_local_style", weight_value=0.55, enabled=True)]
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace(), enabled_items=enabled)
+                output = plugin.generate(pipe, lora_inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        lora_prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(lora_prompt["90"]["class_type"], "LoraLoaderModelOnly")
+        self.assertEqual(lora_prompt["90"]["inputs"]["model"], ["1", 0])
+        self.assertEqual(lora_prompt["90"]["inputs"]["lora_name"], "krea_local_style.safetensors")
+        self.assertEqual(lora_prompt["90"]["inputs"]["strength_model"], 0.55)
+        self.assertEqual(lora_prompt["8"]["inputs"]["model"], ["90", 0])
+        self.assertIn("applied 1 selected LoRA", lora_inputs.usage_note)
+        self.assertFalse(hasattr(lora_inputs, "_slopperly_comfy_workflow_mutator"))
 
     def test_krea2_turbo_uses_comfy_t2i_plugin_path(self):
         module = load_plugin_module("image", "krea2_turbo")
@@ -1874,13 +1905,47 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["2"]["inputs"]["clip_name"], "qwen3vl_4b_fp8_scaled.safetensors")
         self.assertEqual(prompt["2"]["inputs"]["type"], "krea2")
         self.assertIn("local Krea 2 Turbo text to image", prompt["4"]["inputs"]["prompt"])
-        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"]["seed"], 4201)
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"], "on")
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode.seed"], 4201)
         self.assertEqual(prompt["5"]["inputs"]["text"], ["4", 0])
         self.assertEqual(prompt["6"]["class_type"], "ConditioningZeroOut")
         self.assertEqual(prompt["8"]["inputs"]["seed"], 4201)
         self.assertEqual(prompt["8"]["inputs"]["steps"], 8)
         self.assertEqual(prompt["8"]["inputs"]["cfg"], 1.0)
         self.assertIn("negative prompt field is preserved", inputs.usage_note)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            lora_inputs = self.base.ModelInputs(
+                prompt="local Krea 2 Turbo with selected LoRA",
+                neg_prompt="recorded as unmapped",
+                width=1024,
+                height=1024,
+                steps=8,
+                guidance=1.0,
+                seed=4202,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+            enabled = [
+                SimpleNamespace(name="krea_turbo_style.safetensors", weight_value=0.7, enabled=True)
+            ]
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace(), enabled_items=enabled)
+                output = plugin.generate(pipe, lora_inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        lora_prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(lora_prompt["90"]["class_type"], "LoraLoaderModelOnly")
+        self.assertEqual(lora_prompt["90"]["inputs"]["model"], ["1", 0])
+        self.assertEqual(lora_prompt["90"]["inputs"]["lora_name"], "krea_turbo_style.safetensors")
+        self.assertEqual(lora_prompt["90"]["inputs"]["strength_model"], 0.7)
+        self.assertEqual(lora_prompt["8"]["inputs"]["model"], ["90", 0])
+        self.assertIn("applied 1 selected LoRA", lora_inputs.usage_note)
+        self.assertIn("negative prompt field is preserved", lora_inputs.usage_note)
+        self.assertFalse(hasattr(lora_inputs, "_slopperly_comfy_workflow_mutator"))
 
     def test_lumina2_uses_comfy_t2i_plugin_path(self):
         module = load_plugin_module("image", "lumina2")

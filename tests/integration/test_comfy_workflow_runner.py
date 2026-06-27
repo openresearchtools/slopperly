@@ -2249,16 +2249,6 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             destination = Path(tmp) / "krea2_base.png"
             runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
-            sampling = {
-                "sampling_mode": "on",
-                "temperature": 0.7,
-                "top_k": 64,
-                "top_p": 0.95,
-                "min_p": 0.05,
-                "repetition_penalty": 1.05,
-                "presence_penalty": 0.0,
-                "seed": 4101,
-            }
             inputs = SimpleNamespace(
                 neg_prompt="text, watermark",
                 width=1024,
@@ -2276,7 +2266,14 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 krea_guidance=4.5,
                 krea_prompt_request="enhance local Krea base prompt",
                 krea_textgen_max_length=512,
-                krea_textgen_sampling_mode=sampling,
+                krea_textgen_sampling_mode="on",
+                krea_textgen_temperature=0.7,
+                krea_textgen_top_k=64,
+                krea_textgen_top_p=0.95,
+                krea_textgen_min_p=0.05,
+                krea_textgen_repetition_penalty=1.05,
+                krea_textgen_presence_penalty=0.0,
+                krea_textgen_seed=4101,
                 krea_textgen_thinking=False,
                 krea_textgen_use_default_template=True,
             )
@@ -2300,7 +2297,9 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["2"]["inputs"]["type"], "krea2")
         self.assertEqual(prompt["3"]["inputs"]["vae_name"], "qwen_image_vae.safetensors")
         self.assertEqual(prompt["4"]["inputs"]["prompt"], "enhance local Krea base prompt")
-        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"], sampling)
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"], "on")
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode.seed"], 4101)
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode.temperature"], 0.7)
         self.assertEqual(prompt["5"]["inputs"]["text"], ["4", 0])
         self.assertEqual(prompt["6"]["inputs"]["text"], "text, watermark")
         self.assertEqual(prompt["7"]["inputs"]["width"], 1024)
@@ -2320,7 +2319,7 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
             inputs.seed = 4201
             inputs.krea_steps = 8
             inputs.krea_guidance = 1.0
-            inputs.krea_textgen_sampling_mode = {**sampling, "seed": 4201}
+            inputs.krea_textgen_seed = 4201
 
             with local_only_network():
                 result = runner.run_pack(
@@ -2337,7 +2336,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         prompt = ComfyHandler.last_prompt
         self.assertEqual(prompt["1"]["inputs"]["unet_name"], "krea2_turbo_fp8_scaled.safetensors")
         self.assertEqual(prompt["4"]["inputs"]["prompt"], "enhance local Krea Turbo prompt")
-        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"]["seed"], 4201)
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"], "on")
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode.seed"], 4201)
         self.assertEqual(prompt["6"]["class_type"], "ConditioningZeroOut")
         self.assertEqual(prompt["6"]["inputs"]["conditioning"], ["5", 0])
         self.assertEqual(prompt["8"]["inputs"]["seed"], 4201)

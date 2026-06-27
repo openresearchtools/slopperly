@@ -43,6 +43,48 @@
         "input": "sampling_mode"
       }
     ],
+    "krea_textgen_temperature": [
+      {
+        "node": "4",
+        "input": "sampling_mode.temperature"
+      }
+    ],
+    "krea_textgen_top_k": [
+      {
+        "node": "4",
+        "input": "sampling_mode.top_k"
+      }
+    ],
+    "krea_textgen_top_p": [
+      {
+        "node": "4",
+        "input": "sampling_mode.top_p"
+      }
+    ],
+    "krea_textgen_min_p": [
+      {
+        "node": "4",
+        "input": "sampling_mode.min_p"
+      }
+    ],
+    "krea_textgen_repetition_penalty": [
+      {
+        "node": "4",
+        "input": "sampling_mode.repetition_penalty"
+      }
+    ],
+    "krea_textgen_presence_penalty": [
+      {
+        "node": "4",
+        "input": "sampling_mode.presence_penalty"
+      }
+    ],
+    "krea_textgen_seed": [
+      {
+        "node": "4",
+        "input": "sampling_mode.seed"
+      }
+    ],
     "krea_textgen_thinking": [
       {
         "node": "4",
@@ -128,6 +170,6 @@
   "notes": [
     "The positive prompt is locally polished through Comfy core TextGenerate using the Krea/Qwen3VL text encoder before CLIPTextEncode.",
     "The existing negative prompt field maps to the second CLIPTextEncode node.",
-    "The LoRA UI is preserved, but arbitrary project LoRA injection is recorded as unmapped until a certified dynamic LoRA graph is added."
+    "When the user selects LoRAs, the Krea plugin dynamically inserts local Comfy LoraLoaderModelOnly nodes between UNETLoader and KSampler."
   ]
 }

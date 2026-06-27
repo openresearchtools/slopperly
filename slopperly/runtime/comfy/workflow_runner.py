@@ -149,6 +149,20 @@ class ComfyWorkflowRunner:
                 patched[node_id].setdefault("inputs", {})[input_name] = value
         return patched
 
+    def apply_workflow_mutator(self, workflow: dict, schema: dict, inputs, scene) -> dict:
+        mutator = getattr(inputs, "_slopperly_comfy_workflow_mutator", None)
+        if mutator is None:
+            return workflow
+        if not callable(mutator):
+            raise WorkflowValidationError("Comfy workflow mutator must be callable")
+        mutated = mutator(workflow, schema, inputs, scene)
+        if mutated is not None:
+            if not isinstance(mutated, dict):
+                raise WorkflowValidationError("Comfy workflow mutator must return a workflow dict")
+            workflow = mutated
+        self.validate_local_only_workflow(str(schema.get("workflow_id", "mutated_workflow")), workflow)
+        return workflow
+
     def patch_media_uploads(self, workflow: dict, schema: dict, inputs) -> list[Path]:
         temp_paths: list[Path] = []
         try:
@@ -450,6 +464,7 @@ class ComfyWorkflowRunner:
         self._set_phase(inputs, "Patching Comfy workflow parameters")
         workflow = self.patched_workflow(workflow, schema, inputs, scene)
         self.apply_optional_upload_slots(workflow, schema, inputs)
+        workflow = self.apply_workflow_mutator(workflow, schema, inputs, scene)
         self._set_phase(inputs, "Checking Comfy workflow nodes")
         self.validate_runtime_nodes(workflow)
         self._set_progress(inputs, 2, total_steps)
