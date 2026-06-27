@@ -33,6 +33,7 @@ This matrix is the working replacement plan for production-visible functions.
 | `nomadoor/flux-2-klein-9B-schematic-lora` | Migrated wrapper, GPU/server test pending | ComfyUI | `flux2_klein_9b_schematic_lora` |
 | `fuliucansheng/FLUX.1-Canny-dev-diffusers-lora` | Migrated wrapper, GPU/server test pending | ComfyUI | `flux1_canny_control` |
 | `romanfratric234/FLUX.1-Depth-dev-lora` | Migrated wrapper, GPU/server test pending | ComfyUI | `flux1_depth_control` |
+| `Runware/FLUX.1-Redux-dev` | Migrated wrapper, GPU/server test pending | ComfyUI | `flux_redux_restyle` |
 | `StemSplitter` | Migrated wrapper, GPU/server test pending | ComfyUI | `audio_stem_split_demucs` |
 | `MMAudio` | Migrated wrapper, GPU/server test pending | ComfyUI | `mmaudio_video_to_audio` |
 | `cocktailpeanut/stable-audio-3-medium-base` | Migrated wrapper, GPU/server test pending | ComfyUI | `stable_audio_3_medium_base` |

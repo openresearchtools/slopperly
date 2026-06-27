@@ -159,6 +159,13 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "DualModelGuider": {},
                 "RandomNoise": {},
                 "KSamplerSelect": {},
+                "BasicScheduler": {},
+                "BasicGuider": {},
+                "ModelSamplingFlux": {},
+                "CLIPVisionLoader": {},
+                "CLIPVisionEncode": {},
+                "StyleModelLoader": {},
+                "StyleModelApply": {},
                 "Ideogram4Scheduler": {},
                 "SamplerCustomAdvanced": {},
                 "ConditioningStableAudio": {},
@@ -573,6 +580,26 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "images": [
                                     {
                                         "filename": "slopperly_flux1_depth_control_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "StyleModelApply"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "9": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_flux_redux_restyle_00001_.png",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -1889,6 +1916,50 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["12"]["inputs"]["steps"], 28)
         self.assertEqual(prompt["12"]["inputs"]["cfg"], 2.0)
         self.assertIn("image strength slider is preserved", inputs.usage_note)
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_flux_redux_uses_comfy_restyle_plugin_path(self):
+        module = load_plugin_module("image", "flux_redux")
+        plugin = module.FluxReduxPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local redux source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                image=str(source),
+                width=1024,
+                height=768,
+                steps=25,
+                guidance=3.5,
+                seed=6201,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["40"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["27"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["27"]["inputs"]["height"], 768)
+        self.assertEqual(prompt["30"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["30"]["inputs"]["height"], 768)
+        self.assertEqual(prompt["12"]["inputs"]["unet_name"], "flux1-dev.safetensors")
+        self.assertEqual(prompt["12"]["inputs"]["weight_dtype"], "fp8_e4m3fn")
+        self.assertEqual(prompt["11"]["inputs"]["clip_name1"], "t5xxl_fp16.safetensors")
+        self.assertEqual(prompt["11"]["inputs"]["clip_name2"], "clip_l.safetensors")
+        self.assertEqual(prompt["10"]["inputs"]["vae_name"], "ae.safetensors")
+        self.assertEqual(prompt["38"]["inputs"]["clip_name"], "sigclip_vision_patch14_384.safetensors")
+        self.assertEqual(prompt["42"]["inputs"]["style_model_name"], "flux1-redux-dev.safetensors")
+        self.assertEqual(prompt["6"]["inputs"]["text"], "")
+        self.assertEqual(prompt["26"]["inputs"]["guidance"], 3.5)
+        self.assertEqual(prompt["17"]["inputs"]["steps"], 25)
+        self.assertEqual(prompt["25"]["inputs"]["noise_seed"], 6201)
+        self.assertEqual(prompt["41"]["class_type"], "StyleModelApply")
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
 
     def test_flux2_klein_4b_uses_comfy_t2i_and_edit_plugin_paths(self):

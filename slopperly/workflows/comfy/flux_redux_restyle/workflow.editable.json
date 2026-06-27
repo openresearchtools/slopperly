@@ -1,0 +1,5 @@
+{
+  "workflow_id": "flux_redux_restyle",
+  "source": "https://comfyanonymous.github.io/ComfyUI_examples/flux/flux_redux_model_example.png",
+  "note": "Editable Comfy workflow metadata is embedded in the official example PNG. The API-format graph is committed separately in workflow.api.json."
+}

@@ -394,6 +394,25 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "StyleModelApply"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "9": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_flux_redux_restyle_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             if (
                 any(
                     node.get("class_type") == "UNETLoader"
@@ -660,6 +679,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "flux2_klein" in parsed.query
                 or "flux1_canny" in parsed.query
                 or "flux1_depth" in parsed.query
+                or "flux_redux" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
@@ -836,6 +856,15 @@ def _flux2_klein_object_info(workflow_id: str) -> dict:
 def _flux1_control_object_info(workflow_id: str) -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _flux_redux_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/flux_redux_restyle/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -2428,6 +2457,74 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["11"]["inputs"]["pixels"], ["3", 0])
         self.assertEqual(prompt["12"]["inputs"]["seed"], 6102)
         self.assertEqual(prompt["12"]["inputs"]["cfg"], 2.0)
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+
+    def test_flux_redux_pack_uploads_reference_and_patches_restyle_graph(self):
+        ComfyHandler.reset(_flux_redux_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            destination = Path(tmp) / "flux_redux.png"
+            source.write_bytes(b"local redux source image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                image=str(source),
+                width=1024,
+                height=768,
+                seed=6201,
+                steps=25,
+                flux_redux_prompt="",
+                flux_redux_model="flux1-dev.safetensors",
+                flux_redux_weight_dtype="fp8_e4m3fn",
+                flux_redux_clip_l="clip_l.safetensors",
+                flux_redux_t5="t5xxl_fp16.safetensors",
+                flux_redux_clip_type="flux",
+                flux_redux_vae="ae.safetensors",
+                flux_redux_style_model="flux1-redux-dev.safetensors",
+                flux_redux_clip_vision="sigclip_vision_patch14_384.safetensors",
+                flux_redux_flux_guidance=3.5,
+                flux_redux_sampler="euler",
+                flux_redux_scheduler="simple",
+                flux_redux_denoise=1.0,
+                flux_redux_max_shift=1.15,
+                flux_redux_base_shift=0.5,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/flux_redux_restyle",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 1)
+        self.assertEqual(prompt["40"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["27"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["27"]["inputs"]["height"], 768)
+        self.assertEqual(prompt["30"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["30"]["inputs"]["height"], 768)
+        self.assertEqual(prompt["12"]["inputs"]["unet_name"], "flux1-dev.safetensors")
+        self.assertEqual(prompt["12"]["inputs"]["weight_dtype"], "fp8_e4m3fn")
+        self.assertEqual(prompt["11"]["inputs"]["clip_name1"], "t5xxl_fp16.safetensors")
+        self.assertEqual(prompt["11"]["inputs"]["clip_name2"], "clip_l.safetensors")
+        self.assertEqual(prompt["11"]["inputs"]["type"], "flux")
+        self.assertEqual(prompt["10"]["inputs"]["vae_name"], "ae.safetensors")
+        self.assertEqual(prompt["38"]["inputs"]["clip_name"], "sigclip_vision_patch14_384.safetensors")
+        self.assertEqual(prompt["42"]["inputs"]["style_model_name"], "flux1-redux-dev.safetensors")
+        self.assertEqual(prompt["6"]["inputs"]["text"], "")
+        self.assertEqual(prompt["26"]["inputs"]["guidance"], 3.5)
+        self.assertEqual(prompt["16"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["17"]["inputs"]["steps"], 25)
+        self.assertEqual(prompt["17"]["inputs"]["scheduler"], "simple")
+        self.assertEqual(prompt["25"]["inputs"]["noise_seed"], 6201)
+        self.assertEqual(prompt["30"]["inputs"]["max_shift"], 1.15)
+        self.assertEqual(prompt["30"]["inputs"]["base_shift"], 0.5)
+        self.assertEqual(prompt["41"]["class_type"], "StyleModelApply")
         self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
 
     def test_lumina2_pack_patches_t2i_graph(self):

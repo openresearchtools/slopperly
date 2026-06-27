@@ -1,14 +1,18 @@
-"""FLUX Redux image-to-image (Runware/FLUX.1-Redux-dev)."""
+"""FLUX Redux image restyling through local ComfyUI."""
 
-from ...models.base import ModelPlugin, InputSpec, UISection, ParamSpec, ModelInputs
-from ...utils.helpers import gfx_device, low_vram
+from ...models.base import ModelInputs, ModelPlugin, InputSpec, ParamSpec, UISection
+from ...slopperly.runtime.gateway import SlopperlyRuntimeGateway
+from ...utils.helpers import clean_filename, solve_path
+
+
+WORKFLOW_ID = "flux_redux_restyle"
 
 
 class FluxReduxPlugin(ModelPlugin):
     MODEL_ID     = "Runware/FLUX.1-Redux-dev"
     DISPLAY_NAME = "Image: FLUX Redux (image restyle)"
     MODEL_TYPE   = "image"
-    DESCRIPTION  = "Image restyling via FLUX Redux — no text prompt needed"
+    DESCRIPTION  = "Image restyling via local ComfyUI FLUX Redux"
 
     INPUTS       = InputSpec.IMAGE
     UI_SECTIONS  = [
@@ -16,66 +20,49 @@ class FluxReduxPlugin(ModelPlugin):
         UISection.RESOLUTION, UISection.FRAMES, UISection.STEPS, UISection.GUIDANCE, UISection.SEED,
     ]
     PARAMS       = ParamSpec(steps=25, guidance=3.5)
-    REQUIRED_PACKAGES          = ["torch", "diffusers", "transformers"]
+    REQUIRED_PACKAGES          = []
     supports_inpaint           = False
     supports_img2img           = False
     uses_standard_input_strip  = False
 
     def load(self, prefs, scene, **kw):
-        import torch
-        from diffusers import FluxPriorReduxPipeline, FluxPipeline
-
-        _cache_dir = prefs.hf_cache_dir or None
-        print("Loading FLUX Redux…")
-        pipe = FluxPipeline.from_pretrained(
-            "ChuckMcSneed/FLUX.1-dev",
-            text_encoder=None, text_encoder_2=None,
-            torch_dtype=torch.bfloat16,
-            cache_dir=_cache_dir,
-            local_files_only=prefs.local_files_only,
-        )
-        pipe_prior = FluxPriorReduxPipeline.from_pretrained(
-            self.MODEL_ID, torch_dtype=torch.bfloat16, cache_dir=_cache_dir,
-            local_files_only=prefs.local_files_only,
-        ).to("cuda")
-
-        if gfx_device == "mps":
-            pipe.to("mps")
-        elif low_vram():
-            pipe.enable_model_cpu_offload()
-            pipe.vae.enable_slicing()
-            pipe.vae.enable_tiling()
-        else:
-            pipe.enable_sequential_cpu_offload()
-            pipe.vae.enable_slicing()
-            pipe.vae.enable_tiling()
-
-        # Store pipe_prior in "refiner" slot
-        return {"pipe": pipe, "converter": None, "refiner": pipe_prior, "preprocessor": None}
+        return {
+            "gateway": SlopperlyRuntimeGateway(),
+            "last_model_card": self.MODEL_ID,
+        }
 
     def generate(self, pipe_obj, inputs: ModelInputs, scene, prefs):
-        import torch
-
-        pipe       = pipe_obj["pipe"]
-        pipe_prior = pipe_obj["refiner"]
-        image      = inputs.image
-        if image is None:
+        if inputs.image is None:
             raise ValueError("FLUX Redux requires an input image.")
 
-        seed = inputs.seed
-        generator = (
-            torch.Generator("cuda").manual_seed(seed)
-            if torch.cuda.is_available() and seed != 0 else None
+        gateway = pipe_obj.get("gateway") if isinstance(pipe_obj, dict) else None
+        if gateway is None:
+            gateway = SlopperlyRuntimeGateway()
+
+        inputs.flux_redux_prompt = ""
+        inputs.flux_redux_model = "flux1-dev.safetensors"
+        inputs.flux_redux_weight_dtype = "fp8_e4m3fn"
+        inputs.flux_redux_clip_l = "clip_l.safetensors"
+        inputs.flux_redux_t5 = "t5xxl_fp16.safetensors"
+        inputs.flux_redux_clip_type = "flux"
+        inputs.flux_redux_vae = "ae.safetensors"
+        inputs.flux_redux_style_model = "flux1-redux-dev.safetensors"
+        inputs.flux_redux_clip_vision = "sigclip_vision_patch14_384.safetensors"
+        inputs.flux_redux_flux_guidance = float(inputs.guidance or 3.5)
+        inputs.flux_redux_sampler = "euler"
+        inputs.flux_redux_scheduler = "simple"
+        inputs.flux_redux_denoise = 1.0
+        inputs.flux_redux_max_shift = 1.15
+        inputs.flux_redux_base_shift = 0.5
+
+        self.set_phase(inputs, f"Generating with local ComfyUI {self.DISPLAY_NAME}")
+        filename = clean_filename(f"{inputs.seed}_flux_redux_restyle") or "flux_redux_restyle"
+        destination = solve_path(filename + ".png")
+        return gateway.run_comfy_workflow(
+            WORKFLOW_ID,
+            inputs,
+            scene,
+            prefs,
+            destination=destination,
+            timeout=float(getattr(prefs, "comfyui_timeout", 3600.0) or 3600.0),
         )
-        self.set_phase(inputs, "Preprocessing")
-        prior_output = pipe_prior(image)
-        self.set_phase(inputs, "Generating")
-        return pipe(
-            num_inference_steps=inputs.steps,
-            guidance_scale=inputs.guidance,
-            **prior_output,
-            height=inputs.height,
-            width=inputs.width,
-            generator=generator,
-            callback_on_step_end=self.step_callback(inputs),
-        ).images[0]

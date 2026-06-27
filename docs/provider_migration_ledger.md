@@ -1057,3 +1057,29 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with core FLUX node classes, `comfyui_controlnet_aux`, `flux1-canny-dev.safetensors`, `flux1-dev.safetensors`, `flux1-depth-dev-lora.safetensors`, `clip_l.safetensors`, `t5xxl_fp16.safetensors`, `ae.safetensors`, and `depth_anything_v2_vitl.pth` installed locally.
 - Arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the wrappers preserve the LoRA UI and record dynamic LoRA injection as a follow-up rather than loading placeholder filenames.
+
+## 2026-06-27 FLUX Redux Comfy workflow block
+
+### Production Paths Migrated
+
+- `models_plugins/image/flux_redux.py` now routes `Runware/FLUX.1-Redux-dev` through the local Comfy gateway instead of importing Torch/Diffusers and running Redux inference in the add-on process.
+- The existing image-strip, resolution, frames, steps, guidance, and seed UI sections remain present. The current Redux UI exposes no prompt field, so the wrapper patches empty text conditioning and uses the reference image through the Redux style model.
+- The wrapper preserves the existing `ModelPlugin.generate()` result shape and writes a local PNG artifact path for existing Blender output insertion.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/flux_redux_restyle/` with editable/API workflow JSON, schema, model manifest, smoke payload, and README.
+- The workflow uses Comfy core `LoadImage`, `UNETLoader`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `CLIPVisionLoader`, `CLIPVisionEncode`, `StyleModelLoader`, `StyleModelApply`, `BasicGuider`, `BasicScheduler`, `ModelSamplingFlux`, `EmptySD3LatentImage`, `RandomNoise`, `KSamplerSelect`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`.
+- Registered `flux_redux_restyle` in `slopperly/config/models.yaml` with legacy alias `Runware/FLUX.1-Redux-dev`, FLUX.1 Dev diffusion, Redux style model, SigCLIP vision model, FLUX text encoders, and VAE local artifact mappings.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` to assert Redux-related Comfy core classes including `CLIPVisionLoader`, `CLIPVisionEncode`, `StyleModelLoader`, `StyleModelApply`, `BasicGuider`, `BasicScheduler`, and `ModelSamplingFlux`.
+
+### Verification
+
+- Integration coverage calls `FluxReduxPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies source image upload, model/text encoder/VAE/style/vision filenames, empty prompt conditioning, guidance, steps, seed, and PNG artifact collection.
+- Workflow-runner integration coverage verifies the committed `flux_redux_restyle` pack directly and collects a single PNG artifact from Comfy history outputs.
+- GPU certification coverage is registered in `tests/gpu/test_flux_redux.py` and validates a 1024x1024 PNG artifact when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with Redux-capable Comfy core node classes, `flux1-dev.safetensors`, `flux1-redux-dev.safetensors`, `sigclip_vision_patch14_384.safetensors`, `clip_l.safetensors`, `t5xxl_fp16.safetensors`, and `ae.safetensors` installed locally.

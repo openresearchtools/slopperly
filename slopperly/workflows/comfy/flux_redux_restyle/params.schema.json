@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "workflow_id": "flux_redux_restyle",
+  "description": "Patch schema for FLUX Redux reference-image restyling through local ComfyUI.",
+  "inputs": {
+    "width": [
+      {
+        "node": "27",
+        "input": "width"
+      },
+      {
+        "node": "30",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "27",
+        "input": "height"
+      },
+      {
+        "node": "30",
+        "input": "height"
+      }
+    ],
+    "steps": [
+      {
+        "node": "17",
+        "input": "steps"
+      }
+    ],
+    "seed": [
+      {
+        "node": "25",
+        "input": "noise_seed"
+      }
+    ],
+    "flux_redux_prompt": [
+      {
+        "node": "6",
+        "input": "text"
+      }
+    ],
+    "flux_redux_flux_guidance": [
+      {
+        "node": "26",
+        "input": "guidance"
+      }
+    ],
+    "flux_redux_model": [
+      {
+        "node": "12",
+        "input": "unet_name"
+      }
+    ],
+    "flux_redux_weight_dtype": [
+      {
+        "node": "12",
+        "input": "weight_dtype"
+      }
+    ],
+    "flux_redux_clip_l": [
+      {
+        "node": "11",
+        "input": "clip_name2"
+      }
+    ],
+    "flux_redux_t5": [
+      {
+        "node": "11",
+        "input": "clip_name1"
+      }
+    ],
+    "flux_redux_clip_type": [
+      {
+        "node": "11",
+        "input": "type"
+      }
+    ],
+    "flux_redux_vae": [
+      {
+        "node": "10",
+        "input": "vae_name"
+      }
+    ],
+    "flux_redux_style_model": [
+      {
+        "node": "42",
+        "input": "style_model_name"
+      }
+    ],
+    "flux_redux_clip_vision": [
+      {
+        "node": "38",
+        "input": "clip_name"
+      }
+    ],
+    "flux_redux_sampler": [
+      {
+        "node": "16",
+        "input": "sampler_name"
+      }
+    ],
+    "flux_redux_scheduler": [
+      {
+        "node": "17",
+        "input": "scheduler"
+      }
+    ],
+    "flux_redux_denoise": [
+      {
+        "node": "17",
+        "input": "denoise"
+      }
+    ],
+    "flux_redux_max_shift": [
+      {
+        "node": "30",
+        "input": "max_shift"
+      }
+    ],
+    "flux_redux_base_shift": [
+      {
+        "node": "30",
+        "input": "base_shift"
+      }
+    ]
+  },
+  "uploads": {
+    "image": [
+      {
+        "node": "40",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "guidance": "Mapped to FluxGuidance.guidance, matching the official Comfy Redux graph.",
+    "text_prompt": "The current Redux UI intentionally exposes no prompt field; the workflow patches an empty text conditioning string and uses the reference image through the Redux style model."
+  },
+  "outputs": [
+    {
+      "node": "9",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ]
+}

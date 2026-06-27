@@ -1,0 +1,10 @@
+{
+  "prompt": "",
+  "image": "tests/fixtures/vsr_source.ppm",
+  "width": 1024,
+  "height": 1024,
+  "steps": 25,
+  "guidance": 3.5,
+  "seed": 6201,
+  "frames": 1
+}
