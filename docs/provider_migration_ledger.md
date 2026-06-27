@@ -142,3 +142,21 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - The registry still contains generic vLLM/vLLM-Omni/llama.cpp artifact placeholders that must be replaced by exact local files or runtime-managed model cache evidence.
 - Runtime health checks remain blocked until the owned ComfyUI/vLLM/vLLM-Omni/llama.cpp servers are installed and running.
+
+## 2026-06-27 Runtime installer command block
+
+### Acceptance Commands Upgraded
+
+- Replaced the ComfyUI install placeholder with an executable installer that reads `slopperly/runtime/comfy/nodes.lock.yaml`, clones the pinned ComfyUI checkout, clones each pinned custom node pack, creates a dedicated Comfy venv, installs requirements/extras, and writes `.slopperly/runtimes/install-manifest.json`.
+- Added explicit `install_command` and `python_extras` fields to every ComfyUI/core custom-node lock entry so node installation is recorded as machine-readable metadata.
+- Added dry-run/report modes to the vLLM and vLLM-Omni venv installers.
+- Replaced the llama.cpp install placeholder with a release-asset installer that can resolve the pinned GitHub release asset, download/extract it, verify CUDA presence for CUDA artifacts, and launch `llama-server --help` before claiming the runtime binary is usable.
+
+### Verification
+
+- Added installer unit tests covering Comfy dry-run planning, vLLM/vLLM-Omni package planning, llama.cpp release-asset selection, and llama.cpp dry-run behavior.
+
+### Blocked / Not Yet Certified
+
+- The installers were verified in dry-run/unit mode in this block; ComfyUI, vLLM, vLLM-Omni, and llama.cpp were not downloaded, installed, or launched.
+- No model artifacts or plugin-path GPU outputs were generated in this block.

@@ -16,12 +16,13 @@
 - Local-only production surface audit passes for remote backend factory/client/UI hooks.
 - `python -m slopperly.models.download --dry-run --report-only` plans exact Hugging Face artifact downloads and blocks vague registry entries.
 - `python -m slopperly.doctor --local-only --runtimes none --report-only` passes local-only/no-cloud/workflow-pack checks.
+- Runtime install commands now have dry-run/report modes that emit `PASS`/`PLAN`/`BLOCKED` evidence before cloning, downloading, or installing packages.
 
 ## Current Blocks
 
 - GPU artifact tests were not run in this block.
-- Owned ComfyUI install command currently records the pinned recipe but does not yet clone/install the runtime.
-- vLLM, vLLM-Omni, and llama.cpp install/supervisor/client implementations still need full migrations and artifact tests.
+- Owned ComfyUI install command now has an executable pinned clone/install path for ComfyUI and custom nodes, but the runtime has not been installed or launched in this block.
+- vLLM, vLLM-Omni, and llama.cpp install commands now plan or execute their local runtime setup; supervisor launch wiring and artifact tests still need full migration evidence.
 - vLLM, vLLM-Omni, and llama.cpp clients now exist with unit coverage, but runtime launch and GPU artifact validation remain blocked until the local model servers are installed and started.
 - Artifact validators and workflow/dropdown audits now exist. Dropdown certification remains blocked until real plugin-path GPU artifact evidence is written for each registry entry.
 - Add-on preferences now expose local runtime endpoints only; remote backend discovery/API-key generation UI has been removed from production registration. Queue jobs snapshot local runtime endpoints.
