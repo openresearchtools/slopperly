@@ -80,6 +80,15 @@
       }
     ]
   },
+  "uploads": {
+    "image": [
+      {
+        "node": "7",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
   "unmapped_ui_parameters": {
     "steps": "The committed workflow uses ManualSigmas at node 21 instead of a direct steps input.",
     "guidance": "The committed workflow uses BasicGuider without a direct CFG input."

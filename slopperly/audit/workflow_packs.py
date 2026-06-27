@@ -24,19 +24,13 @@ def validate_workflow_pack(pack: Path) -> list[str]:
     except Exception as exc:
         return [str(exc)]
 
-    for field, targets in (schema.get("inputs") or {}).items():
-        if not isinstance(targets, list):
-            errors.append(f"{pack.name}: schema field {field!r} must map to a list")
+    for section in ("inputs", "uploads"):
+        mappings = schema.get(section) or {}
+        if not isinstance(mappings, dict):
+            errors.append(f"{pack.name}: schema section {section!r} must be a mapping")
             continue
-        for target in targets:
-            node_id = str(target.get("node"))
-            input_name = target.get("input")
-            node = workflow.get(node_id)
-            if node is None:
-                errors.append(f"{pack.name}: {field} maps to missing node {node_id}")
-                continue
-            if input_name not in (node.get("inputs") or {}):
-                errors.append(f"{pack.name}: {field} maps to missing input {node_id}.{input_name}")
+        for field, targets in mappings.items():
+            _validate_schema_targets(pack.name, workflow, section, field, targets, errors)
 
     readme = (pack / "README.md").read_text(encoding="utf-8")
     for section in README_SECTIONS:
@@ -49,6 +43,30 @@ def validate_workflow_pack(pack: Path) -> list[str]:
             errors.append(f"{pack.name}: models.yaml missing {required}")
 
     return errors
+
+
+def _validate_schema_targets(
+    pack_name: str,
+    workflow: dict,
+    section: str,
+    field: str,
+    targets,
+    errors: list[str],
+) -> None:
+    if not isinstance(targets, list):
+        errors.append(f"{pack_name}: schema {section}.{field!r} must map to a list")
+        return
+    for target in targets:
+        node_id = str(target.get("node"))
+        input_name = target.get("input")
+        node = workflow.get(node_id)
+        if node is None:
+            errors.append(f"{pack_name}: {section}.{field} maps to missing node {node_id}")
+            continue
+        if input_name not in (node.get("inputs") or {}):
+            errors.append(
+                f"{pack_name}: {section}.{field} maps to missing input {node_id}.{input_name}"
+            )
 
 
 def iter_packs(root: Path):

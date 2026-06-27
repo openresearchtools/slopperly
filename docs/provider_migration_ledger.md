@@ -179,6 +179,24 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - These tests do not start real runtime servers.
 - GPU artifact generation remains blocked until runtime installs, model downloads, plugin wrappers, and workflow packs are complete.
 
+## 2026-06-27 Comfy workflow runner integration block
+
+### Runtime Gateway Behavior Added
+
+- The Comfy workflow runner now calls local Comfy `/object_info` before queueing and blocks workflows when required API graph node classes are missing.
+- Workflow-pack schemas can now declare uploaded media inputs. The LTX 2.3 I2V pack maps the selected image strip to Comfy `/upload/image`, then patches the returned upload filename into its `LoadImage` node.
+- The workflow-pack audit now validates both scalar input mappings and upload mappings against exact node IDs and input names.
+
+### Verification
+
+- `python tests/integration/test_comfy_workflow_runner.py`
+- `python -m slopperly.audit.workflow_packs`
+
+### Blocked / Not Yet Certified
+
+- This block uses a local fake Comfy server and fake output bytes to verify request flow only.
+- Real ComfyUI launch, model download, plugin-path LTX 2.3 execution, ffprobe validation, and GPU artifact certification remain blocked until the owned runtime and model artifacts are installed.
+
 ## 2026-06-27 Model artifact registry explicitness block
 
 ### Registry Tightened

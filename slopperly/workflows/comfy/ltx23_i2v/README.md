@@ -56,6 +56,7 @@ Local ComfyUI workflow pack for the existing LTX 2.3 Q5 image-to-video path.
 - `fps` -> node `13` input `frame_rate`, node `16` input `frame_rate`, node `37` input `fps`
 - `strength` -> node `15`, input `strength`
 - `seed` -> node `19`, input `noise_seed`
+- selected image strip -> upload to Comfy input storage, then patch node `7`, input `image`
 
 `steps` and `guidance` are deliberately unmapped in this initial graph because it uses a fixed `ManualSigmas` schedule and `BasicGuider` without a CFG input.
 

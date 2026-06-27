@@ -1,0 +1,191 @@
+import json
+import sys
+import tempfile
+import threading
+import unittest
+import urllib.parse
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+from types import SimpleNamespace
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from slopperly.runtime.errors import WorkflowValidationError
+from slopperly.runtime.gateway import SlopperlyRuntimeGateway
+
+
+class ComfyHandler(BaseHTTPRequestHandler):
+    object_info_payload = {}
+    last_prompt = {}
+    upload_bodies = []
+    request_order = []
+    video_bytes = b"fake mp4 bytes from local comfy"
+
+    def log_message(self, *args):
+        pass
+
+    @classmethod
+    def reset(cls, object_info_payload: dict):
+        cls.object_info_payload = object_info_payload
+        cls.last_prompt = {}
+        cls.upload_bodies = []
+        cls.request_order = []
+
+    def _json(self, payload: dict):
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _binary(self, body: bytes, content_type: str = "video/mp4"):
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        parsed = urllib.parse.urlparse(self.path)
+        if parsed.path == "/object_info":
+            ComfyHandler.request_order.append("/object_info")
+            return self._json(self.object_info_payload)
+        if parsed.path == "/history/prompt-1":
+            ComfyHandler.request_order.append("/history")
+            return self._json({
+                "prompt-1": {
+                    "outputs": {
+                        "38": {
+                            "videos": [
+                                {
+                                    "filename": "ltx23_result.mp4",
+                                    "subfolder": "video",
+                                    "type": "output",
+                                }
+                            ]
+                        }
+                    }
+                }
+            })
+        if parsed.path == "/view":
+            ComfyHandler.request_order.append("/view")
+            return self._binary(self.video_bytes)
+        self.send_response(404)
+        self.end_headers()
+
+    def do_POST(self):
+        length = int(self.headers.get("Content-Length", "0"))
+        body = self.rfile.read(length)
+        if self.path == "/upload/image":
+            ComfyHandler.request_order.append("/upload/image")
+            ComfyHandler.upload_bodies.append(body)
+            return self._json({"name": "uploaded_source.png", "subfolder": "", "type": "input"})
+        if self.path == "/prompt":
+            ComfyHandler.request_order.append("/prompt")
+            ComfyHandler.last_prompt = json.loads(body.decode("utf-8"))["prompt"]
+            return self._json({"prompt_id": "prompt-1"})
+        self.send_response(404)
+        self.end_headers()
+
+
+def _ltx23_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/ltx23_i2v/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.server = HTTPServer(("127.0.0.1", 0), ComfyHandler)
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+        cls.base_url = f"http://127.0.0.1:{cls.server.server_address[1]}"
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.thread.join(timeout=2)
+
+    def setUp(self):
+        ComfyHandler.reset(_ltx23_object_info())
+        self.gateway = SlopperlyRuntimeGateway(package_root=ROOT / "slopperly")
+
+    def test_ltx23_pack_uploads_image_and_patches_api_workflow(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            destination = Path(tmp) / "result.mp4"
+            source.write_bytes(b"local image fixture bytes")
+            inputs = SimpleNamespace(
+                prompt="local image to video",
+                neg_prompt="static",
+                image=str(source),
+                width=1280,
+                height=720,
+                frames=49,
+                fps=24,
+                strength=0.65,
+                seed=12345,
+            )
+
+            result = self.gateway.run_comfy_workflow(
+                "ltx23_i2v",
+                inputs,
+                SimpleNamespace(),
+                SimpleNamespace(comfyui_url=self.base_url),
+                destination=str(destination),
+                timeout=2,
+            )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.video_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["7"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["11"]["inputs"]["text"], "local image to video")
+        self.assertEqual(prompt["12"]["inputs"]["text"], "static")
+        self.assertEqual(prompt["14"]["inputs"]["width"], 1280)
+        self.assertEqual(prompt["14"]["inputs"]["height"], 720)
+        self.assertEqual(prompt["14"]["inputs"]["length"], 49)
+        self.assertEqual(prompt["16"]["inputs"]["frame_rate"], 24.0)
+        self.assertEqual(prompt["15"]["inputs"]["strength"], 0.65)
+        self.assertEqual(prompt["19"]["inputs"]["noise_seed"], 12345)
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+        self.assertLess(
+            ComfyHandler.request_order.index("/object_info"),
+            ComfyHandler.request_order.index("/prompt"),
+        )
+        self.assertLess(
+            ComfyHandler.request_order.index("/upload/image"),
+            ComfyHandler.request_order.index("/prompt"),
+        )
+
+    def test_missing_object_info_nodes_block_before_upload_or_queue(self):
+        ComfyHandler.reset({"LoadImage": {}})
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local image fixture bytes")
+            inputs = SimpleNamespace(image=str(source))
+
+            with self.assertRaises(WorkflowValidationError) as raised:
+                self.gateway.run_comfy_workflow(
+                    "ltx23_i2v",
+                    inputs,
+                    SimpleNamespace(),
+                    SimpleNamespace(comfyui_url=self.base_url),
+                    timeout=2,
+                )
+
+        self.assertIn("missing required workflow node classes", str(raised.exception))
+        self.assertEqual(ComfyHandler.upload_bodies, [])
+        self.assertNotIn("/prompt", ComfyHandler.request_order)
+
+
+if __name__ == "__main__":
+    unittest.main()
