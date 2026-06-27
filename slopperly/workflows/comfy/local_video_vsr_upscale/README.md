@@ -34,7 +34,7 @@ The workflow uses the same local upscaler artifact as image VSR:
 
 ## UI Parameter Mapping
 
-- selected video strip -> upload to Comfy input storage through `/upload/video`, then patch node `1`, input `video`
+- selected video strip -> upload to Comfy input storage through Comfy's `/upload/image` endpoint, then patch node `1`, input `video`
 - source video fps -> node `5`, input `frame_rate`
 - `width` -> node `4`, input `width`
 - `height` -> node `4`, input `height`

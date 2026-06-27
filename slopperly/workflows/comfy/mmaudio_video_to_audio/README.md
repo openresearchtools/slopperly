@@ -51,7 +51,7 @@ Runtime generation is not allowed to download these artifacts. Use `python -m sl
 
 ## UI Parameter Mapping
 
-- selected video strip path -> upload to Comfy input storage through `/upload/video`, then patch node `1`, input `video`
+- selected video strip path -> upload to Comfy input storage through Comfy's `/upload/image` endpoint, then patch node `1`, input `video`
 - prompt -> node `4`, input `prompt`
 - negative prompt -> node `4`, input `negative_prompt`
 - audio duration -> node `4`, input `duration`
@@ -67,14 +67,15 @@ Runtime generation is not allowed to download these artifacts. Use `python -m sl
 - optional scene field `mmaudio_precision` -> node `3`, input `precision`
 - optional scene field `mmaudio_mask_away_clip` -> node `4`, input `mask_away_clip`
 - optional scene field `mmaudio_force_offload` -> node `4`, input `force_offload`
+- runtime field `mmaudio_filename_prefix` -> node `5`, input `filename_prefix`
 
 Width, height, and fps are deliberately unmapped because this workflow generates an audio artifact from the selected video frames; it does not resize or re-encode the source video.
 
 ## Output Contract
 
-Node `5` saves one audio artifact with prefix `slopperly_mmaudio`. The plugin copies the first returned artifact to the existing audio-result file path and returns that path to the queue, so the existing sound-strip insertion behavior remains unchanged.
+Node `5` saves one FLAC audio artifact with a per-invocation `slopperly_mmaudio_<seed>_<nonce>` prefix so repeated identical prompts still produce a fresh file. The plugin converts the first returned artifact to the existing `.wav` audio-result file path and returns that path to the queue, so the existing sound-strip insertion behavior remains unchanged.
 
-The committed production profile is 44.1 kHz FLAC/WAV-compatible audio. Duration must match the requested `audio_length` within tolerance unless the source video is shorter, in which case the pinned sampler may clamp to the available video duration and the certification record must state that final duration.
+The committed production profile returns 44.1 kHz WAV audio to the UI path. Duration must match the requested `audio_length` within tolerance unless the source video is shorter, in which case the pinned sampler may clamp to the available video duration and the certification record must state that final duration.
 
 ## Test Command
 
@@ -87,5 +88,5 @@ pytest tests/gpu/test_mmaudio.py --device cuda
 - Comfy `/object_info` includes `VHS_LoadVideo`, `MMAudioModelLoader`, `MMAudioFeatureUtilsLoader`, `MMAudioSampler`, and `SaveAudio`.
 - `workflow.api.json` validates as Comfy API format.
 - The addon plugin path calls `MMAudioPlugin.load()` and `MMAudioPlugin.generate()`.
-- `tests/fixtures/video_vsr_source.mp4` is uploaded through `/upload/video`.
-- The returned artifact is readable audio, has sample rate 44100, and is non-silent for real GPU certification.
+- `tests/fixtures/video_vsr_source.mp4` is uploaded through Comfy's `/upload/image` endpoint.
+- The returned WAV artifact is readable audio, has sample rate 44100, and is non-silent for real GPU certification.

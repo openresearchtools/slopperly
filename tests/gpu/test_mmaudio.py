@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -9,18 +10,40 @@ from slopperly.validation.artifacts import ArtifactValidationError, validate_aud
 LOGICAL_NAME = "mmaudio_video_to_audio"
 
 
-def test_mmaudio(gpu_cert, plugin_loader, base_models, repo_root):
+def _write_source_video(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=size=160x96:rate=24:duration=3",
+        "-an",
+        "-c:v",
+        "mpeg4",
+        "-q:v",
+        "5",
+        str(path),
+    ]
+    subprocess.run(cmd, check=True)
+
+
+def test_mmaudio(gpu_cert, plugin_loader, base_models):
     gpu_cert.require_cuda(LOGICAL_NAME)
     runtime_url = gpu_cert.require_runtime(LOGICAL_NAME, "comfyui", paths=("/object_info",))
-    video_path = gpu_cert.require_file(
-        LOGICAL_NAME,
-        repo_root / "tests" / "fixtures" / "video_vsr_source.mp4",
-        "MMAudio source MP4 fixture",
-    )
-
     module = plugin_loader("audio", "mmaudio")
     plugin = module.MMAudioPlugin()
-    output_dir = gpu_cert.artifact_path(LOGICAL_NAME, "mmaudio.flac").parent
+    output_dir = gpu_cert.artifact_path(LOGICAL_NAME, "mmaudio.wav").parent
+    video_path = output_dir / "mmaudio_source_3s.mp4"
+    try:
+        _write_source_video(video_path)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        gpu_cert.block(LOGICAL_NAME, f"Could not generate MMAudio source MP4 with ffmpeg: {exc}")
+    gpu_cert.require_file(LOGICAL_NAME, video_path, "MMAudio generated source MP4")
     module.solve_path = lambda filename: str(output_dir / filename)
 
     scene = SimpleNamespace(
@@ -31,7 +54,7 @@ def test_mmaudio(gpu_cert, plugin_loader, base_models, repo_root):
         prompt="subtle cloth movement, quiet room tone, small mechanical hum",
         neg_prompt="speech, music, distortion, clipping",
         video_path=str(video_path),
-        audio_length=1.0,
+        audio_length=1.5,
         steps=8,
         guidance=4.0,
         seed=2468,
@@ -44,7 +67,7 @@ def test_mmaudio(gpu_cert, plugin_loader, base_models, repo_root):
             output = plugin.generate(pipe_obj, inputs, scene, prefs)
         validation = validate_audio(
             output,
-            expected_duration=1.0,
+            expected_duration=1.5,
             duration_tolerance=0.35,
             expected_sample_rate=44100,
             require_non_silent=True,

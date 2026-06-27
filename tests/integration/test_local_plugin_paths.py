@@ -1032,7 +1032,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
             })
         if self.path in {"/upload/image", "/upload/video"}:
             RuntimeHandler.comfy_uploads.append(body)
-            if self.path == "/upload/video":
+            if self.path == "/upload/video" or b".mp4\"" in body or b".mov\"" in body or b".webm\"" in body:
                 return self._json({"name": "uploaded_video.mp4", "subfolder": "", "type": "input"})
             if b".wav\"" in body or b".flac\"" in body or b".mp3\"" in body:
                 return self._json({"name": "uploaded_audio.wav", "subfolder": "", "type": "input"})
@@ -2605,7 +2605,7 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["5"]["inputs"]["frame_rate"], 12.5)
         self.assertEqual(prompt["5"]["inputs"]["format"], "video/h264-mp4")
         self.assertEqual(prompt["5"]["inputs"]["audio"], ["1", 2])
-        self.assertIn(b'name="video"; filename="clip.mp4"', RuntimeHandler.comfy_uploads[-1])
+        self.assertIn(b'name="image"; filename="clip.mp4"', RuntimeHandler.comfy_uploads[-1])
 
     def test_wan22_ti2v_5b_uses_local_comfy_plugin_path(self):
         module = load_plugin_module("video", "wan_ti2v_5b")
@@ -2735,7 +2735,10 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertFalse(prompt["4"]["inputs"]["force_offload"])
         self.assertEqual(prompt["5"]["class_type"], "SaveAudio")
         self.assertEqual(prompt["5"]["inputs"]["audio"], ["4", 0])
-        self.assertIn(b'name="video"; filename="clip.mp4"', RuntimeHandler.comfy_uploads[-1])
+        self.assertTrue(
+            prompt["5"]["inputs"]["filename_prefix"].startswith("slopperly_mmaudio_2468_")
+        )
+        self.assertIn(b'name="image"; filename="clip.mp4"', RuntimeHandler.comfy_uploads[-1])
 
     def test_stable_audio_3_uses_comfy_plugin_path(self):
         module = load_plugin_module("audio", "_stable_audio_3")

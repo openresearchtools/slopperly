@@ -1,0 +1,23 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/mmaudio_video_to_audio/2468_subtle_cloth_movement_quiet_room_tone_small_mechanical_hum_mmaudio.wav",
+  "command": "pytest tests/gpu/test_mmaudio.py::test_mmaudio --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T16:01:24+00:00",
+  "logical_name": "mmaudio_video_to_audio",
+  "metadata": {
+    "output": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/mmaudio_video_to_audio/2468_subtle_cloth_movement_quiet_room_tone_small_mechanical_hum_mmaudio.wav",
+    "runtime_url": "http://127.0.0.1:8190",
+    "source_video": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/mmaudio_video_to_audio/mmaudio_source_3s.mp4"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "channels": 1,
+    "duration": 1.509297052154195,
+    "format": "WAV",
+    "kind": "audio",
+    "rms": 151.36270703356507,
+    "sample_rate": 44100
+  }
+}

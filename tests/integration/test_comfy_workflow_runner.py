@@ -806,7 +806,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
             ComfyHandler.request_order.append(self.path)
             ComfyHandler.upload_bodies.append(body)
             upload_count = len(ComfyHandler.upload_bodies)
-            if self.path == "/upload/video":
+            if self.path == "/upload/video" or b".mp4\"" in body or b".mov\"" in body or b".webm\"" in body:
                 name = "uploaded_video.mp4" if upload_count == 1 else f"uploaded_video_{upload_count}.mp4"
             elif b".wav\"" in body or b".flac\"" in body or b".mp3\"" in body:
                 name = "uploaded_audio.wav" if upload_count == 1 else f"uploaded_audio_{upload_count}.wav"
@@ -1343,7 +1343,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["4"]["inputs"]["negative_prompt"], "speech")
         self.assertFalse(prompt["4"]["inputs"]["force_offload"])
         self.assertEqual(prompt["5"]["inputs"]["audio"], ["4", 0])
-        self.assertIn(b'name="video"; filename="clip.mp4"', ComfyHandler.upload_bodies[0])
+        self.assertIn("/upload/image", ComfyHandler.request_order)
+        self.assertIn(b'name="image"; filename="clip.mp4"', ComfyHandler.upload_bodies[0])
 
     def test_stable_audio_3_pack_patches_audio_generation_graph(self):
         ComfyHandler.reset(_stable_audio_3_object_info())
@@ -3228,7 +3229,7 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertIn(b'filename="second.png"', ComfyHandler.upload_bodies[1])
         self.assertIn(b'filename="anchor.png"', ComfyHandler.upload_bodies[2])
 
-    def test_upload_schema_can_use_video_endpoint_and_form_field(self):
+    def test_upload_schema_can_use_real_comfy_image_endpoint_for_video(self):
         with tempfile.TemporaryDirectory() as tmp:
             pack = Path(tmp) / "video_upload_pack"
             shutil.copytree(ROOT / "slopperly/workflows/comfy/ltx23_i2v", pack)
@@ -3251,8 +3252,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                         "node": "109",
                         "input": "video",
                         "type": "input",
-                        "endpoint": "/upload/video",
-                        "form_field": "video",
+                        "endpoint": "/upload/image",
+                        "form_field": "image",
                     }
                 ]
             }
@@ -3286,10 +3287,10 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 )
 
         self.assertEqual(result, str(output))
-        self.assertIn("/upload/video", ComfyHandler.request_order)
+        self.assertIn("/upload/image", ComfyHandler.request_order)
         prompt = ComfyHandler.last_prompt
         self.assertEqual(prompt["109"]["inputs"]["video"], "uploaded_video.mp4")
-        self.assertIn(b'name="video"; filename="clip.mp4"', ComfyHandler.upload_bodies[0])
+        self.assertIn(b'name="image"; filename="clip.mp4"', ComfyHandler.upload_bodies[0])
         self.assertIn(b'name="type"', ComfyHandler.upload_bodies[0])
 
 

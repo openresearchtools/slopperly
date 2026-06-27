@@ -92,6 +92,12 @@
         "node": "4",
         "input": "force_offload"
       }
+    ],
+    "mmaudio_filename_prefix": [
+      {
+        "node": "5",
+        "input": "filename_prefix"
+      }
     ]
   },
   "uploads": {
@@ -100,8 +106,8 @@
         "node": "1",
         "input": "video",
         "type": "input",
-        "endpoint": "/upload/video",
-        "form_field": "video"
+        "endpoint": "/upload/image",
+        "form_field": "image"
       }
     ]
   },
@@ -114,6 +120,6 @@
   "output": {
     "node": "5",
     "type": "audio/flac",
-    "contract": "Return a single readable FLAC audio artifact at 44.1 kHz with duration matching the requested audio_length or the source-video-limited duration."
+    "contract": "Comfy SaveAudio returns a single readable FLAC audio artifact at 44.1 kHz with duration matching the requested audio_length or the source-video-limited duration; MMAudioPlugin converts that local artifact to a real WAV before returning to the Blender UI path."
   }
 }

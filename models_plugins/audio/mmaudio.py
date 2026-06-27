@@ -1,6 +1,10 @@
 """Video-to-audio via the local Slopperly ComfyUI MMAudio workflow."""
 
+import shutil
+import subprocess
+import time
 from pathlib import Path
+from types import SimpleNamespace
 
 from ...models.base import ModelPlugin, InputSpec, UISection, ParamSpec, ModelInputs
 from ...slopperly.runtime.gateway import SlopperlyRuntimeGateway
@@ -8,6 +12,58 @@ from ...utils.helpers import solve_path, clean_filename
 
 
 WORKFLOW_ID = "mmaudio_video_to_audio"
+
+
+def _is_wav(path: Path) -> bool:
+    try:
+        with path.open("rb") as handle:
+            return handle.read(4) == b"RIFF"
+    except OSError:
+        return False
+
+
+def _write_wav(source: str, destination: str) -> str:
+    source_path = Path(source)
+    destination_path = Path(destination)
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if source_path.resolve() == destination_path.resolve():
+        return str(destination_path)
+
+    if _is_wav(source_path):
+        shutil.copyfile(source_path, destination_path)
+        return str(destination_path)
+
+    try:
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-i",
+                str(source_path),
+                "-ar",
+                "44100",
+                str(destination_path),
+            ],
+            check=True,
+        )
+        return str(destination_path)
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        pass
+
+    try:
+        import soundfile as sf
+
+        audio, sample_rate = sf.read(str(source_path), always_2d=True)
+        sf.write(str(destination_path), audio, sample_rate)
+    except Exception as exc:
+        raise RuntimeError(
+            f"MMAudio generated audio could not be converted to WAV: {source_path}"
+        ) from exc
+    return str(destination_path)
 
 
 class MMAudioPlugin(ModelPlugin):
@@ -49,12 +105,18 @@ class MMAudioPlugin(ModelPlugin):
 
         self.set_phase(inputs, "Generating audio with local ComfyUI MMAudio")
         filename = solve_path(
-            clean_filename(f"{inputs.seed}_{inputs.prompt}_mmaudio") + ".flac"
+            clean_filename(f"{inputs.seed}_{inputs.prompt}_mmaudio") + ".wav"
         )
-        return gateway.run_comfy_workflow(
+        comfy_destination = str(Path(filename).with_suffix(".flac"))
+        workflow_inputs = SimpleNamespace(**vars(inputs))
+        workflow_inputs.mmaudio_filename_prefix = (
+            f"slopperly_mmaudio_{inputs.seed}_{time.time_ns()}"
+        )
+        comfy_output = gateway.run_comfy_workflow(
             WORKFLOW_ID,
-            inputs,
+            workflow_inputs,
             scene,
             prefs,
-            destination=filename,
+            destination=comfy_destination,
         )
+        return _write_wav(comfy_output, filename)

@@ -58,8 +58,8 @@
         "node": "1",
         "input": "video",
         "type": "input",
-        "endpoint": "/upload/video",
-        "form_field": "video"
+        "endpoint": "/upload/image",
+        "form_field": "image"
       }
     ]
   },
