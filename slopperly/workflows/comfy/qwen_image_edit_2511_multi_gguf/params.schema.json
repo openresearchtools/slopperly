@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "workflow_id": "qwen_image_edit_2511_multi_gguf",
+  "description": "Patch schema for local Qwen-Image-Edit-2511 multi-reference image editing through ComfyUI-GGUF.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "12",
+        "input": "prompt"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "11",
+        "input": "prompt"
+      }
+    ],
+    "width": [
+      {
+        "node": "7",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "7",
+        "input": "height"
+      }
+    ],
+    "steps": [
+      {
+        "node": "16",
+        "input": "steps"
+      }
+    ],
+    "seed": [
+      {
+        "node": "16",
+        "input": "seed"
+      }
+    ],
+    "qwen_image_edit_cfg": [
+      {
+        "node": "16",
+        "input": "cfg"
+      }
+    ],
+    "qwen_image_edit_sampler": [
+      {
+        "node": "16",
+        "input": "sampler_name"
+      }
+    ],
+    "qwen_image_edit_scheduler": [
+      {
+        "node": "16",
+        "input": "scheduler"
+      }
+    ],
+    "qwen_image_edit_denoise": [
+      {
+        "node": "16",
+        "input": "denoise"
+      }
+    ],
+    "qwen_image_edit_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "qwen_image_edit_lightning_lora": [
+      {
+        "node": "3",
+        "input": "lora_name"
+      }
+    ],
+    "qwen_image_edit_lora_strength": [
+      {
+        "node": "3",
+        "input": "strength_model"
+      }
+    ],
+    "qwen_image_edit_text_encoder": [
+      {
+        "node": "4",
+        "input": "clip_name"
+      }
+    ],
+    "qwen_image_edit_vae": [
+      {
+        "node": "5",
+        "input": "vae_name"
+      }
+    ]
+  },
+  "uploads": {
+    "images[0]": [
+      {
+        "node": "6",
+        "input": "image",
+        "type": "input"
+      }
+    ],
+    "images[1]": [
+      {
+        "node": "9",
+        "input": "image",
+        "type": "input",
+        "optional": true,
+        "prune_node": true,
+        "disconnects": [
+          {
+            "node": "11",
+            "input": "image2"
+          },
+          {
+            "node": "12",
+            "input": "image2"
+          }
+        ]
+      }
+    ],
+    "images[2]": [
+      {
+        "node": "10",
+        "input": "image",
+        "type": "input",
+        "optional": true,
+        "prune_node": true,
+        "disconnects": [
+          {
+            "node": "11",
+            "input": "image3"
+          },
+          {
+            "node": "12",
+            "input": "image3"
+          }
+        ]
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "guidance": "The Lightning profile maps true CFG to qwen_image_edit_cfg=1.0; the old general guidance slider is not used directly.",
+    "custom_loras": "The workflow applies the committed Lightning adapter. Dynamic project LoRA injection remains a follow-up because Comfy API graphs require concrete local LoRA filenames."
+  },
+  "output": {
+    "node": "18",
+    "type": "image/png",
+    "contract": "Return one readable PNG image. For the 16 GB certified profile, use 1024x1024 or a Comfy-supported Qwen aspect-ratio size."
+  }
+}

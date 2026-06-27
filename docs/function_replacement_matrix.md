@@ -17,6 +17,7 @@ This matrix is the working replacement plan for production-visible functions.
 | `ZhengPeng7/BiRefNet_HR` | Migrated wrapper, GPU/server test pending | ComfyUI | `birefnet_rmbg` |
 | `nvidia/maxine-vsr` | Migrated wrapper, GPU/server test pending | ComfyUI | `local_image_vsr_upscale` |
 | `nvidia/maxine-vsr-video` | Migrated wrapper, GPU/server test pending | ComfyUI | `local_video_vsr_upscale` |
+| `Qwen/Qwen-Image-Edit-2511` | Migrated wrapper, GPU/server test pending | ComfyUI | `qwen_image_edit_2511_multi_gguf` |
 | `StemSplitter` | Migrated wrapper, GPU/server test pending | ComfyUI | `audio_stem_split_demucs` |
 | `MMAudio` | Migrated wrapper, GPU/server test pending | ComfyUI | `mmaudio_video_to_audio` |
 | `cocktailpeanut/stable-audio-3-medium-base` | Migrated wrapper, GPU/server test pending | ComfyUI | `stable_audio_3_medium_base` |

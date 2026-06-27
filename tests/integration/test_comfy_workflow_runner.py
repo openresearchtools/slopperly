@@ -315,6 +315,25 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "TextEncodeQwenImageEditPlus"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "18": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_qwen_image_edit_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -341,7 +360,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "chatterbox" in parsed.query
             ):
                 return self._binary(self.audio_bytes, "audio/flac")
-            if "omnigen" in parsed.query:
+            if "omnigen" in parsed.query or "qwen_image_edit" in parsed.query:
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
         self.send_response(404)
@@ -446,6 +465,16 @@ def _omnigen_object_info() -> dict:
         (ROOT / "slopperly/workflows/comfy/omnigen_v1_multi_image/workflow.api.json").read_text(
             encoding="utf-8"
         )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _qwen_image_edit_object_info() -> dict:
+    workflow = json.loads(
+        (
+            ROOT
+            / "slopperly/workflows/comfy/qwen_image_edit_2511_multi_gguf/workflow.api.json"
+        ).read_text(encoding="utf-8")
     )
     return {node["class_type"]: {} for node in workflow.values()}
 
@@ -1043,6 +1072,72 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["4"]["inputs"]["img_guidance_scale"], 1.7)
         self.assertFalse(prompt["4"]["inputs"]["use_input_image_size_as_output"])
         self.assertEqual(prompt["4"]["inputs"]["max_input_image_size"], 768)
+        self.assertIn(b'filename="first.png"', ComfyHandler.upload_bodies[0])
+        self.assertIn(b'filename="second.png"', ComfyHandler.upload_bodies[1])
+
+    def test_qwen_image_edit_pack_uploads_references_and_prunes_empty_slots(self):
+        ComfyHandler.reset(_qwen_image_edit_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / "first.png"
+            second = Path(tmp) / "second.png"
+            destination = Path(tmp) / "qwen_edit.png"
+            first.write_bytes(b"first local image")
+            second.write_bytes(b"second local image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="make the first object warmer using the second material",
+                neg_prompt="text, watermark",
+                images=[str(first), str(second), None],
+                width=1024,
+                height=1024,
+                steps=4,
+                seed=2511,
+                qwen_image_edit_cfg=1.0,
+                qwen_image_edit_sampler="euler",
+                qwen_image_edit_scheduler="simple",
+                qwen_image_edit_denoise=1.0,
+                qwen_image_edit_model="qwen-image-edit-2511-Q5_K_M.gguf",
+                qwen_image_edit_text_encoder="qwen_2.5_vl_7b_fp8_scaled.safetensors",
+                qwen_image_edit_vae="qwen_image_vae.safetensors",
+                qwen_image_edit_lightning_lora=(
+                    "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors"
+                ),
+                qwen_image_edit_lora_strength=1.0,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/qwen_image_edit_2511_multi_gguf",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 2)
+        self.assertEqual(prompt["6"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["9"]["inputs"]["image"], "uploaded_source_2.png")
+        self.assertNotIn("10", prompt)
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "qwen-image-edit-2511-Q5_K_M.gguf")
+        self.assertEqual(prompt["3"]["inputs"]["lora_name"], "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["clip_name"], "qwen_2.5_vl_7b_fp8_scaled.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["vae_name"], "qwen_image_vae.safetensors")
+        self.assertEqual(prompt["7"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["7"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["11"]["inputs"]["prompt"], "text, watermark")
+        self.assertEqual(
+            prompt["12"]["inputs"]["prompt"],
+            "make the first object warmer using the second material",
+        )
+        self.assertEqual(prompt["16"]["inputs"]["seed"], 2511)
+        self.assertEqual(prompt["16"]["inputs"]["steps"], 4)
+        self.assertEqual(prompt["16"]["inputs"]["cfg"], 1.0)
+        self.assertNotIn("image3", prompt["11"]["inputs"])
+        self.assertNotIn("image3", prompt["12"]["inputs"])
         self.assertIn(b'filename="first.png"', ComfyHandler.upload_bodies[0])
         self.assertIn(b'filename="second.png"', ComfyHandler.upload_bodies[1])
 

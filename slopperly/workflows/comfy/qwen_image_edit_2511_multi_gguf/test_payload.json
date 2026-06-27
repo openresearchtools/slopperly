@@ -1,0 +1,28 @@
+{
+  "prompt": "Make the object warmer and add a clean studio background.",
+  "negative_prompt": "text, watermark, low quality",
+  "images": [
+    "tests/fixtures/vsr_source.ppm",
+    "tests/fixtures/birefnet_source.ppm",
+    null
+  ],
+  "width": 1024,
+  "height": 1024,
+  "steps": 4,
+  "seed": 2511,
+  "qwen_image_edit_cfg": 1.0,
+  "qwen_image_edit_sampler": "euler",
+  "qwen_image_edit_scheduler": "simple",
+  "qwen_image_edit_denoise": 1.0,
+  "qwen_image_edit_model": "qwen-image-edit-2511-Q5_K_M.gguf",
+  "qwen_image_edit_text_encoder": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+  "qwen_image_edit_vae": "qwen_image_vae.safetensors",
+  "qwen_image_edit_lightning_lora": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+  "qwen_image_edit_lora_strength": 1.0,
+  "expected": {
+    "type": "image",
+    "width": 1024,
+    "height": 1024,
+    "readable": true
+  }
+}

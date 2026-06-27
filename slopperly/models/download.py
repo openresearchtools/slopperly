@@ -58,6 +58,19 @@ def is_safe_relative_file(value: str) -> bool:
     return True
 
 
+def hf_file_source_and_target(value) -> tuple[str, str] | None:
+    if isinstance(value, str):
+        filename = value.strip()
+        return (filename, filename) if filename else None
+    if not isinstance(value, dict):
+        return None
+    source = str(value.get("path") or value.get("source") or "").strip()
+    target = str(value.get("target") or Path(source).name).strip()
+    if not source or not target:
+        return None
+    return source, target
+
+
 def target_path(cache_root: Path, entry: dict, filename: str) -> Path:
     local_cache = Path(str(entry.get("local_cache_path") or entry.get("logical_name")))
     base = cache_root / local_cache
@@ -175,14 +188,24 @@ def download_artifact_entry(
 
     results: list[DownloadResult] = []
     for raw_file in required_files:
-        filename = str(raw_file).strip()
-        dest = target_path(cache_root, entry, filename)
-        if not is_exact_file(filename):
+        file_spec = hf_file_source_and_target(raw_file)
+        if file_spec is None:
             results.append(
                 DownloadResult(
                     "BLOCKED",
                     name,
-                    f"required file is not exact: {filename!r}",
+                    f"required file is not exact: {raw_file!r}",
+                )
+            )
+            continue
+        source_file, filename = file_spec
+        dest = target_path(cache_root, entry, filename)
+        if not is_safe_relative_file(source_file) or not is_exact_file(filename):
+            results.append(
+                DownloadResult(
+                    "BLOCKED",
+                    name,
+                    f"required file is not exact: {raw_file!r}",
                     str(dest),
                 )
             )
@@ -195,7 +218,7 @@ def download_artifact_entry(
                 DownloadResult(
                     "PLAN",
                     name,
-                    f"would download {repo_id}/{filename} for profile {profile}",
+                    f"would download {repo_id}/{source_file} for profile {profile}",
                     str(dest),
                 )
             )
@@ -226,7 +249,7 @@ def download_artifact_entry(
         try:
             downloaded = hf_hub_download(
                 repo_id=repo_id,
-                filename=filename,
+                filename=source_file,
                 local_dir=str(dest.parent),
                 local_dir_use_symlinks=False,
             )

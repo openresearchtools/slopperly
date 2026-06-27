@@ -914,3 +914,15 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: integration coverage calls `OmniGenPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies selected strip uploads, prompt placeholders, optional slot pruning, and PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies `omnigen_v1_multi_image` indexed image uploads, exact node/input patching, optional third-slot pruning, and single image-output collection.
 - Still blocked: real RTX 4090 OmniGen artifact certification requires owned ComfyUI running with `ailab_OmniGen`, core image nodes, `Shitao/OmniGen-v1` files installed under `models/LLM/OmniGen-v1/`, and the OmniGen node's code dependency available before generation so the node does not use its first-run downloader.
+
+### 2026-06-27 Qwen Image Edit Comfy workflow block
+
+- Completed: `image/qwen_image_edit.py` now routes `Qwen/Qwen-Image-Edit-2511` through the local Comfy workflow gateway instead of direct Torch/Transformers/Diffusers/SDNQ execution and Hugging Face runtime downloads in the add-on process.
+- Completed: the existing input-strip selector, three Qwen reference pickers, prompt, negative prompt, resolution, frames, steps, seed, and LoRA UI sections remain present; the wrapper resolves local reference strips, uses the first three references, and returns the existing PNG artifact path shape.
+- Completed: `qwen_image_edit_2511_multi_gguf` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Completed: the workflow uses Comfy core Qwen/Kontext edit nodes plus ComfyUI-GGUF `UnetLoaderGGUF` for `qwen-image-edit-2511-Q5_K_M.gguf`, and applies the local Lightning 4-step LoRA profile.
+- Completed: `slopperly/config/models.yaml` now records the Qwen GGUF plus auxiliary Comfy text encoder, Qwen VAE, and Lightning LoRA artifacts; the downloader/registry audit now supports exact Hugging Face source-path-to-target mappings for `split_files/...` assets.
+- Evidence: integration coverage calls `QwenImageEditPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies image uploads, prompt/negative patching, optional reference-slot pruning, and PNG artifact collection.
+- Evidence: workflow-runner integration coverage verifies the committed Qwen pack directly, and `tests/gpu/test_qwen_image_edit_2511.py` now performs one-reference and three-reference plugin-path certification attempts instead of reporting an unwired-test block.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with ComfyUI-GGUF, Comfy core Qwen/Kontext edit nodes, and the Qwen GGUF/text encoder/VAE/Lightning LoRA files installed locally.
+- Still blocked: arbitrary project LoRA injection is not dynamically mapped in this workflow pack yet; the committed graph applies the certified Lightning adapter and records custom LoRA injection as a follow-up rather than loading placeholder filenames.

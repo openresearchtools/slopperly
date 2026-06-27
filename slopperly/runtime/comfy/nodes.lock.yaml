@@ -12,12 +12,17 @@ comfyui:
     - DualCLIPLoader
     - CLIPTextEncode
     - TextEncodeAceStepAudio1.5
+    - TextEncodeQwenImageEditPlus
     - EmptyAceStep1.5LatentAudio
     - ConditioningZeroOut
     - ConditioningStableAudio
     - EmptyLatentAudio
     - KSampler
     - ModelSamplingAuraFlow
+    - FluxKontextImageScale
+    - FluxKontextMultiReferenceLatentMethod
+    - LoraLoaderModelOnly
+    - VAEEncode
     - VAEDecode
     - VAEDecodeAudio
     - UpscaleModelLoader

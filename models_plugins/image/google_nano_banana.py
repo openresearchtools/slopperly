@@ -31,6 +31,18 @@ class GoogleNanoBananaPlugin(ModelPlugin):
 
     def generate(self, pipe_obj, inputs: ModelInputs, scene, prefs):
         self.set_phase(inputs, "Running local Qwen Image Edit alias")
+        if getattr(inputs, "image", None) is not None and not getattr(inputs, "images", None):
+            inputs.images = [inputs.image]
+        inputs.qwen_image_edit_enable_lightning = True
+        inputs.qwen_image_edit_lightning_lora = "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors"
+        inputs.qwen_image_edit_lora_strength = 1.0
+        inputs.qwen_image_edit_cfg = 1.0
+        inputs.qwen_image_edit_sampler = "euler"
+        inputs.qwen_image_edit_scheduler = "simple"
+        inputs.qwen_image_edit_denoise = 1.0
+        inputs.qwen_image_edit_model = "qwen-image-edit-2511-Q5_K_M.gguf"
+        inputs.qwen_image_edit_text_encoder = "qwen_2.5_vl_7b_fp8_scaled.safetensors"
+        inputs.qwen_image_edit_vae = "qwen_image_vae.safetensors"
         stem = clean_filename((inputs.prompt or "qwen_edit")[:30]) or "qwen_edit"
         destination = solve_path(stem + ".png")
         return SlopperlyRuntimeGateway().run_comfy_workflow(

@@ -11,6 +11,7 @@ from slopperly.doctor import run_checks, selected_runtimes
 from slopperly.audit.model_registry import validate_model_registry
 from slopperly.models.download import (
     download_models,
+    hf_file_source_and_target,
     huggingface_repo_id,
     is_exact_file,
     is_safe_relative_file,
@@ -36,6 +37,13 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertTrue(is_safe_relative_file("config.json"))
         self.assertTrue(is_safe_relative_file("subdir/config.json"))
         self.assertFalse(is_safe_relative_file("../config.json"))
+        self.assertEqual(
+            hf_file_source_and_target({
+                "path": "split_files/text_encoders/qwen.safetensors",
+                "target": "qwen.safetensors",
+            }),
+            ("split_files/text_encoders/qwen.safetensors", "qwen.safetensors"),
+        )
 
     def test_download_dry_run_plans_files_and_snapshots(self):
         with tempfile.TemporaryDirectory() as tmp:

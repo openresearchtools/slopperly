@@ -9,11 +9,35 @@ models:
     local_cache_path: models/diffusion_models/qwen-image-edit-2511-Q5_K_M.gguf
     required_files:
       - qwen-image-edit-2511-Q5_K_M.gguf
-    required_node_pack: comfyui_gguf
+    auxiliary_sources:
+      - id: qwen_image_edit_text_encoder
+        model_source: https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+        required_files:
+          - path: split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+            target: qwen_2.5_vl_7b_fp8_scaled.safetensors
+      - id: qwen_image_vae
+        model_source: https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI
+        download_mode: hf_file
+        local_cache_path: models/vae/qwen_image_vae.safetensors
+        required_files:
+          - path: split_files/vae/qwen_image_vae.safetensors
+            target: qwen_image_vae.safetensors
+      - id: qwen_image_edit_lightning_lora
+        model_source: https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning
+        download_mode: hf_file
+        local_cache_path: models/loras/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors
+        required_files:
+          - Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors
+    required_node_pack: comfyui_gguf + comfyui core qwen edit
     supported_resolutions:
       - 1024x1024
     default_parameters:
-      steps: 25
+      steps: 4
+      cfg: 1.0
+      sampler: euler
+      scheduler: simple
       fps: null
     minimum_vram_gb: 16
     validation_command: pytest tests/gpu/test_qwen_image_edit_2511.py --device cuda

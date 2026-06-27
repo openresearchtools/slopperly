@@ -159,6 +159,13 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "FL_ChatterboxTurboTTS": {},
                 "FL_ChatterboxMultilingualTTS": {},
                 "ailab_OmniGen": {},
+                "UnetLoaderGGUF": {},
+                "TextEncodeQwenImageEditPlus": {},
+                "FluxKontextImageScale": {},
+                "FluxKontextMultiReferenceLatentMethod": {},
+                "LoraLoaderModelOnly": {},
+                "VAEEncode": {},
+                "VAEDecode": {},
             })
         if self.path.startswith("/view"):
             if ".mp4" in self.path:
@@ -465,6 +472,26 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "images": [
                                     {
                                         "filename": "slopperly_omnigen_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "TextEncodeQwenImageEditPlus"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "18": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_qwen_image_edit_00001_.png",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -878,6 +905,90 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["4"]["inputs"]["memory_management"], "Memory Priority")
         self.assertIn(b'filename="first.png"', RuntimeHandler.comfy_uploads[0])
         self.assertIn(b'filename="second.png"', RuntimeHandler.comfy_uploads[1])
+
+    def test_qwen_image_edit_uses_comfy_multi_image_plugin_path(self):
+        module = load_plugin_module("image", "qwen_image_edit")
+        plugin = module.QwenImageEditPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / "first.png"
+            second = Path(tmp) / "second.png"
+            third = Path(tmp) / "third.png"
+            first.write_bytes(b"first local image")
+            second.write_bytes(b"second local image")
+            third.write_bytes(b"third local image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(
+                sequence_editor=SimpleNamespace(strips=[
+                    SimpleNamespace(name="second", type="IMAGE", filepath=str(second)),
+                    SimpleNamespace(name="third", type="IMAGE", filepath=str(third)),
+                ]),
+                qwen_strip_1="second",
+                qwen_strip_2="third",
+                qwen_strip_3="",
+            )
+            inputs = self.base.ModelInputs(
+                prompt="make image one look like the references",
+                neg_prompt="text, watermark",
+                image=str(first),
+                width=1024,
+                height=1024,
+                steps=4,
+                seed=2511,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["6"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["9"]["inputs"]["image"], "uploaded_source_2.png")
+        self.assertEqual(prompt["10"]["inputs"]["image"], "uploaded_source_3.png")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "qwen-image-edit-2511-Q5_K_M.gguf")
+        self.assertEqual(prompt["4"]["inputs"]["type"], "qwen_image")
+        self.assertEqual(prompt["7"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["7"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["11"]["inputs"]["prompt"], "text, watermark")
+        self.assertEqual(prompt["12"]["inputs"]["prompt"], "make image one look like the references")
+        self.assertEqual(prompt["16"]["inputs"]["steps"], 4)
+        self.assertEqual(prompt["16"]["inputs"]["cfg"], 1.0)
+        self.assertIn(b'filename="first.png"', RuntimeHandler.comfy_uploads[0])
+        self.assertIn(b'filename="second.png"', RuntimeHandler.comfy_uploads[1])
+        self.assertIn(b'filename="third.png"', RuntimeHandler.comfy_uploads[2])
+
+    def test_google_nano_banana_alias_uses_local_qwen_workflow(self):
+        module = load_plugin_module("image", "google_nano_banana")
+        plugin = module.GoogleNanoBananaPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / "alias.png"
+            first.write_bytes(b"alias local image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="legacy project edit",
+                image=str(first),
+                width=1024,
+                height=1024,
+                steps=4,
+                seed=404,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["6"]["inputs"]["image"], "uploaded_source.png")
+        self.assertNotIn("9", prompt)
+        self.assertNotIn("10", prompt)
+        self.assertEqual(prompt["12"]["inputs"]["prompt"], "legacy project edit")
+        self.assertEqual(prompt["16"]["inputs"]["seed"], 404)
+        self.assertIn(b'filename="alias.png"', RuntimeHandler.comfy_uploads[0])
 
     def test_local_video_vsr_uses_comfy_plugin_path(self):
         module = load_plugin_module("video", "maxine_vsr_video")

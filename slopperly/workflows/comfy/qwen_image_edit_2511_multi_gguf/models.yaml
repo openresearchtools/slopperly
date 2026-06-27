@@ -1,0 +1,51 @@
+workflow_id: qwen_image_edit_2511_multi_gguf
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    commit: 6ea2651e7df66d7585f6ffee804b20e92fb38b8a
+    node_classes:
+      - UnetLoaderGGUF
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    node_classes:
+      - LoadImage
+      - ImageScale
+      - ModelSamplingAuraFlow
+      - LoraLoaderModelOnly
+      - CLIPLoader
+      - VAELoader
+      - TextEncodeQwenImageEditPlus
+      - FluxKontextImageScale
+      - FluxKontextMultiReferenceLatentMethod
+      - VAEEncode
+      - KSampler
+      - VAEDecode
+      - SaveImage
+model_files:
+  - source: https://huggingface.co/unsloth/Qwen-Image-Edit-2511-GGUF
+    download_mode: hf_file
+    files:
+      - path: qwen-image-edit-2511-Q5_K_M.gguf
+        target: models/diffusion_models/qwen-image-edit-2511-Q5_K_M.gguf
+  - source: https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged
+    download_mode: hf_file
+    files:
+      - path: split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+        target: models/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+  - source: https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI
+    download_mode: hf_file
+    files:
+      - path: split_files/vae/qwen_image_vae.safetensors
+        target: models/vae/qwen_image_vae.safetensors
+  - source: https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning
+    download_mode: hf_file
+    files:
+      - path: Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors
+        target: models/loras/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors
+artifact_contract:
+  type: image/png
+  min_width: 512
+  min_height: 512
+  output_shape: single artifact path

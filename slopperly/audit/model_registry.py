@@ -8,6 +8,7 @@ from pathlib import Path
 from slopperly.config.registry import model_entries
 from slopperly.models.download import (
     auxiliary_entries,
+    hf_file_source_and_target,
     huggingface_repo_id,
     is_exact_file,
     is_safe_relative_file,
@@ -96,7 +97,12 @@ def _validate_artifact_spec(name: str, entry: dict, errors: list[str]) -> None:
         errors.append(f"{name}: required_files must be a non-empty list")
     elif mode == "hf_file":
         for filename in required_files:
-            if not is_exact_file(str(filename)):
+            file_spec = hf_file_source_and_target(filename)
+            if file_spec is None:
+                errors.append(f"{name}: hf_file required file is not exact: {filename!r}")
+                continue
+            source_file, target_file = file_spec
+            if not is_safe_relative_file(source_file) or not is_exact_file(target_file):
                 errors.append(f"{name}: hf_file required file is not exact: {filename!r}")
     elif mode == "hf_snapshot":
         for filename in required_files:

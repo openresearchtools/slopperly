@@ -432,6 +432,32 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - These are integration tests against local fake runtime servers. They do not start real llama.cpp, vLLM, or vLLM-Omni servers and do not produce GPU artifacts.
 
+## 2026-06-27 Qwen Image Edit Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/image/qwen_image_edit.py` now routes the existing `Qwen/Qwen-Image-Edit-2511` plugin through `SlopperlyRuntimeGateway` and the local `qwen_image_edit_2511_multi_gguf` Comfy workflow instead of importing Torch, Transformers, Diffusers, SDNQ, and Hugging Face download helpers in the add-on process.
+- The existing prompt, negative prompt, input-strip picker, three Qwen reference pickers, resolution, frame, steps, seed, and LoRA UI sections remain present. The local workflow accepts the first three resolved references and returns the existing PNG artifact path shape.
+- The hidden `google/nano-banana` saved-project alias now has its committed local Qwen workflow target available in production.
+
+### Workflow and Registry Added
+
+- Added `slopperly/workflows/comfy/qwen_image_edit_2511_multi_gguf/` with API/editable workflow JSON, patch schema, model manifest, smoke payload, and README.
+- The workflow uses Comfy core `TextEncodeQwenImageEditPlus`, `FluxKontextImageScale`, `FluxKontextMultiReferenceLatentMethod`, `ModelSamplingAuraFlow`, `LoraLoaderModelOnly`, and `KSampler`, with `UnetLoaderGGUF` loading `qwen-image-edit-2511-Q5_K_M.gguf`.
+- Updated `slopperly/config/models.yaml` so the Qwen entry records the real Unsloth Q5_K_M GGUF plus the Comfy text encoder, Qwen VAE, and Lightning LoRA auxiliary artifacts.
+- Extended the model downloader/registry audit to support exact Hugging Face source-path-to-target mappings for files that live under repository subdirectories such as `split_files/text_encoders/...`.
+
+### Verification
+
+- Integration coverage calls `QwenImageEditPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies prompt patching, one/two/three image uploads, optional third-slot pruning, and PNG artifact collection.
+- Workflow-runner integration coverage verifies the committed Qwen pack directly through `ComfyWorkflowRunner`.
+- GPU certification coverage in `tests/gpu/test_qwen_image_edit_2511.py` now runs one-reference and three-reference plugin-path tests instead of reporting an unwired-test block.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification still requires owned ComfyUI running with the pinned ComfyUI-GGUF node pack, a Comfy core build exposing the Qwen/Kontext edit nodes, and the Qwen GGUF/text encoder/VAE/Lightning LoRA files installed locally.
+- Dynamic project LoRA injection is recorded as unmapped in the workflow schema. The production graph applies the committed Lightning adapter; arbitrary user LoRA injection needs a concrete local LoRA slot strategy before it can be certified without placeholder files.
+
 ## 2026-06-27 Indexed Comfy media schema block
 
 ### Runtime Gateway Behavior Added
@@ -473,7 +499,7 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - These tests were not run against live GPU runtimes in this block.
 - The llama.cpp, vLLM, and vLLM-Omni tests will report `BLOCKED` until their local servers are installed, launched, and backed by downloaded model artifacts.
-- The Qwen Image Edit and Wan2.2 TI2V tests currently report `BLOCKED` because their required Comfy workflow packs and plugin-path migration are not yet committed.
+- The Wan2.2 TI2V test currently reports `BLOCKED` because its required Comfy workflow pack and plugin-path migration are not yet committed. Qwen Image Edit now has a committed workflow pack and plugin-path certification test, but real artifact certification still blocks until local Comfy/model artifacts are available.
 
 ## 2026-06-27 Comfy upload endpoint schema block
 

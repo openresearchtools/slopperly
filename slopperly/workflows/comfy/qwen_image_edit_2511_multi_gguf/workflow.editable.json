@@ -1,0 +1,9 @@
+{
+  "workflow_id": "qwen_image_edit_2511_multi_gguf",
+  "source": "Derived from Comfy-Org workflow_templates image_qwen_image_edit_2511.json and exported as a Slopperly API graph.",
+  "notes": [
+    "Production graph uses ComfyUI-GGUF UnetLoaderGGUF for qwen-image-edit-2511-Q5_K_M.gguf instead of the upstream BF16 UNETLoader profile.",
+    "The optional second and third reference-image slots are disconnected by params.schema.json when absent.",
+    "Keep this editable placeholder beside workflow.api.json until a UI-saved Comfy workflow is committed from the owned runtime."
+  ]
+}
