@@ -292,6 +292,45 @@ models:
     workflows:
       - stable_audio_3_medium_base
       - audio/_stable_audio_3.py
+  - logical_name: ace_step_15_music
+    legacy_aliases:
+      - ACE-Step/acestep-v15-xl-turbo-diffusers
+    task: text_to_music
+    runtime: comfy
+    model_source: https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files
+    download_mode: hf_snapshot
+    local_cache_path: models/comfy/Comfy-Org/ace_step_1.5_ComfyUI_files
+    required_files:
+      - split_files/diffusion_models/acestep_v1.5_xl_base_bf16.safetensors
+      - split_files/vae/ace_1.5_vae.safetensors
+      - split_files/text_encoders/qwen_0.6b_ace15.safetensors
+      - split_files/text_encoders/qwen_4b_ace15.safetensors
+    required_node_pack: comfyui core ace-step
+    supported_resolutions: []
+    supported_fps: []
+    context_limits: {}
+    default_parameters:
+      diffusion_model: acestep_v1.5_xl_base_bf16.safetensors
+      vae: ace_1.5_vae.safetensors
+      text_encoder_small: qwen_0.6b_ace15.safetensors
+      text_encoder_large: qwen_4b_ace15.safetensors
+      sample_rate: 48000
+      steps: 60
+      guidance: 3.5
+      duration: 30.0
+      bpm: 120
+      time_signature: "4"
+      keyscale: C major
+      language: en
+      sampler: euler
+      scheduler: simple
+      denoise: 1.0
+      aura_shift: 3.0
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_ace_step.py --device cuda
+    workflows:
+      - ace_step_15_music
+      - audio/ace_step.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter

@@ -126,6 +126,25 @@ class ComfyHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
+                node.get("class_type") == "TextEncodeAceStepAudio1.5"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "10": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_ace_step_15_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
                 node.get("class_type") == "VAEDecodeAudio"
                 for node in ComfyHandler.last_prompt.values()
             ):
@@ -180,7 +199,12 @@ class ComfyHandler(BaseHTTPRequestHandler):
             })
         if parsed.path == "/view":
             ComfyHandler.request_order.append("/view")
-            if "stem_" in parsed.query or "mmaudio" in parsed.query or "stable_audio_3" in parsed.query:
+            if (
+                "stem_" in parsed.query
+                or "mmaudio" in parsed.query
+                or "stable_audio_3" in parsed.query
+                or "ace_step_15" in parsed.query
+            ):
                 return self._binary(self.audio_bytes, "audio/flac")
             return self._binary(self.video_bytes)
         self.send_response(404)
@@ -247,6 +271,15 @@ def _mmaudio_object_info() -> dict:
 def _stable_audio_3_object_info() -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy/stable_audio_3_medium_base/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _ace_step_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/ace_step_15_music/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -519,6 +552,73 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["7"]["inputs"]["denoise"], 0.9)
         self.assertEqual(prompt["8"]["inputs"]["samples"], ["7", 0])
         self.assertEqual(prompt["9"]["inputs"]["audio"], ["8", 0])
+
+    def test_ace_step_pack_patches_music_generation_graph(self):
+        ComfyHandler.reset(_ace_step_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "ace_step.flac"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="bright indie pop loop with warm bass",
+                lyrics="[verse]\nlocal morning light",
+                audio_length=2.5,
+                steps=11,
+                guidance=3.75,
+                seed=24680,
+                bpm=96,
+                key_scale="D minor",
+                time_signature="4",
+            )
+            scene = SimpleNamespace(
+                ace_step_language="en",
+                ace_step_generate_audio_codes=False,
+                ace_step_aura_shift=3.25,
+                ace_step_sampler="euler",
+                ace_step_scheduler="simple",
+                ace_step_denoise=0.95,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/ace_step_15_music",
+                    inputs,
+                    scene,
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.audio_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["class_type"], "UNETLoader")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "acestep_v1.5_xl_base_bf16.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["vae_name"], "ace_1.5_vae.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name1"], "qwen_0.6b_ace15.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name2"], "qwen_4b_ace15.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["type"], "ace")
+        self.assertEqual(prompt["4"]["inputs"]["tags"], "bright indie pop loop with warm bass")
+        self.assertEqual(prompt["4"]["inputs"]["lyrics"], "[verse]\nlocal morning light")
+        self.assertEqual(prompt["4"]["inputs"]["seed"], 24680)
+        self.assertEqual(prompt["4"]["inputs"]["bpm"], 96)
+        self.assertEqual(prompt["4"]["inputs"]["duration"], 2.5)
+        self.assertEqual(prompt["4"]["inputs"]["timesignature"], "4")
+        self.assertEqual(prompt["4"]["inputs"]["language"], "en")
+        self.assertEqual(prompt["4"]["inputs"]["keyscale"], "D minor")
+        self.assertFalse(prompt["4"]["inputs"]["generate_audio_codes"])
+        self.assertEqual(prompt["5"]["inputs"]["conditioning"], ["4", 0])
+        self.assertEqual(prompt["6"]["inputs"]["seconds"], 2.5)
+        self.assertEqual(prompt["7"]["inputs"]["shift"], 3.25)
+        self.assertEqual(prompt["8"]["inputs"]["model"], ["7", 0])
+        self.assertEqual(prompt["8"]["inputs"]["positive"], ["4", 0])
+        self.assertEqual(prompt["8"]["inputs"]["negative"], ["5", 0])
+        self.assertEqual(prompt["8"]["inputs"]["latent_image"], ["6", 0])
+        self.assertEqual(prompt["8"]["inputs"]["seed"], 24680)
+        self.assertEqual(prompt["8"]["inputs"]["steps"], 11)
+        self.assertEqual(prompt["8"]["inputs"]["cfg"], 3.75)
+        self.assertEqual(prompt["8"]["inputs"]["denoise"], 0.95)
+        self.assertEqual(prompt["9"]["inputs"]["samples"], ["8", 0])
+        self.assertEqual(prompt["10"]["inputs"]["audio"], ["9", 0])
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):
         with tempfile.TemporaryDirectory() as tmp:

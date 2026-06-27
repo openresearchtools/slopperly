@@ -132,6 +132,13 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "LoadAudio": {},
                 "AudioSeparation": {},
                 "SaveAudio": {},
+                "UNETLoader": {},
+                "VAELoader": {},
+                "DualCLIPLoader": {},
+                "TextEncodeAceStepAudio1.5": {},
+                "EmptyAceStep1.5LatentAudio": {},
+                "ConditioningZeroOut": {},
+                "ModelSamplingAuraFlow": {},
                 "CheckpointLoaderSimple": {},
                 "CLIPLoader": {},
                 "CLIPTextEncode": {},
@@ -210,6 +217,26 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "audio": [
                                     {
                                         "filename": "slopperly_mmaudio_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "TextEncodeAceStepAudio1.5"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "10": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_ace_step_15_00001_.flac",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -800,6 +827,62 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["8"]["class_type"], "VAEDecodeAudio")
         self.assertEqual(prompt["9"]["class_type"], "SaveAudio")
         self.assertEqual(prompt["9"]["inputs"]["audio"], ["8", 0])
+
+    def test_ace_step_uses_comfy_plugin_path(self):
+        module = load_plugin_module("audio", "ace_step")
+        plugin = module.AceStepPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(
+                ace_step_language="en",
+                ace_step_sampler="euler",
+                ace_step_scheduler="simple",
+                ace_step_aura_shift=3.25,
+                ace_step_generate_audio_codes=False,
+            )
+            inputs = self.base.ModelInputs(
+                prompt="bright local indie pop loop",
+                lyrics="[verse]\nlocal sunlight",
+                audio_length=2.0,
+                steps=9,
+                guidance=3.75,
+                seed=24680,
+                bpm=96,
+                key_scale="D minor",
+                time_signature="4",
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "acestep_v1.5_xl_base_bf16.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["vae_name"], "ace_1.5_vae.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name1"], "qwen_0.6b_ace15.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name2"], "qwen_4b_ace15.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["type"], "ace")
+        self.assertEqual(prompt["4"]["inputs"]["tags"], "bright local indie pop loop")
+        self.assertEqual(prompt["4"]["inputs"]["lyrics"], "[verse]\nlocal sunlight")
+        self.assertEqual(prompt["4"]["inputs"]["duration"], 2.0)
+        self.assertEqual(prompt["4"]["inputs"]["seed"], 24680)
+        self.assertEqual(prompt["4"]["inputs"]["bpm"], 96)
+        self.assertEqual(prompt["4"]["inputs"]["timesignature"], "4")
+        self.assertEqual(prompt["4"]["inputs"]["keyscale"], "D minor")
+        self.assertFalse(prompt["4"]["inputs"]["generate_audio_codes"])
+        self.assertEqual(prompt["5"]["inputs"]["conditioning"], ["4", 0])
+        self.assertEqual(prompt["6"]["inputs"]["seconds"], 2.0)
+        self.assertEqual(prompt["7"]["inputs"]["shift"], 3.25)
+        self.assertEqual(prompt["8"]["inputs"]["seed"], 24680)
+        self.assertEqual(prompt["8"]["inputs"]["steps"], 9)
+        self.assertEqual(prompt["8"]["inputs"]["cfg"], 3.75)
+        self.assertEqual(prompt["8"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["8"]["inputs"]["scheduler"], "simple")
+        self.assertEqual(prompt["9"]["inputs"]["samples"], ["8", 0])
+        self.assertEqual(prompt["10"]["inputs"]["audio"], ["9", 0])
 
     def test_marlin_video_captions_uses_vllm_vlm_plugin_path(self):
         module = load_plugin_module("text", "marlin_video_captions")

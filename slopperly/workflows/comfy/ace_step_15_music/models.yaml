@@ -1,0 +1,35 @@
+workflow_id: ace_step_15_music
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    node_classes:
+      - UNETLoader
+      - VAELoader
+      - DualCLIPLoader
+      - TextEncodeAceStepAudio1.5
+      - EmptyAceStep1.5LatentAudio
+      - ConditioningZeroOut
+      - ModelSamplingAuraFlow
+      - KSampler
+      - VAEDecodeAudio
+      - SaveAudio
+model_files:
+  - source: https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files
+    download_mode: hf_snapshot
+    files:
+      - path: split_files/diffusion_models/acestep_v1.5_xl_base_bf16.safetensors
+        target: models/diffusion_models/acestep_v1.5_xl_base_bf16.safetensors
+      - path: split_files/vae/ace_1.5_vae.safetensors
+        target: models/vae/ace_1.5_vae.safetensors
+      - path: split_files/text_encoders/qwen_0.6b_ace15.safetensors
+        target: models/text_encoders/qwen_0.6b_ace15.safetensors
+      - path: split_files/text_encoders/qwen_4b_ace15.safetensors
+        target: models/text_encoders/qwen_4b_ace15.safetensors
+artifact_contract:
+  type: audio/flac
+  sample_rate: 48000
+  duration_tolerance_seconds: 0.5
+  non_silent: true
+  output_shape: single artifact path

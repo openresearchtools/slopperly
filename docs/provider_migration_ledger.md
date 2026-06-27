@@ -594,3 +594,30 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with core Stable Audio nodes, `stable_audio_3_medium_base.safetensors` in `models/checkpoints`, and `t5gemma_b_b_ul2.safetensors` in `models/text_encoders`.
+
+## 2026-06-27 ACE-Step 1.5 Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/audio/ace_step.py` now routes the legacy `ACE-Step/acestep-v15-xl-turbo-diffusers` music path through the local Comfy gateway instead of importing Torch, Diffusers, Accelerate, and Hugging Face pipeline loading in the add-on process.
+- The existing audio plugin contract is preserved for prompt/tags, lyrics, audio duration, steps, guidance, BPM, key, time signature, seed, and returned artifact path.
+- Unset legacy music fields are normalized to ACE-Step 1.5 node defaults before workflow patching: BPM 120, key `C major`, and time signature `4`.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/ace_step_15_music/` with editable/API workflow JSON, schema, model manifest, test payload, and README.
+- The workflow uses Comfy core `UNETLoader`, `VAELoader`, `DualCLIPLoader`, `TextEncodeAceStepAudio1.5`, `EmptyAceStep1.5LatentAudio`, `ConditioningZeroOut`, `ModelSamplingAuraFlow`, `KSampler`, `VAEDecodeAudio`, and `SaveAudio`.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` so the core ACE-Step 1.5 node classes are asserted by owned Comfy runtime preflight.
+- Registered `ace_step_15_music` in `slopperly/config/models.yaml` with legacy alias `ACE-Step/acestep-v15-xl-turbo-diffusers` and Hugging Face artifact source `Comfy-Org/ace_step_1.5_ComfyUI_files`.
+- Required local files are `split_files/diffusion_models/acestep_v1.5_xl_base_bf16.safetensors`, `split_files/vae/ace_1.5_vae.safetensors`, and the two ACE Qwen text encoders under `split_files/text_encoders/`.
+
+### Verification
+
+- Integration coverage calls `AceStepPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies exact node/input patching plus FLAC artifact collection.
+- Workflow-runner integration coverage verifies the committed `ace_step_15_music` pack patches the music generation graph and collects one audio output.
+- GPU certification coverage is registered in `tests/gpu/test_ace_step.py` and validates a 48 kHz non-silent FLAC artifact when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with core ACE-Step 1.5 nodes and all four ACE-Step 1.5 split files installed in the Comfy model folders.

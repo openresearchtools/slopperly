@@ -58,6 +58,7 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertIn(("mmaudio_video_to_audio", "PLAN"), statuses)
         self.assertIn(("mmaudio_video_to_audio:bigvgan_44k", "PLAN"), statuses)
         self.assertIn(("stable_audio_3_medium_base", "PLAN"), statuses)
+        self.assertIn(("ace_step_15_music", "PLAN"), statuses)
         self.assertIn(("llamacpp_prompt_rewriter", "PLAN"), statuses)
         self.assertIn(("omnivoice_vllm_omni", "PLAN"), statuses)
         self.assertIn(("moss_tts_nano_vllm_omni", "PLAN"), statuses)

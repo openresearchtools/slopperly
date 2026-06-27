@@ -1,0 +1,18 @@
+{
+  "prompt": "bright indie pop loop, clean guitar, warm bass, soft drums, hopeful chorus",
+  "lyrics": "[verse]\nMorning light on the window\nEvery little sound feels new\n[chorus]\nWe keep moving with the sunrise\nWe keep finding something true",
+  "audio_length": 2.0,
+  "steps": 8,
+  "guidance": 3.5,
+  "seed": 24680,
+  "bpm": 96,
+  "key_scale": "C major",
+  "time_signature": "4",
+  "expected": {
+    "type": "audio",
+    "format": "flac",
+    "sample_rate": 48000,
+    "duration_seconds": 2.0,
+    "non_silent": true
+  }
+}

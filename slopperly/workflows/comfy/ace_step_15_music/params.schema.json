@@ -1,0 +1,188 @@
+{
+  "version": 1,
+  "workflow_id": "ace_step_15_music",
+  "description": "Patch schema for local ACE-Step 1.5 music generation through ComfyUI.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "4",
+        "input": "tags"
+      }
+    ],
+    "lyrics": [
+      {
+        "node": "4",
+        "input": "lyrics"
+      }
+    ],
+    "audio_length": [
+      {
+        "node": "4",
+        "input": "duration"
+      },
+      {
+        "node": "6",
+        "input": "seconds"
+      }
+    ],
+    "steps": [
+      {
+        "node": "8",
+        "input": "steps"
+      }
+    ],
+    "guidance": [
+      {
+        "node": "8",
+        "input": "cfg"
+      }
+    ],
+    "seed": [
+      {
+        "node": "4",
+        "input": "seed"
+      },
+      {
+        "node": "8",
+        "input": "seed"
+      }
+    ],
+    "bpm": [
+      {
+        "node": "4",
+        "input": "bpm"
+      }
+    ],
+    "key_scale": [
+      {
+        "node": "4",
+        "input": "keyscale"
+      }
+    ],
+    "time_signature": [
+      {
+        "node": "4",
+        "input": "timesignature"
+      }
+    ],
+    "ace_step_diffusion_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "ace_step_weight_dtype": [
+      {
+        "node": "1",
+        "input": "weight_dtype"
+      }
+    ],
+    "ace_step_vae": [
+      {
+        "node": "2",
+        "input": "vae_name"
+      }
+    ],
+    "ace_step_text_encoder_small": [
+      {
+        "node": "3",
+        "input": "clip_name1"
+      }
+    ],
+    "ace_step_text_encoder_large": [
+      {
+        "node": "3",
+        "input": "clip_name2"
+      }
+    ],
+    "ace_step_clip_device": [
+      {
+        "node": "3",
+        "input": "device"
+      }
+    ],
+    "ace_step_language": [
+      {
+        "node": "4",
+        "input": "language"
+      }
+    ],
+    "ace_step_generate_audio_codes": [
+      {
+        "node": "4",
+        "input": "generate_audio_codes"
+      }
+    ],
+    "ace_step_cfg_scale": [
+      {
+        "node": "4",
+        "input": "cfg_scale"
+      }
+    ],
+    "ace_step_temperature": [
+      {
+        "node": "4",
+        "input": "temperature"
+      }
+    ],
+    "ace_step_top_p": [
+      {
+        "node": "4",
+        "input": "top_p"
+      }
+    ],
+    "ace_step_top_k": [
+      {
+        "node": "4",
+        "input": "top_k"
+      }
+    ],
+    "ace_step_min_p": [
+      {
+        "node": "4",
+        "input": "min_p"
+      }
+    ],
+    "ace_step_batch_size": [
+      {
+        "node": "6",
+        "input": "batch_size"
+      }
+    ],
+    "ace_step_aura_shift": [
+      {
+        "node": "7",
+        "input": "shift"
+      }
+    ],
+    "ace_step_sampler": [
+      {
+        "node": "8",
+        "input": "sampler_name"
+      }
+    ],
+    "ace_step_scheduler": [
+      {
+        "node": "8",
+        "input": "scheduler"
+      }
+    ],
+    "ace_step_denoise": [
+      {
+        "node": "8",
+        "input": "denoise"
+      }
+    ]
+  },
+  "uploads": {},
+  "unmapped_ui_parameters": {
+    "negative_prompt": "The native ACE-Step 1.5 Comfy template uses the positive ACE conditioning zeroed out as the sampler negative conditioning; the existing ACE-Step UI does not expose a negative prompt.",
+    "hf_cache_dir": "Model downloads are handled by the Slopperly model manager, not by generation-time Hugging Face calls.",
+    "low_vram": "Device placement and offload are owned by the ComfyUI runtime and loader settings."
+  },
+  "output": {
+    "node": "10",
+    "type": "audio/flac",
+    "contract": "Return one readable FLAC audio artifact at the ACE-Step 1.5 sample rate with duration matching audio_length within tolerance."
+  }
+}
