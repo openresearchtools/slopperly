@@ -107,6 +107,25 @@ class ComfyHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
+                node.get("class_type") == "MMAudioSampler"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "5": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_mmaudio_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
                 node.get("class_type") == "Florence2Run"
                 for node in ComfyHandler.last_prompt.values()
             ):
@@ -142,7 +161,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
             })
         if parsed.path == "/view":
             ComfyHandler.request_order.append("/view")
-            if "stem_" in parsed.query:
+            if "stem_" in parsed.query or "mmaudio" in parsed.query:
                 return self._binary(self.audio_bytes, "audio/flac")
             return self._binary(self.video_bytes)
         self.send_response(404)
@@ -191,6 +210,15 @@ def _florence2_object_info() -> dict:
 def _stem_split_object_info() -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy/audio_stem_split_demucs/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _mmaudio_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/mmaudio_video_to_audio/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -370,6 +398,49 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["5"]["inputs"]["audio"], ["2", 2])
         self.assertEqual(prompt["6"]["inputs"]["audio"], ["2", 3])
         self.assertIn(b'name="image"; filename="song.wav"', ComfyHandler.upload_bodies[0])
+
+    def test_mmaudio_pack_uploads_video_and_collects_audio(self):
+        ComfyHandler.reset(_mmaudio_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "clip.mp4"
+            destination = Path(tmp) / "mmaudio.flac"
+            source.write_bytes(b"local mp4 fixture bytes")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                video_path=str(source),
+                prompt="fabric movement and soft machine ambience",
+                neg_prompt="speech",
+                audio_length=1.5,
+                steps=6,
+                guidance=3.25,
+                seed=135,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/mmaudio_video_to_audio",
+                    inputs,
+                    SimpleNamespace(mmaudio_force_offload=False),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.audio_bytes)
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["inputs"]["video"], "uploaded_video.mp4")
+        self.assertEqual(prompt["2"]["inputs"]["mmaudio_model"], "mmaudio_large_44k_v2_fp16.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["clip_model"], "apple_DFN5B-CLIP-ViT-H-14-384_fp16.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["images"], ["1", 0])
+        self.assertEqual(prompt["4"]["inputs"]["duration"], 1.5)
+        self.assertEqual(prompt["4"]["inputs"]["steps"], 6)
+        self.assertEqual(prompt["4"]["inputs"]["cfg"], 3.25)
+        self.assertEqual(prompt["4"]["inputs"]["seed"], 135)
+        self.assertEqual(prompt["4"]["inputs"]["prompt"], "fabric movement and soft machine ambience")
+        self.assertEqual(prompt["4"]["inputs"]["negative_prompt"], "speech")
+        self.assertFalse(prompt["4"]["inputs"]["force_offload"])
+        self.assertEqual(prompt["5"]["inputs"]["audio"], ["4", 0])
+        self.assertIn(b'name="video"; filename="clip.mp4"', ComfyHandler.upload_bodies[0])
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):
         with tempfile.TemporaryDirectory() as tmp:

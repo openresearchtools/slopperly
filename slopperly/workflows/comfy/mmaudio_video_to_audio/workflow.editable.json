@@ -1,0 +1,102 @@
+{
+  "last_node_id": 5,
+  "last_link_id": 5,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "VHS_LoadVideo",
+      "title": "Load selected video strip",
+      "widgets_values": [
+        "mmaudio_source.mp4",
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "id": 2,
+      "type": "MMAudioModelLoader",
+      "title": "MMAudio large 44k v2",
+      "widgets_values": [
+        "mmaudio_large_44k_v2_fp16.safetensors",
+        "fp16"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "MMAudioFeatureUtilsLoader",
+      "title": "MMAudio 44k feature utilities",
+      "widgets_values": [
+        "mmaudio_vae_44k_fp16.safetensors",
+        "mmaudio_synchformer_fp16.safetensors",
+        "apple_DFN5B-CLIP-ViT-H-14-384_fp16.safetensors",
+        "44k",
+        "fp16"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "MMAudioSampler",
+      "title": "Generate synchronized audio",
+      "widgets_values": [
+        8.0,
+        25,
+        4.5,
+        0,
+        "",
+        "",
+        false,
+        true
+      ]
+    },
+    {
+      "id": 5,
+      "type": "SaveAudio",
+      "title": "Save generated audio",
+      "widgets_values": [
+        "slopperly_mmaudio"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      4,
+      0,
+      "MMAUDIO_MODEL"
+    ],
+    [
+      2,
+      3,
+      0,
+      4,
+      1,
+      "MMAUDIO_FEATUREUTILS"
+    ],
+    [
+      3,
+      1,
+      0,
+      4,
+      2,
+      "IMAGE"
+    ],
+    [
+      4,
+      4,
+      0,
+      5,
+      0,
+      "AUDIO"
+    ]
+  ],
+  "extra": {
+    "slopperly_workflow_id": "mmaudio_video_to_audio",
+    "source": "Hand-authored API graph from pinned ComfyUI-MMAudio node signatures."
+  }
+}

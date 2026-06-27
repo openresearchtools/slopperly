@@ -216,6 +216,51 @@ models:
     workflows:
       - audio_stem_split_demucs
       - audio/stem_split.py
+  - logical_name: mmaudio_video_to_audio
+    legacy_aliases:
+      - MMAudio
+    task: video_to_audio
+    runtime: comfy
+    model_source: https://huggingface.co/Kijai/MMAudio_safetensors
+    download_mode: hf_file
+    local_cache_path: models/mmaudio
+    required_files:
+      - mmaudio_large_44k_v2_fp16.safetensors
+      - mmaudio_vae_44k_fp16.safetensors
+      - mmaudio_synchformer_fp16.safetensors
+      - apple_DFN5B-CLIP-ViT-H-14-384_fp16.safetensors
+    auxiliary_sources:
+      - id: bigvgan_44k
+        model_source: https://huggingface.co/nvidia/bigvgan_v2_44khz_128band_512x
+        download_mode: hf_snapshot
+        local_cache_path: models/mmaudio/nvidia/bigvgan_v2_44khz_128band_512x
+        required_files:
+          - config.json
+          - bigvgan_generator.pt
+        ignore_patterns:
+          - "*3msteps*"
+    required_node_pack: comfyui_mmaudio + video_helper_suite + comfyui core audio
+    supported_resolutions: []
+    supported_fps:
+      - source
+    context_limits: {}
+    default_parameters:
+      mmaudio_model: mmaudio_large_44k_v2_fp16.safetensors
+      vae_model: mmaudio_vae_44k_fp16.safetensors
+      synchformer_model: mmaudio_synchformer_fp16.safetensors
+      clip_model: apple_DFN5B-CLIP-ViT-H-14-384_fp16.safetensors
+      mode: 44k
+      precision: fp16
+      sample_rate: 44100
+      steps: 25
+      guidance: 4.5
+      duration: 8.0
+      force_offload: true
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_mmaudio.py --device cuda
+    workflows:
+      - mmaudio_video_to_audio
+      - audio/mmaudio.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter

@@ -132,6 +132,10 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "LoadAudio": {},
                 "AudioSeparation": {},
                 "SaveAudio": {},
+                "MMAudioModelLoader": {},
+                "MMAudioFeatureUtilsLoader": {},
+                "MMAudioSampler": {},
+                "MMAudioVoCoderLoader": {},
             })
         if self.path.startswith("/view"):
             if ".mp4" in self.path:
@@ -184,6 +188,26 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                     }
                                 ]
                             },
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "MMAudioSampler"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "5": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_mmaudio_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
                         }
                     }
                 })
@@ -652,6 +676,56 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["5"]["inputs"]["audio"], ["2", 2])
         self.assertEqual(prompt["6"]["inputs"]["audio"], ["2", 3])
         self.assertIn(b'name="image"; filename="song.wav"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_mmaudio_uses_comfy_plugin_path(self):
+        module = load_plugin_module("audio", "mmaudio")
+        plugin = module.MMAudioPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            video_path = Path(tmp) / "clip.mp4"
+            video_path.write_bytes(b"fake local video")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(
+                mmaudio_force_offload=False,
+                mmaudio_mask_away_clip=True,
+            )
+            inputs = self.base.ModelInputs(
+                prompt="soft machinery and room tone",
+                neg_prompt="speech, music",
+                video_path=str(video_path),
+                audio_length=1.25,
+                steps=7,
+                guidance=2.5,
+                seed=2468,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["inputs"]["video"], "uploaded_video.mp4")
+        self.assertEqual(prompt["2"]["class_type"], "MMAudioModelLoader")
+        self.assertEqual(prompt["2"]["inputs"]["mmaudio_model"], "mmaudio_large_44k_v2_fp16.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["base_precision"], "fp16")
+        self.assertEqual(prompt["3"]["class_type"], "MMAudioFeatureUtilsLoader")
+        self.assertEqual(prompt["3"]["inputs"]["vae_model"], "mmaudio_vae_44k_fp16.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["mode"], "44k")
+        self.assertEqual(prompt["4"]["class_type"], "MMAudioSampler")
+        self.assertEqual(prompt["4"]["inputs"]["images"], ["1", 0])
+        self.assertEqual(prompt["4"]["inputs"]["duration"], 1.25)
+        self.assertEqual(prompt["4"]["inputs"]["steps"], 7)
+        self.assertEqual(prompt["4"]["inputs"]["cfg"], 2.5)
+        self.assertEqual(prompt["4"]["inputs"]["seed"], 2468)
+        self.assertEqual(prompt["4"]["inputs"]["prompt"], "soft machinery and room tone")
+        self.assertEqual(prompt["4"]["inputs"]["negative_prompt"], "speech, music")
+        self.assertTrue(prompt["4"]["inputs"]["mask_away_clip"])
+        self.assertFalse(prompt["4"]["inputs"]["force_offload"])
+        self.assertEqual(prompt["5"]["class_type"], "SaveAudio")
+        self.assertEqual(prompt["5"]["inputs"]["audio"], ["4", 0])
+        self.assertIn(b'name="video"; filename="clip.mp4"', RuntimeHandler.comfy_uploads[-1])
 
     def test_marlin_video_captions_uses_vllm_vlm_plugin_path(self):
         module = load_plugin_module("text", "marlin_video_captions")

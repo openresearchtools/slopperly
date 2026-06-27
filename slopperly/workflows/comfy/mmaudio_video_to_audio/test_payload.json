@@ -1,0 +1,16 @@
+{
+  "prompt": "subtle cloth movement, distant room tone, soft mechanical hum",
+  "negative_prompt": "music, speech, distortion, clipping",
+  "video_path": "tests/fixtures/video_vsr_source.mp4",
+  "audio_length": 1.0,
+  "steps": 8,
+  "guidance": 4.0,
+  "seed": 2468,
+  "expected": {
+    "type": "audio",
+    "sample_rate": 44100,
+    "duration_seconds": 1.0,
+    "duration_tolerance": 0.35,
+    "non_silent": true
+  }
+}

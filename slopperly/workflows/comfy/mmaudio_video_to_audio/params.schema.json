@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "workflow_id": "mmaudio_video_to_audio",
+  "description": "Patch schema for local MMAudio video-to-audio generation through ComfyUI.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "4",
+        "input": "prompt"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "4",
+        "input": "negative_prompt"
+      }
+    ],
+    "audio_length": [
+      {
+        "node": "4",
+        "input": "duration"
+      }
+    ],
+    "steps": [
+      {
+        "node": "4",
+        "input": "steps"
+      }
+    ],
+    "guidance": [
+      {
+        "node": "4",
+        "input": "cfg"
+      }
+    ],
+    "seed": [
+      {
+        "node": "4",
+        "input": "seed"
+      }
+    ],
+    "mmaudio_model": [
+      {
+        "node": "2",
+        "input": "mmaudio_model"
+      }
+    ],
+    "mmaudio_base_precision": [
+      {
+        "node": "2",
+        "input": "base_precision"
+      }
+    ],
+    "mmaudio_vae_model": [
+      {
+        "node": "3",
+        "input": "vae_model"
+      }
+    ],
+    "mmaudio_synchformer_model": [
+      {
+        "node": "3",
+        "input": "synchformer_model"
+      }
+    ],
+    "mmaudio_clip_model": [
+      {
+        "node": "3",
+        "input": "clip_model"
+      }
+    ],
+    "mmaudio_mode": [
+      {
+        "node": "3",
+        "input": "mode"
+      }
+    ],
+    "mmaudio_precision": [
+      {
+        "node": "3",
+        "input": "precision"
+      }
+    ],
+    "mmaudio_mask_away_clip": [
+      {
+        "node": "4",
+        "input": "mask_away_clip"
+      }
+    ],
+    "mmaudio_force_offload": [
+      {
+        "node": "4",
+        "input": "force_offload"
+      }
+    ]
+  },
+  "uploads": {
+    "video_path": [
+      {
+        "node": "1",
+        "input": "video",
+        "type": "input",
+        "endpoint": "/upload/video",
+        "form_field": "video"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "fps": "The MMAudio sampler consumes loaded video frames and saves audio only; source video fps is handled inside VHS_LoadVideo.",
+    "width": "Video dimensions are not resized in this audio-only workflow.",
+    "height": "Video dimensions are not resized in this audio-only workflow.",
+    "MMAudioVoCoderLoader": "The pinned 44k ComfyUI-MMAudio path auto-loads the local NVIDIA BigVGAN v2 snapshot from models/mmaudio/nvidia/bigvgan_v2_44khz_128band_512x inside MMAudioFeatureUtilsLoader. The explicit MMAudioVoCoderLoader is reserved for 16k mode and remains pinned/validated in nodes.lock.yaml."
+  },
+  "output": {
+    "node": "5",
+    "type": "audio/flac",
+    "contract": "Return a single readable FLAC audio artifact at 44.1 kHz with duration matching the requested audio_length or the source-video-limited duration."
+  }
+}

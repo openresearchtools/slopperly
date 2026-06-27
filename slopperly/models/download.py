@@ -78,6 +78,16 @@ def selected_entries(root: Path, names: list[str] | None = None) -> list[dict]:
     return [entry for entry in entries if entry.get("logical_name") in wanted]
 
 
+def auxiliary_entries(entry: dict) -> list[dict]:
+    sources = entry.get("auxiliary_sources") or []
+    return sources if isinstance(sources, list) else []
+
+
+def artifact_entry_name(parent_name: str, entry: dict) -> str:
+    artifact_id = str(entry.get("id") or entry.get("logical_name") or "auxiliary")
+    return artifact_id if artifact_id == parent_name else f"{parent_name}:{artifact_id}"
+
+
 def download_models(
     *,
     root: Path,
@@ -95,117 +105,145 @@ def download_models(
 
     for entry in entries:
         name = entry.get("logical_name", "<unnamed>")
-        source = str(entry.get("model_source") or "")
-        repo_id = huggingface_repo_id(source)
-        download_mode = str(entry.get("download_mode") or "hf_file")
-        required_files = entry.get("required_files") or []
-        if not isinstance(required_files, list) or not required_files:
-            results.append(DownloadResult("BLOCKED", name, "required_files is empty or invalid"))
-            continue
-        if not repo_id:
-            results.append(
-                DownloadResult(
-                    "BLOCKED",
-                    name,
-                    f"model_source is not a Hugging Face artifact URL: {source!r}",
-                )
+        results.extend(
+            download_artifact_entry(
+                entry=entry,
+                name=name,
+                cache_root=cache_root,
+                profile=profile,
+                accept_licenses=accept_licenses,
+                dry_run=dry_run,
             )
-            continue
-
-        if download_mode == "hf_snapshot":
+        )
+        for auxiliary in auxiliary_entries(entry):
             results.extend(
-                download_snapshot(
-                    entry=entry,
-                    name=name,
-                    repo_id=repo_id,
-                    required_files=required_files,
+                download_artifact_entry(
+                    entry=auxiliary,
+                    name=artifact_entry_name(str(name), auxiliary),
                     cache_root=cache_root,
                     profile=profile,
                     accept_licenses=accept_licenses,
                     dry_run=dry_run,
                 )
             )
-            continue
-        if download_mode != "hf_file":
+    return results
+
+
+def download_artifact_entry(
+    *,
+    entry: dict,
+    name: str,
+    cache_root: Path,
+    profile: str,
+    accept_licenses: bool,
+    dry_run: bool,
+) -> list[DownloadResult]:
+    source = str(entry.get("model_source") or "")
+    repo_id = huggingface_repo_id(source)
+    download_mode = str(entry.get("download_mode") or "hf_file")
+    required_files = entry.get("required_files") or []
+    if not isinstance(required_files, list) or not required_files:
+        return [DownloadResult("BLOCKED", name, "required_files is empty or invalid")]
+    if not repo_id:
+        return [
+            DownloadResult(
+                "BLOCKED",
+                name,
+                f"model_source is not a Hugging Face artifact URL: {source!r}",
+            )
+        ]
+
+    if download_mode == "hf_snapshot":
+        return download_snapshot(
+            entry=entry,
+            name=name,
+            repo_id=repo_id,
+            required_files=required_files,
+            cache_root=cache_root,
+            profile=profile,
+            accept_licenses=accept_licenses,
+            dry_run=dry_run,
+        )
+    if download_mode != "hf_file":
+        return [
+            DownloadResult(
+                "BLOCKED",
+                name,
+                f"unsupported download_mode {download_mode!r}",
+            )
+        ]
+
+    results: list[DownloadResult] = []
+    for raw_file in required_files:
+        filename = str(raw_file).strip()
+        dest = target_path(cache_root, entry, filename)
+        if not is_exact_file(filename):
             results.append(
                 DownloadResult(
                     "BLOCKED",
                     name,
-                    f"unsupported download_mode {download_mode!r}",
+                    f"required file is not exact: {filename!r}",
+                    str(dest),
                 )
             )
             continue
-
-        for raw_file in required_files:
-            filename = str(raw_file).strip()
-            dest = target_path(cache_root, entry, filename)
-            if not is_exact_file(filename):
-                results.append(
-                    DownloadResult(
-                        "BLOCKED",
-                        name,
-                        f"required file is not exact: {filename!r}",
-                        str(dest),
-                    )
+        if dest.is_file() and dest.stat().st_size > 0:
+            results.append(DownloadResult("PASS", name, "artifact already cached", str(dest)))
+            continue
+        if dry_run:
+            results.append(
+                DownloadResult(
+                    "PLAN",
+                    name,
+                    f"would download {repo_id}/{filename} for profile {profile}",
+                    str(dest),
                 )
-                continue
-            if dest.is_file() and dest.stat().st_size > 0:
-                results.append(DownloadResult("PASS", name, "artifact already cached", str(dest)))
-                continue
-            if dry_run:
-                results.append(
-                    DownloadResult(
-                        "PLAN",
-                        name,
-                        f"would download {repo_id}/{filename} for profile {profile}",
-                        str(dest),
-                    )
+            )
+            continue
+        if not accept_licenses:
+            results.append(
+                DownloadResult(
+                    "BLOCKED",
+                    name,
+                    "download requires --accept-licenses",
+                    str(dest),
                 )
-                continue
-            if not accept_licenses:
-                results.append(
-                    DownloadResult(
-                        "BLOCKED",
-                        name,
-                        "download requires --accept-licenses",
-                        str(dest),
-                    )
+            )
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            from huggingface_hub import hf_hub_download
+        except Exception as exc:
+            results.append(
+                DownloadResult(
+                    "BLOCKED",
+                    name,
+                    f"huggingface_hub is required for downloads: {exc}",
+                    str(dest),
                 )
-                continue
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                from huggingface_hub import hf_hub_download
-            except Exception as exc:
-                results.append(
-                    DownloadResult(
-                        "BLOCKED",
-                        name,
-                        f"huggingface_hub is required for downloads: {exc}",
-                        str(dest),
-                    )
+            )
+            continue
+        try:
+            downloaded = hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                local_dir=str(dest.parent),
+                local_dir_use_symlinks=False,
+            )
+        except Exception as exc:
+            results.append(
+                DownloadResult(
+                    "BLOCKED",
+                    name,
+                    f"download failed for {repo_id}/{filename}: {exc}",
+                    str(dest),
                 )
-                continue
-            try:
-                downloaded = hf_hub_download(
-                    repo_id=repo_id,
-                    filename=filename,
-                    local_dir=str(dest.parent),
-                    local_dir_use_symlinks=False,
-                )
-            except Exception as exc:
-                results.append(
-                    DownloadResult(
-                        "BLOCKED",
-                        name,
-                        f"download failed for {repo_id}/{filename}: {exc}",
-                        str(dest),
-                    )
-                )
-                continue
-            final_path = Path(downloaded)
-            if final_path != dest and final_path.is_file() and not dest.exists():
-                final_path.replace(dest)
-            results.append(DownloadResult("PASS", name, "artifact downloaded", str(dest)))
+            )
+            continue
+        final_path = Path(downloaded)
+        if final_path != dest and final_path.is_file() and not dest.exists():
+            final_path.replace(dest)
+        results.append(DownloadResult("PASS", name, "artifact downloaded", str(dest)))
     return results
 
 

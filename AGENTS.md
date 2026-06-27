@@ -832,3 +832,14 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: integration coverage calls `StemSplitterPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies `LoadAudio -> AudioSeparation -> SaveAudio`, four audio outputs, and the existing `MULTI_STEM` result shape.
 - Evidence: workflow-runner integration coverage verifies the committed audio pack uploads the WAV fixture and collects four Comfy audio artifacts.
 - Still blocked: real RTX 4090 stem split artifact certification requires owned ComfyUI running with core audio nodes, the pinned audio-separation node pack, and the Hybrid Demucs checkpoint pre-cached locally for Torchaudio.
+
+### 2026-06-27 MMAudio Comfy workflow block
+
+- Completed: `audio/mmaudio.py` now routes the legacy `MMAudio` plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/Librosa/MMAudio execution in the add-on process.
+- Completed: `mmaudio_video_to_audio` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Completed: The workflow uses `VHS_LoadVideo -> MMAudioModelLoader -> MMAudioFeatureUtilsLoader -> MMAudioSampler -> SaveAudio`, preserving prompt, negative prompt, selected video strip, duration, steps, guidance, and seed.
+- Completed: `mmaudio_video_to_audio` is registered in `slopperly/config/models.yaml` with legacy alias `MMAudio`, the four required `Kijai/MMAudio_safetensors` files, and an auxiliary source for the NVIDIA BigVGAN 44k snapshot.
+- Completed: `slopperly.models.download` and `slopperly.audit.model_registry` now support `auxiliary_sources` so workflow-required local artifacts from a second Hugging Face repo can be planned without adding a fake dropdown entry.
+- Evidence: integration coverage calls `MMAudioPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies `/upload/video`, exact node/input patching, and FLAC artifact collection.
+- Evidence: workflow-runner integration coverage verifies the committed `mmaudio_video_to_audio` pack uploads the MP4 fixture and collects one Comfy audio artifact.
+- Still blocked: real RTX 4090 MMAudio artifact certification requires owned ComfyUI running with VideoHelperSuite, ComfyUI-MMAudio, core `SaveAudio`, the MMAudio safetensors in `models/mmaudio`, and the NVIDIA BigVGAN 44k snapshot pre-cached locally.

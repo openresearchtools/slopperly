@@ -542,3 +542,29 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI, core audio nodes, the pinned audio-separation custom node pack, and the `hdemucs_high_trained.pt` checkpoint pre-cached locally for Torchaudio Hybrid Demucs.
+
+## 2026-06-27 MMAudio Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/audio/mmaudio.py` now routes the legacy `MMAudio` video-to-audio path through the local Comfy gateway instead of importing Torch, Torchaudio, Librosa, and the direct `mmaudio` Python runtime in the add-on process.
+- The existing audio plugin contract is preserved for prompt, negative prompt, selected video strip, audio duration, steps, guidance, seed, and returned artifact path.
+- The former image-only and text-only branches are blocked with a concrete diagnostic because no committed local workflow pack and artifact test exists for those modes yet.
+
+### Workflow, Registry, And Downloader Added
+
+- Added `slopperly/workflows/comfy/mmaudio_video_to_audio/` with editable/API workflow JSON, schema, model manifest, test payload, and README.
+- The workflow uses VideoHelperSuite `VHS_LoadVideo`, ComfyUI-MMAudio `MMAudioModelLoader`, `MMAudioFeatureUtilsLoader`, and `MMAudioSampler`, plus Comfy core `SaveAudio`.
+- Registered `mmaudio_video_to_audio` in `slopperly/config/models.yaml` with legacy alias `MMAudio`, Hugging Face artifact source `Kijai/MMAudio_safetensors`, and required files `mmaudio_large_44k_v2_fp16.safetensors`, `mmaudio_vae_44k_fp16.safetensors`, `mmaudio_synchformer_fp16.safetensors`, and `apple_DFN5B-CLIP-ViT-H-14-384_fp16.safetensors`.
+- Added registry/download support for `auxiliary_sources` so the same functional model entry can declare the required NVIDIA BigVGAN 44k snapshot at `models/mmaudio/nvidia/bigvgan_v2_44khz_128band_512x` without creating a fake dropdown model entry.
+
+### Verification
+
+- Integration coverage calls `MMAudioPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies `/upload/video`, exact node/input patching, and FLAC artifact collection.
+- Workflow-runner integration coverage verifies the committed `mmaudio_video_to_audio` pack uploads MP4 input through Comfy's local video upload endpoint and collects one audio output.
+- GPU certification coverage is registered in `tests/gpu/test_mmaudio.py` and validates a 44.1 kHz non-silent audio artifact when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with VideoHelperSuite, ComfyUI-MMAudio, core `SaveAudio`, the four MMAudio safetensors in `models/mmaudio`, and the NVIDIA BigVGAN 44k snapshot pre-cached locally.
