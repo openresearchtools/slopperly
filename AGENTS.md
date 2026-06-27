@@ -1110,3 +1110,15 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: integration coverage calls `NucleusMoEPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies custom-node parameter patching plus PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed Nucleus pack directly, and `tests/gpu/test_nucleus_image.py` now performs a plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI installed with `slopperly_nodes`, Diffusers dependencies, the local Nucleus snapshot, and the FP8 patch/weights present in the Slopperly model cache.
+
+### 2026-06-27 FLUX.2 Dev GGUF quality workflow block
+
+- Completed: `image/flux2_dev.py` now routes `diffusers/FLUX.2-dev-bnb-4bit` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers execution and the hosted `fal/FLUX.2-dev-Turbo` LoRA load.
+- Completed: the existing prompt, multi-image selectors, resolution, frames, steps, guidance, and seed UI sections remain present.
+- Completed: `flux2_dev_gguf_quality` and `flux2_dev_gguf_quality_refs` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Completed: the workflows use pinned `UnetLoaderGGUF` from `city96/ComfyUI-GGUF` plus Comfy core FLUX.2 nodes; the reference workflow adds `LoadImage`, `ImageScale`, `VAEEncode`, and `ReferenceLatent`.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `flux2-dev-Q5_K_M.gguf`, `mistral_3_small_flux2_fp8.safetensors`, and `flux2-vae.safetensors`.
+- Evidence: integration coverage calls `Flux2DevPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies T2I patching, three-reference upload/path mapping, local filenames, and PNG artifact collection.
+- Evidence: workflow-runner integration coverage verifies both committed FLUX.2 Dev packs directly, and `tests/gpu/test_flux2_dev.py` now performs T2I and three-reference plugin-path certification attempts.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with `UnetLoaderGGUF`, core FLUX.2 node classes, `flux2-dev-Q5_K_M.gguf`, `mistral_3_small_flux2_fp8.safetensors`, and `flux2-vae.safetensors` installed locally.
+- Still blocked: FLUX.2 Dev Q5 is a heavy quality profile and remains hidden until dropdown certification has a PASS artifact record for the selected device profile; the old 9-slot reference UI submits the first three certified slots and records a usage note when additional refs are selected.

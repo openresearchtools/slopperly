@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "workflow_id": "flux2_dev_gguf_quality_refs",
+  "description": "Patch schema for local FLUX.2 Dev Q5 GGUF multi-reference generation through ComfyUI-GGUF and Comfy core ReferenceLatent nodes.",
+  "inputs": {
+    "flux2_dev_model": [
+      {
+        "node": "3",
+        "input": "unet_name"
+      }
+    ],
+    "flux2_dev_text_encoder": [
+      {
+        "node": "4",
+        "input": "clip_name"
+      }
+    ],
+    "flux2_dev_clip_type": [
+      {
+        "node": "4",
+        "input": "type"
+      }
+    ],
+    "flux2_dev_vae": [
+      {
+        "node": "5",
+        "input": "vae_name"
+      }
+    ],
+    "prompt": [
+      {
+        "node": "6",
+        "input": "text"
+      }
+    ],
+    "flux2_dev_guidance": [
+      {
+        "node": "11",
+        "input": "cfg"
+      }
+    ],
+    "seed": [
+      {
+        "node": "12",
+        "input": "noise_seed"
+      }
+    ],
+    "flux2_dev_sampler": [
+      {
+        "node": "13",
+        "input": "sampler_name"
+      }
+    ],
+    "steps": [
+      {
+        "node": "14",
+        "input": "steps"
+      }
+    ],
+    "width": [
+      {
+        "node": "2",
+        "input": "width"
+      },
+      {
+        "node": "14",
+        "input": "width"
+      },
+      {
+        "node": "15",
+        "input": "width"
+      },
+      {
+        "node": "20",
+        "input": "width"
+      },
+      {
+        "node": "25",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "2",
+        "input": "height"
+      },
+      {
+        "node": "14",
+        "input": "height"
+      },
+      {
+        "node": "15",
+        "input": "height"
+      },
+      {
+        "node": "20",
+        "input": "height"
+      },
+      {
+        "node": "25",
+        "input": "height"
+      }
+    ],
+    "batch": [
+      {
+        "node": "15",
+        "input": "batch_size"
+      }
+    ]
+  },
+  "uploads": {
+    "images[0]": [
+      {
+        "node": "1",
+        "input": "image",
+        "type": "input"
+      }
+    ],
+    "images[1]": [
+      {
+        "node": "19",
+        "input": "image",
+        "type": "input",
+        "optional": true,
+        "disconnects": [
+          {
+            "node": "22",
+            "input": "latent"
+          },
+          {
+            "node": "23",
+            "input": "latent"
+          }
+        ]
+      }
+    ],
+    "images[2]": [
+      {
+        "node": "24",
+        "input": "image",
+        "type": "input",
+        "optional": true,
+        "disconnects": [
+          {
+            "node": "27",
+            "input": "latent"
+          },
+          {
+            "node": "28",
+            "input": "latent"
+          }
+        ]
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "multi_images[3..8]": "The old FLUX multi-image UI can expose up to nine slots. This certified graph submits the first three references and records a usage note when more are selected.",
+    "strength": "FLUX.2 Dev multi-reference generation does not expose a denoise/strength input in this graph.",
+    "custom_loras": "No hosted Turbo LoRA is loaded in production."
+  },
+  "outputs": [
+    {
+      "node": "18",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ]
+}

@@ -714,6 +714,35 @@ class RuntimeHandler(BaseHTTPRequestHandler):
             if (
                 any(
                     node.get("class_type") == "UnetLoaderGGUF"
+                    and (node.get("inputs") or {}).get("unet_name") == "flux2-dev-Q5_K_M.gguf"
+                    for node in RuntimeHandler.comfy_prompt.values()
+                    if isinstance(node, dict)
+                )
+            ):
+                output_node = "18" if "18" in RuntimeHandler.comfy_prompt else "13"
+                filename = (
+                    "slopperly_flux2_dev_gguf_quality_refs_00001_.png"
+                    if output_node == "18"
+                    else "slopperly_flux2_dev_gguf_quality_00001_.png"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "images": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if (
+                any(
+                    node.get("class_type") == "UnetLoaderGGUF"
                     for node in RuntimeHandler.comfy_prompt.values()
                     if isinstance(node, dict)
                 )
@@ -2169,6 +2198,98 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["177"]["class_type"], "ReferenceLatent")
         self.assertEqual(prompt["135"]["class_type"], "ConditioningZeroOut")
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_flux2_dev_uses_comfy_t2i_and_reference_plugin_paths(self):
+        module = load_plugin_module("image", "flux2_dev")
+        plugin = module.Flux2DevPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+            t2i_inputs = self.base.ModelInputs(
+                prompt="local FLUX.2 Dev Q5 text to image",
+                width=1024,
+                height=1024,
+                steps=8,
+                guidance=3.5,
+                seed=42034,
+                frames=1,
+            )
+
+            RuntimeHandler.comfy_uploads = []
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, t2i_inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+            t2i_prompt = RuntimeHandler.comfy_prompts[-1]
+            self.assertEqual(RuntimeHandler.comfy_uploads, [])
+            self.assertEqual(t2i_prompt["1"]["class_type"], "UnetLoaderGGUF")
+            self.assertEqual(t2i_prompt["1"]["inputs"]["unet_name"], "flux2-dev-Q5_K_M.gguf")
+            self.assertEqual(t2i_prompt["2"]["inputs"]["clip_name"], "mistral_3_small_flux2_fp8.safetensors")
+            self.assertEqual(t2i_prompt["2"]["inputs"]["type"], "flux2")
+            self.assertEqual(t2i_prompt["3"]["inputs"]["vae_name"], "flux2-vae.safetensors")
+            self.assertEqual(t2i_prompt["4"]["inputs"]["text"], "local FLUX.2 Dev Q5 text to image")
+            self.assertEqual(t2i_prompt["6"]["inputs"]["cfg"], 3.5)
+            self.assertEqual(t2i_prompt["7"]["inputs"]["noise_seed"], 42034)
+            self.assertEqual(t2i_prompt["9"]["inputs"]["steps"], 8)
+            self.assertEqual(t2i_prompt["9"]["inputs"]["width"], 1024)
+            self.assertEqual(t2i_prompt["10"]["inputs"]["height"], 1024)
+
+            source = Path(tmp) / "source.png"
+            ref1 = Path(tmp) / "ref1.png"
+            ref2 = Path(tmp) / "ref2.png"
+            ref3 = Path(tmp) / "ref3.png"
+            source.write_bytes(b"local flux dev source image")
+            ref1.write_bytes(b"local flux dev reference one")
+            ref2.write_bytes(b"local flux dev reference two")
+            ref3.write_bytes(b"local flux dev reference three")
+            scene = SimpleNamespace(
+                sequence_editor=SimpleNamespace(strips=[
+                    SimpleNamespace(name="ref1", type="IMAGE", filepath=str(ref1)),
+                    SimpleNamespace(name="ref2", type="IMAGE", filepath=str(ref2)),
+                    SimpleNamespace(name="ref3", type="IMAGE", filepath=str(ref3)),
+                ]),
+                flux_strip_1="ref1",
+                flux_strip_2="ref2",
+                flux_strip_3="ref3",
+            )
+            ref_inputs = self.base.ModelInputs(
+                prompt="combine local FLUX.2 Dev references",
+                image=str(source),
+                width=1024,
+                height=1024,
+                steps=8,
+                guidance=3.5,
+                seed=42035,
+                frames=1,
+            )
+
+            RuntimeHandler.comfy_uploads = []
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, ref_inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        ref_prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(len(RuntimeHandler.comfy_uploads), 3)
+        self.assertEqual(ref_prompt["3"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(ref_prompt["3"]["inputs"]["unet_name"], "flux2-dev-Q5_K_M.gguf")
+        self.assertEqual(ref_prompt["4"]["inputs"]["clip_name"], "mistral_3_small_flux2_fp8.safetensors")
+        self.assertEqual(ref_prompt["5"]["inputs"]["vae_name"], "flux2-vae.safetensors")
+        self.assertEqual(ref_prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(ref_prompt["19"]["inputs"]["image"], "uploaded_source_2.png")
+        self.assertEqual(ref_prompt["24"]["inputs"]["image"], "uploaded_source_3.png")
+        self.assertEqual(ref_prompt["6"]["inputs"]["text"], "combine local FLUX.2 Dev references")
+        self.assertEqual(ref_prompt["11"]["inputs"]["cfg"], 3.5)
+        self.assertEqual(ref_prompt["12"]["inputs"]["noise_seed"], 42035)
+        self.assertEqual(ref_prompt["14"]["inputs"]["steps"], 8)
+        self.assertEqual(ref_prompt["11"]["inputs"]["positive"], ["27", 0])
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[0])
+        self.assertIn(b'filename="ref1.png"', RuntimeHandler.comfy_uploads[1])
+        self.assertIn(b'filename="ref2.png"', RuntimeHandler.comfy_uploads[2])
+        self.assertIn("three certified ReferenceLatent slots", ref_inputs.usage_note)
 
     def test_flux2_klein_4b_uses_comfy_t2i_and_edit_plugin_paths(self):
         module = load_plugin_module("image", "flux2_klein_4b")

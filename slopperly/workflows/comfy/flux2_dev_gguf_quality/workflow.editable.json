@@ -1,0 +1,28 @@
+{
+  "workflow_id": "flux2_dev_gguf_quality",
+  "source_template": "Derived from the Comfy FLUX.2 text-to-image graph; production replaces the diffusion loader with ComfyUI-GGUF for city96 FLUX.2 Dev Q5_K_M.",
+  "format": "editable-reference",
+  "description": "Editable reference for the local FLUX.2 Dev Q5 GGUF text-to-image workflow. The production submission graph in workflow.api.json is the Comfy API graph.",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UnetLoaderGGUF",
+      "title": "FLUX.2 Dev Q5 GGUF model"
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoader",
+      "title": "Mistral Small FLUX.2 text encoder"
+    },
+    {
+      "id": 9,
+      "type": "Flux2Scheduler",
+      "title": "FLUX.2 scheduler"
+    },
+    {
+      "id": 13,
+      "type": "SaveImage",
+      "title": "Slopperly PNG output"
+    }
+  ]
+}

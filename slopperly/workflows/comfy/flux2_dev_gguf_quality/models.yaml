@@ -1,0 +1,54 @@
+workflow_id: flux2_dev_gguf_quality
+required_custom_nodes:
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    commit: 6ea2651e7df66d7585f6ffee804b20e92fb38b8a
+    node_classes:
+      - UnetLoaderGGUF
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    node_classes:
+      - CLIPLoader
+      - VAELoader
+      - CLIPTextEncode
+      - ConditioningZeroOut
+      - CFGGuider
+      - RandomNoise
+      - KSamplerSelect
+      - Flux2Scheduler
+      - EmptyFlux2LatentImage
+      - SamplerCustomAdvanced
+      - VAEDecode
+      - SaveImage
+required_node_classes:
+  - UnetLoaderGGUF
+  - CLIPLoader
+  - VAELoader
+  - CLIPTextEncode
+  - ConditioningZeroOut
+  - CFGGuider
+  - RandomNoise
+  - KSamplerSelect
+  - Flux2Scheduler
+  - EmptyFlux2LatentImage
+  - SamplerCustomAdvanced
+  - VAEDecode
+  - SaveImage
+model_files:
+  - source: https://huggingface.co/city96/FLUX.2-dev-gguf
+    file: flux2-dev-Q5_K_M.gguf
+    destination: models/diffusion_models/flux2-dev-Q5_K_M.gguf
+  - source: https://huggingface.co/Comfy-Org/flux2-dev
+    file: split_files/text_encoders/mistral_3_small_flux2_fp8.safetensors
+    destination: models/text_encoders/mistral_3_small_flux2_fp8.safetensors
+  - source: https://huggingface.co/Comfy-Org/flux2-dev
+    file: split_files/vae/flux2-vae.safetensors
+    destination: models/vae/flux2-vae.safetensors
+supported_resolutions:
+  - 1024x1024
+  - 1344x768
+  - 768x1344
+artifact_contract:
+  type: image/png
+  validation: readable PNG with requested or mapped dimensions

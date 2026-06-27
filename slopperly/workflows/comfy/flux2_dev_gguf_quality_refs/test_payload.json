@@ -1,0 +1,21 @@
+{
+  "prompt": "turn the references into a polished local Slopperly FLUX.2 Dev product render",
+  "images": [
+    "tests/fixtures/vsr_source.ppm",
+    null,
+    null
+  ],
+  "width": 1024,
+  "height": 1024,
+  "steps": 4,
+  "guidance": 1.0,
+  "strength": 0.65,
+  "seed": 42035,
+  "frames": 1,
+  "flux2_dev_model": "flux2-dev-Q5_K_M.gguf",
+  "flux2_dev_text_encoder": "mistral_3_small_flux2_fp8.safetensors",
+  "flux2_dev_clip_type": "flux2",
+  "flux2_dev_vae": "flux2-vae.safetensors",
+  "flux2_dev_sampler": "euler",
+  "flux2_dev_guidance": 3.5
+}

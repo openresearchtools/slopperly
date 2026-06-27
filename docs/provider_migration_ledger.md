@@ -1160,3 +1160,30 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI installed with `slopperly_nodes`, Diffusers dependencies, the local `NucleusAI/Nucleus-Image` snapshot, and the FP8 patch/weights present in the Slopperly model cache.
+
+## 2026-06-27 FLUX.2 Dev GGUF quality workflow block
+
+### Production Paths Migrated
+
+- `models_plugins/image/flux2_dev.py` now routes `diffusers/FLUX.2-dev-bnb-4bit` through the local Comfy gateway instead of importing Torch/Diffusers/Transformers and loading the hosted `fal/FLUX.2-dev-Turbo` LoRA in the add-on process.
+- The existing prompt, multi-image strip selectors, resolution, frames, steps, guidance, and seed UI sections remain present.
+- The wrapper selects `flux2_dev_gguf_quality` for text-to-image and `flux2_dev_gguf_quality_refs` when references are selected. The first three local references are submitted to committed `ReferenceLatent` slots, and extra legacy FLUX selector slots are recorded as a usage note instead of silently ignored.
+- The wrapper preserves the existing `ModelPlugin.generate()` result shape and writes a local PNG artifact path for existing Blender output insertion.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/flux2_dev_gguf_quality/` and `slopperly/workflows/comfy/flux2_dev_gguf_quality_refs/` with editable/API workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- The workflows use `UnetLoaderGGUF` from pinned `city96/ComfyUI-GGUF` plus Comfy core FLUX.2 nodes: `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`; the reference workflow adds `LoadImage`, `ImageScale`, `VAEEncode`, and `ReferenceLatent`.
+- Registered `flux2_dev_gguf_quality` in `slopperly/config/models.yaml` with legacy alias `diffusers/FLUX.2-dev-bnb-4bit`, the `city96/FLUX.2-dev-gguf` Q5_K_M artifact, and auxiliary `mistral_3_small_flux2_fp8.safetensors` and `flux2-vae.safetensors` files from `Comfy-Org/flux2-dev`.
+
+### Verification
+
+- Integration coverage calls `Flux2DevPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies T2I graph patching, reference image uploads, local model/text encoder/VAE filenames, guidance, steps, seed, and PNG artifact collection.
+- Workflow-runner integration coverage verifies both committed FLUX.2 Dev packs directly and collects PNG artifacts from Comfy history outputs.
+- GPU certification coverage is registered in `tests/gpu/test_flux2_dev.py` and validates text-to-image plus three-reference PNG artifacts when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with `UnetLoaderGGUF`, core FLUX.2 node classes, `flux2-dev-Q5_K_M.gguf`, `mistral_3_small_flux2_fp8.safetensors`, and `flux2-vae.safetensors` installed locally.
+- FLUX.2 Dev Q5 is a heavy quality profile, not a 16 GB default dropdown entry; production visibility still requires a PASS certification record for the selected device profile.

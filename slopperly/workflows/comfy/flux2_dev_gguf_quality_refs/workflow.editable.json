@@ -1,0 +1,33 @@
+{
+  "workflow_id": "flux2_dev_gguf_quality_refs",
+  "source_template": "Derived from the Comfy FLUX.2 reference latent graph; production replaces the diffusion loader with ComfyUI-GGUF for city96 FLUX.2 Dev Q5_K_M.",
+  "format": "editable-reference",
+  "description": "Editable reference for the local FLUX.2 Dev Q5 GGUF multi-reference workflow. The production API graph keeps the ReferenceLatent conditioning path and optional Slopperly reference slots.",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "title": "Primary selected image"
+    },
+    {
+      "id": 3,
+      "type": "UnetLoaderGGUF",
+      "title": "FLUX.2 Dev Q5 GGUF model"
+    },
+    {
+      "id": 9,
+      "type": "ReferenceLatent",
+      "title": "Primary positive reference latent"
+    },
+    {
+      "id": 14,
+      "type": "Flux2Scheduler",
+      "title": "FLUX.2 scheduler"
+    },
+    {
+      "id": 18,
+      "type": "SaveImage",
+      "title": "Slopperly PNG output"
+    }
+  ]
+}

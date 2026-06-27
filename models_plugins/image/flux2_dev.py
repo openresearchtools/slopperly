@@ -1,14 +1,21 @@
-"""Text-to-image with multi-image support via local FLUX.2-dev artifacts."""
+"""Text-to-image and multi-reference generation via local ComfyUI FLUX.2 Dev."""
 
-from ...models.base import ModelPlugin, InputSpec, UISection, ParamSpec, ModelInputs
-from ...utils.helpers import gfx_device, low_vram, find_strip_by_name, get_strip_path, load_first_frame, load_strip_as_pil
+from pathlib import Path
+
+from ...models.base import ModelInputs, ModelPlugin, InputSpec, ParamSpec, UISection
+from ...slopperly.runtime.gateway import SlopperlyRuntimeGateway
+from ...utils.helpers import clean_filename, find_strip_by_name, get_strip_path, solve_path
+
+
+T2I_WORKFLOW_ID = "flux2_dev_gguf_quality"
+REF_WORKFLOW_ID = "flux2_dev_gguf_quality_refs"
 
 
 class Flux2DevPlugin(ModelPlugin):
     MODEL_ID     = "diffusers/FLUX.2-dev-bnb-4bit"
-    DISPLAY_NAME = "Image: FLUX.2 Dev (4-bit, multi-image)"
+    DISPLAY_NAME = "Image: FLUX.2 Dev (Q5 GGUF quality)"
     MODEL_TYPE   = "image"
-    DESCRIPTION  = "Text-to-image with multi-image support via local FLUX.2-dev artifacts"
+    DESCRIPTION  = "Text-to-image and multi-reference generation via local ComfyUI FLUX.2 Dev Q5 GGUF"
 
     INPUTS       = InputSpec.PROMPT | InputSpec.MULTI_IMAGE
     UI_SECTIONS  = [
@@ -16,41 +23,15 @@ class Flux2DevPlugin(ModelPlugin):
         UISection.RESOLUTION, UISection.FRAMES, UISection.STEPS, UISection.GUIDANCE, UISection.SEED,
     ]
     PARAMS       = ParamSpec(steps=8, guidance=3.5)
-    REQUIRED_PACKAGES = ["torch", "diffusers", "transformers"]
+    REQUIRED_PACKAGES = []
     supports_inpaint  = False
     supports_img2img  = False
 
     def load(self, prefs, scene, **kw):
-        import torch
-        from transformers import Mistral3ForConditionalGeneration
-        from diffusers import Flux2Pipeline, Flux2Transformer2DModel
-
-        _cache_dir = prefs.hf_cache_dir or None
-        print(f"Loading {self.MODEL_ID}…")
-
-        dtype = torch.bfloat16
-        _lfo = prefs.local_files_only
-        transformer = Flux2Transformer2DModel.from_pretrained(
-            self.MODEL_ID, subfolder="transformer", torch_dtype=dtype, device_map="cpu",
-            cache_dir=_cache_dir, local_files_only=_lfo,
-        )
-        text_encoder = Mistral3ForConditionalGeneration.from_pretrained(
-            self.MODEL_ID, subfolder="text_encoder", dtype=dtype, device_map="cpu",
-            cache_dir=_cache_dir, local_files_only=_lfo,
-        )
-        pipe = Flux2Pipeline.from_pretrained(
-            self.MODEL_ID, transformer=transformer, text_encoder=text_encoder, torch_dtype=dtype,
-            cache_dir=_cache_dir, local_files_only=_lfo,
-        )
-        pipe.load_lora_weights(
-            "fal/FLUX.2-dev-Turbo", weight_name="flux.2-turbo-lora.safetensors"
-        )
-        if gfx_device == "mps":
-            pipe.to("mps")
-        else:
-            pipe.enable_model_cpu_offload()
-            pipe.vae.enable_tiling()
-        return {"pipe": pipe, "converter": None, "refiner": None, "preprocessor": None}
+        return {
+            "gateway": SlopperlyRuntimeGateway(),
+            "last_model_card": self.MODEL_ID,
+        }
 
     def draw_custom_ui(self, col, context) -> bool:
         scene = context.scene
@@ -75,34 +56,73 @@ class Flux2DevPlugin(ModelPlugin):
         return True
 
     def generate(self, pipe_obj, inputs: ModelInputs, scene, prefs):
-        import torch
+        gateway = pipe_obj.get("gateway") if isinstance(pipe_obj, dict) else None
+        if gateway is None:
+            gateway = SlopperlyRuntimeGateway()
 
-        pipe = pipe_obj["pipe"]
-        seed = inputs.seed
-        generator = (
-            torch.Generator("cuda").manual_seed(seed)
-            if torch.cuda.is_available() and seed != 0 else None
+        inputs.flux2_dev_model = "flux2-dev-Q5_K_M.gguf"
+        inputs.flux2_dev_text_encoder = "mistral_3_small_flux2_fp8.safetensors"
+        inputs.flux2_dev_clip_type = "flux2"
+        inputs.flux2_dev_vae = "flux2-vae.safetensors"
+        inputs.flux2_dev_sampler = "euler"
+        inputs.flux2_dev_guidance = float(inputs.guidance or 3.5)
+
+        workflow_id = T2I_WORKFLOW_ID
+        stem = "flux2_dev_gguf_quality"
+        ref_images = self._reference_images(inputs, scene)
+        if ref_images:
+            workflow_id = REF_WORKFLOW_ID
+            stem = "flux2_dev_gguf_quality_refs"
+            inputs.images = ref_images[:3]
+            if len(ref_images) > 3:
+                self._append_usage_note(
+                    inputs,
+                    "FLUX.2 Dev local Comfy quality workflow currently has three "
+                    "certified ReferenceLatent slots. Extra selected FLUX references "
+                    "remain visible in the UI but are not submitted until a larger "
+                    "local graph is certified.",
+                )
+
+        self.set_phase(inputs, f"Generating with local ComfyUI {self.DISPLAY_NAME}")
+        filename = clean_filename(f"{inputs.seed}_{stem}") or stem
+        destination = solve_path(filename + ".png")
+        return gateway.run_comfy_workflow(
+            workflow_id,
+            inputs,
+            scene,
+            prefs,
+            destination=destination,
+            timeout=float(getattr(prefs, "comfyui_timeout", 3600.0) or 3600.0),
         )
 
-        flux_images = []
-        if inputs.image is not None:
-            flux_images.append(inputs.image)
-        for i in range(1, 10):
-            strip_name = getattr(scene, f"flux_strip_{i}", None)
-            if strip_name:
-                strip = find_strip_by_name(scene, strip_name)
-                if strip:
-                    flux_images.append(load_strip_as_pil(strip))
+    def _reference_images(self, inputs: ModelInputs, scene) -> list:
+        images = []
+        if getattr(inputs, "image", None) is not None:
+            images.append(inputs.image)
+        images.extend(self._scene_reference_paths(scene))
+        return [image for image in images if image]
 
-        self.set_phase(inputs, "Generating")
-        return pipe(
-            image=flux_images if flux_images else None,
-            prompt=inputs.prompt,
-            generator=generator,
-            max_sequence_length=512,
-            num_inference_steps=inputs.steps,
-            guidance_scale=inputs.guidance,
-            height=inputs.height,
-            width=inputs.width,
-            callback_on_step_end=self.step_callback(inputs),
-        ).images[0]
+    def _scene_reference_paths(self, scene) -> list[str]:
+        paths: list[str] = []
+        if scene is None:
+            return paths
+        for i in range(1, 10):
+            path = getattr(scene, f"flux_strip_{i}_path", "") or ""
+            if path and Path(path).is_file():
+                paths.append(path)
+                continue
+            strip_name = getattr(scene, f"flux_strip_{i}", "") or ""
+            if not strip_name:
+                continue
+            strip = find_strip_by_name(scene, strip_name)
+            if strip is None:
+                continue
+            strip_path = get_strip_path(strip)
+            if strip_path:
+                paths.append(strip_path)
+        return paths
+
+    @staticmethod
+    def _append_usage_note(inputs: ModelInputs, message: str) -> None:
+        prefix = (getattr(inputs, "usage_note", "") + "\n") if getattr(inputs, "usage_note", "") else ""
+        inputs.usage_note = prefix + message

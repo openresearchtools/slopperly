@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "workflow_id": "flux2_dev_gguf_quality",
+  "description": "Patch schema for local FLUX.2 Dev Q5 GGUF text-to-image through ComfyUI-GGUF and Comfy core FLUX.2 nodes.",
+  "inputs": {
+    "flux2_dev_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "flux2_dev_text_encoder": [
+      {
+        "node": "2",
+        "input": "clip_name"
+      }
+    ],
+    "flux2_dev_clip_type": [
+      {
+        "node": "2",
+        "input": "type"
+      }
+    ],
+    "flux2_dev_vae": [
+      {
+        "node": "3",
+        "input": "vae_name"
+      }
+    ],
+    "prompt": [
+      {
+        "node": "4",
+        "input": "text"
+      }
+    ],
+    "flux2_dev_guidance": [
+      {
+        "node": "6",
+        "input": "cfg"
+      }
+    ],
+    "seed": [
+      {
+        "node": "7",
+        "input": "noise_seed"
+      }
+    ],
+    "flux2_dev_sampler": [
+      {
+        "node": "8",
+        "input": "sampler_name"
+      }
+    ],
+    "steps": [
+      {
+        "node": "9",
+        "input": "steps"
+      }
+    ],
+    "width": [
+      {
+        "node": "9",
+        "input": "width"
+      },
+      {
+        "node": "10",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "9",
+        "input": "height"
+      },
+      {
+        "node": "10",
+        "input": "height"
+      }
+    ],
+    "batch": [
+      {
+        "node": "10",
+        "input": "batch_size"
+      }
+    ]
+  },
+  "uploads": {},
+  "unmapped_ui_parameters": {
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "multi_images": "The wrapper selects flux2_dev_gguf_quality_refs when one or more reference images are selected.",
+    "custom_loras": "FLUX.2 Dev does not expose a project LoRA UI section in the current plugin; no hosted Turbo LoRA is loaded in production."
+  },
+  "outputs": [
+    {
+      "node": "13",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ]
+}
