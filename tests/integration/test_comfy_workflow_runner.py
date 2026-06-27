@@ -428,6 +428,36 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "UNETLoader"
+                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("ernie-image")
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                unet_name = next(
+                    str((node.get("inputs") or {}).get("unet_name", ""))
+                    for node in ComfyHandler.last_prompt.values()
+                    if node.get("class_type") == "UNETLoader"
+                )
+                filename = (
+                    "slopperly_ernie_image_turbo_00001_.png"
+                    if "turbo" in unet_name
+                    else "slopperly_ernie_image_00001_.png"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "11": {
+                                "images": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -460,6 +490,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "qwen_image_2512" in parsed.query
                 or "zimage" in parsed.query
                 or "anima" in parsed.query
+                or "ernie_image" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
@@ -598,6 +629,15 @@ def _zimage_object_info(workflow_id: str) -> dict:
 
 
 def _anima_object_info(workflow_id: str) -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _ernie_object_info(workflow_id: str) -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
             encoding="utf-8"
@@ -1612,6 +1652,109 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["9"]["inputs"]["scheduler"], "simple")
         self.assertAlmostEqual(prompt["9"]["inputs"]["denoise"], 0.35)
         self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+
+    def test_ernie_packs_patch_base_and_turbo_graphs(self):
+        ComfyHandler.reset(_ernie_object_info("ernie_image_t2i"))
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "ernie.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            sampling = {
+                "sampling_mode": "on",
+                "temperature": 0.6,
+                "top_k": 64,
+                "top_p": 0.8,
+                "min_p": 0.05,
+                "repetition_penalty": 1.05,
+                "presence_penalty": 0.0,
+                "seed": 3101,
+            }
+            inputs = SimpleNamespace(
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                batch=1,
+                steps=50,
+                guidance=4.0,
+                seed=3101,
+                ernie_model="ernie-image.safetensors",
+                ernie_text_encoder="ministral-3-3b.safetensors",
+                ernie_prompt_enhancer="ernie-image-prompt-enhancer.safetensors",
+                ernie_clip_type="flux2",
+                ernie_vae="flux2-vae.safetensors",
+                ernie_sampler="euler",
+                ernie_scheduler="simple",
+                ernie_denoise=1.0,
+                ernie_prompt_request="enhance local ERNIE base prompt",
+                ernie_textgen_max_length=2048,
+                ernie_textgen_sampling_mode=sampling,
+                ernie_textgen_thinking=False,
+                ernie_textgen_use_default_template=True,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/ernie_image_t2i",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(ComfyHandler.upload_bodies, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["clip_name"], "ministral-3-3b.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["type"], "flux2")
+        self.assertEqual(prompt["3"]["inputs"]["vae_name"], "flux2-vae.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["clip_name"], "ernie-image-prompt-enhancer.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["prompt"], "enhance local ERNIE base prompt")
+        self.assertEqual(prompt["5"]["inputs"]["sampling_mode"], sampling)
+        self.assertEqual(prompt["6"]["inputs"]["text"], ["5", 0])
+        self.assertEqual(prompt["7"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["8"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["batch_size"], 1)
+        self.assertEqual(prompt["9"]["inputs"]["seed"], 3101)
+        self.assertEqual(prompt["9"]["inputs"]["steps"], 50)
+        self.assertEqual(prompt["9"]["inputs"]["cfg"], 4.0)
+        self.assertEqual(prompt["9"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["9"]["inputs"]["scheduler"], "simple")
+
+        ComfyHandler.reset(_ernie_object_info("ernie_image_turbo_t2i"))
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "ernie_turbo.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs.ernie_model = "ernie-image-turbo.safetensors"
+            inputs.ernie_prompt_request = "enhance local ERNIE turbo prompt"
+            inputs.seed = 3201
+            inputs.steps = 8
+            inputs.guidance = 1.0
+            inputs.ernie_textgen_sampling_mode = {**sampling, "seed": 3201}
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/ernie_image_turbo_t2i",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image-turbo.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["prompt"], "enhance local ERNIE turbo prompt")
+        self.assertEqual(prompt["5"]["inputs"]["sampling_mode"]["seed"], 3201)
+        self.assertEqual(prompt["7"]["class_type"], "ConditioningZeroOut")
+        self.assertEqual(prompt["7"]["inputs"]["conditioning"], ["6", 0])
+        self.assertEqual(prompt["9"]["inputs"]["seed"], 3201)
+        self.assertEqual(prompt["9"]["inputs"]["steps"], 8)
+        self.assertEqual(prompt["9"]["inputs"]["cfg"], 1.0)
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):
         with tempfile.TemporaryDirectory() as tmp:

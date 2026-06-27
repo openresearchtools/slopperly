@@ -1,0 +1,142 @@
+{
+  "workflow_id": "ernie_image_t2i",
+  "inputs": {
+    "ernie_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "ernie_text_encoder": [
+      {
+        "node": "2",
+        "input": "clip_name"
+      }
+    ],
+    "ernie_clip_type": [
+      {
+        "node": "2",
+        "input": "type"
+      },
+      {
+        "node": "4",
+        "input": "type"
+      }
+    ],
+    "ernie_vae": [
+      {
+        "node": "3",
+        "input": "vae_name"
+      }
+    ],
+    "ernie_prompt_enhancer": [
+      {
+        "node": "4",
+        "input": "clip_name"
+      }
+    ],
+    "ernie_prompt_request": [
+      {
+        "node": "5",
+        "input": "prompt"
+      }
+    ],
+    "ernie_textgen_max_length": [
+      {
+        "node": "5",
+        "input": "max_length"
+      }
+    ],
+    "ernie_textgen_sampling_mode": [
+      {
+        "node": "5",
+        "input": "sampling_mode"
+      }
+    ],
+    "ernie_textgen_thinking": [
+      {
+        "node": "5",
+        "input": "thinking"
+      }
+    ],
+    "ernie_textgen_use_default_template": [
+      {
+        "node": "5",
+        "input": "use_default_template"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "7",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "8",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "8",
+        "input": "height"
+      }
+    ],
+    "batch": [
+      {
+        "node": "8",
+        "input": "batch_size"
+      }
+    ],
+    "seed": [
+      {
+        "node": "9",
+        "input": "seed"
+      }
+    ],
+    "steps": [
+      {
+        "node": "9",
+        "input": "steps"
+      }
+    ],
+    "guidance": [
+      {
+        "node": "9",
+        "input": "cfg"
+      }
+    ],
+    "ernie_sampler": [
+      {
+        "node": "9",
+        "input": "sampler_name"
+      }
+    ],
+    "ernie_scheduler": [
+      {
+        "node": "9",
+        "input": "scheduler"
+      }
+    ],
+    "ernie_denoise": [
+      {
+        "node": "9",
+        "input": "denoise"
+      }
+    ]
+  },
+  "uploads": {},
+  "outputs": [
+    {
+      "node": "11",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ],
+  "notes": [
+    "The prompt field is expanded through local Comfy TextGenerate using ernie-image-prompt-enhancer.safetensors before CLIPTextEncode.",
+    "The existing negative prompt field maps to the second CLIPTextEncode node."
+  ]
+}

@@ -335,6 +335,117 @@ models:
       - anima_t2i_i2i
       - anima_t2i_i2i_img2img
       - image/anima.py
+  - logical_name: ernie_image_t2i
+    legacy_aliases:
+      - baidu/ERNIE-Image
+    task: image_t2i
+    runtime: comfy
+    model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
+    download_mode: hf_file
+    local_cache_path: models/diffusion_models/ernie-image.safetensors
+    required_files:
+      - path: diffusion_models/ernie-image.safetensors
+        target: ernie-image.safetensors
+    auxiliary_sources:
+      - id: ernie_text_encoder
+        model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/ministral-3-3b.safetensors
+        required_files:
+          - path: text_encoders/ministral-3-3b.safetensors
+            target: ministral-3-3b.safetensors
+      - id: ernie_prompt_enhancer
+        model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/ernie-image-prompt-enhancer.safetensors
+        required_files:
+          - path: text_encoders/ernie-image-prompt-enhancer.safetensors
+            target: ernie-image-prompt-enhancer.safetensors
+      - id: ernie_vae
+        model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
+        download_mode: hf_file
+        local_cache_path: models/vae/flux2-vae.safetensors
+        required_files:
+          - path: vae/flux2-vae.safetensors
+            target: flux2-vae.safetensors
+    required_node_pack: comfyui core ernie image
+    supported_resolutions:
+      - 1024x1024
+      - 1280x720
+      - 720x1280
+    context_limits: {}
+    default_parameters:
+      diffusion_model: ernie-image.safetensors
+      text_encoder: ministral-3-3b.safetensors
+      prompt_enhancer: ernie-image-prompt-enhancer.safetensors
+      clip_type: flux2
+      vae: flux2-vae.safetensors
+      steps: 50
+      guidance: 4.0
+      sampler: euler
+      scheduler: simple
+      prompt_enhancement: TextGenerate
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_ernie.py --device cuda
+    workflows:
+      - ernie_image_t2i
+      - image/ernie.py
+  - logical_name: ernie_image_turbo_t2i
+    legacy_aliases:
+      - baidu/ERNIE-Image-Turbo
+    task: image_t2i
+    runtime: comfy
+    model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
+    download_mode: hf_file
+    local_cache_path: models/diffusion_models/ernie-image-turbo.safetensors
+    required_files:
+      - path: diffusion_models/ernie-image-turbo.safetensors
+        target: ernie-image-turbo.safetensors
+    auxiliary_sources:
+      - id: ernie_turbo_text_encoder
+        model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/ministral-3-3b.safetensors
+        required_files:
+          - path: text_encoders/ministral-3-3b.safetensors
+            target: ministral-3-3b.safetensors
+      - id: ernie_turbo_prompt_enhancer
+        model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/ernie-image-prompt-enhancer.safetensors
+        required_files:
+          - path: text_encoders/ernie-image-prompt-enhancer.safetensors
+            target: ernie-image-prompt-enhancer.safetensors
+      - id: ernie_turbo_vae
+        model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
+        download_mode: hf_file
+        local_cache_path: models/vae/flux2-vae.safetensors
+        required_files:
+          - path: vae/flux2-vae.safetensors
+            target: flux2-vae.safetensors
+    required_node_pack: comfyui core ernie image
+    supported_resolutions:
+      - 1024x1024
+      - 1280x720
+      - 720x1280
+    context_limits: {}
+    default_parameters:
+      diffusion_model: ernie-image-turbo.safetensors
+      text_encoder: ministral-3-3b.safetensors
+      prompt_enhancer: ernie-image-prompt-enhancer.safetensors
+      clip_type: flux2
+      vae: flux2-vae.safetensors
+      steps: 8
+      guidance: 1.0
+      sampler: euler
+      scheduler: simple
+      prompt_enhancement: TextGenerate
+      negative_prompt: conditioning_zero_out
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_ernie.py --device cuda
+    workflows:
+      - ernie_image_turbo_t2i
+      - image/ernie_turbo.py
   - logical_name: local_image_vsr_upscale
     legacy_aliases:
       - nvidia/maxine-vsr

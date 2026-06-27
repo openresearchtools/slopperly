@@ -1,0 +1,9 @@
+{
+  "prompt": "local ERNIE Turbo text to image smoke test",
+  "negative_prompt": "recorded as unmapped",
+  "width": 1024,
+  "height": 1024,
+  "steps": 8,
+  "guidance": 1.0,
+  "seed": 3201
+}

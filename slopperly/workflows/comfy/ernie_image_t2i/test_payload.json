@@ -1,0 +1,9 @@
+{
+  "prompt": "local ERNIE text to image smoke test",
+  "negative_prompt": "text, watermark",
+  "width": 1024,
+  "height": 1024,
+  "steps": 50,
+  "guidance": 4.0,
+  "seed": 3101
+}

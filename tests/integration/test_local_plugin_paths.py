@@ -145,6 +145,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "CheckpointLoaderSimple": {},
                 "CLIPLoader": {},
                 "CLIPTextEncode": {},
+                "EmptyFlux2LatentImage": {},
+                "TextGenerate": {},
                 "ConditioningStableAudio": {},
                 "EmptyLatentAudio": {},
                 "EmptyLatentImage": {},
@@ -592,6 +594,27 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "images": [
                                     {
                                         "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "UNETLoader"
+                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("ernie-image")
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "11": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_ernie_image_00001_.png",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -1345,6 +1368,80 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["9"]["inputs"]["cfg"], 4.0)
         self.assertAlmostEqual(prompt["9"]["inputs"]["denoise"], 0.35)
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_ernie_uses_comfy_t2i_plugin_paths(self):
+        module = load_plugin_module("image", "ernie")
+        plugin = module.ErniePlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local ERNIE text to image",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                steps=50,
+                guidance=4.0,
+                seed=3101,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(RuntimeHandler.comfy_uploads, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["clip_name"], "ministral-3-3b.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["type"], "flux2")
+        self.assertEqual(prompt["3"]["inputs"]["vae_name"], "flux2-vae.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["clip_name"], "ernie-image-prompt-enhancer.safetensors")
+        self.assertIn("local ERNIE text to image", prompt["5"]["inputs"]["prompt"])
+        self.assertEqual(prompt["5"]["inputs"]["sampling_mode"]["seed"], 3101)
+        self.assertEqual(prompt["6"]["inputs"]["text"], ["5", 0])
+        self.assertEqual(prompt["7"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["8"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["9"]["inputs"]["seed"], 3101)
+        self.assertEqual(prompt["9"]["inputs"]["steps"], 50)
+        self.assertEqual(prompt["9"]["inputs"]["cfg"], 4.0)
+
+    def test_ernie_turbo_uses_comfy_t2i_plugin_path(self):
+        module = load_plugin_module("image", "ernie_turbo")
+        plugin = module.ErnieTurboPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local ERNIE Turbo text to image",
+                neg_prompt="recorded as unmapped",
+                width=1024,
+                height=1024,
+                steps=8,
+                guidance=1.0,
+                seed=3201,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(RuntimeHandler.comfy_uploads, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image-turbo.safetensors")
+        self.assertIn("local ERNIE Turbo text to image", prompt["5"]["inputs"]["prompt"])
+        self.assertEqual(prompt["5"]["inputs"]["sampling_mode"]["seed"], 3201)
+        self.assertEqual(prompt["7"]["class_type"], "ConditioningZeroOut")
+        self.assertEqual(prompt["9"]["inputs"]["seed"], 3201)
+        self.assertEqual(prompt["9"]["inputs"]["steps"], 8)
+        self.assertEqual(prompt["9"]["inputs"]["cfg"], 1.0)
+        self.assertIn("negative prompt field is preserved", inputs.usage_note)
 
     def test_google_nano_banana_alias_uses_local_qwen_workflow(self):
         module = load_plugin_module("image", "google_nano_banana")

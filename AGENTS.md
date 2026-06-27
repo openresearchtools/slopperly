@@ -963,3 +963,15 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: workflow-runner integration coverage verifies both committed Anima packs directly, and `tests/gpu/test_anima.py` now performs text-to-image and img2img plugin-path certification attempts instead of reporting an unwired-test block.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core Anima node classes and the Anima diffusion/text encoder/VAE files installed locally.
 - Still blocked: arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the wrapper records custom LoRA injection as a follow-up rather than loading placeholder filenames.
+
+### 2026-06-27 ERNIE-Image Comfy workflow block
+
+- Completed: `image/ernie.py` and `image/ernie_turbo.py` now route `baidu/ERNIE-Image` and `baidu/ERNIE-Image-Turbo` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers/SDNQ execution and generation-time Hugging Face loading in the add-on process.
+- Completed: the existing prompt, negative prompt, resolution, frames, steps, guidance, and seed UI sections remain present. Turbo preserves the negative prompt field in the UI and records it as deliberately unmapped because the official Turbo Comfy graph uses `ConditioningZeroOut`.
+- Completed: `ernie_image_t2i` and `ernie_image_turbo_t2i` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Completed: the workflows use official Comfy core ERNIE template nodes: `UNETLoader`, `CLIPLoader`, `VAELoader`, `TextGenerate`, `CLIPTextEncode`, `EmptyFlux2LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`; Turbo adds `ConditioningZeroOut`.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact sources from `Comfy-Org/ERNIE-Image` for `ernie-image.safetensors`, `ernie-image-turbo.safetensors`, `ministral-3-3b.safetensors`, `ernie-image-prompt-enhancer.safetensors`, and `flux2-vae.safetensors`.
+- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the core `EmptyFlux2LatentImage` and `TextGenerate` nodes used by the ERNIE workflows.
+- Evidence: integration coverage calls `ErniePlugin.load()`/`generate()` and `ErnieTurboPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching and local `TextGenerate` prompt-enhancer wiring.
+- Evidence: workflow-runner integration coverage verifies both committed ERNIE packs directly, and `tests/gpu/test_ernie.py` now performs base/Turbo text-to-image plugin-path certification attempts.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with core ERNIE node classes and the ERNIE diffusion/text encoder/prompt enhancer/VAE files installed locally.

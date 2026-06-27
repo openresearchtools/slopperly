@@ -1,0 +1,5 @@
+{
+  "source": "Comfy-Org workflow_templates image_ernie_image_turbo.json",
+  "workflow_id": "ernie_image_turbo_t2i",
+  "note": "API graph expanded from the official ERNIE-Image-Turbo text-to-image template and keeps the local TextGenerate prompt enhancer."
+}

@@ -1,0 +1,134 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "ernie-image-turbo.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "ministral-3-3b.safetensors",
+      "type": "flux2",
+      "device": "default"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    }
+  },
+  "4": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "ernie-image-prompt-enhancer.safetensors",
+      "type": "flux2",
+      "device": "default"
+    }
+  },
+  "5": {
+    "class_type": "TextGenerate",
+    "inputs": {
+      "clip": [
+        "4",
+        0
+      ],
+      "prompt": "Expand this local ERNIE-Image-Turbo prompt for the requested output size.",
+      "max_length": 2048,
+      "sampling_mode": {
+        "sampling_mode": "on",
+        "temperature": 0.6,
+        "top_k": 64,
+        "top_p": 0.8,
+        "min_p": 0.05,
+        "repetition_penalty": 1.05,
+        "presence_penalty": 0.0,
+        "seed": 0
+      },
+      "thinking": false,
+      "use_default_template": true
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "2",
+        0
+      ],
+      "text": [
+        "5",
+        0
+      ]
+    }
+  },
+  "7": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "6",
+        0
+      ]
+    }
+  },
+  "8": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    }
+  },
+  "9": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "8",
+        0
+      ],
+      "seed": 0,
+      "steps": 8,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0
+    }
+  },
+  "10": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    }
+  },
+  "11": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "10",
+        0
+      ],
+      "filename_prefix": "slopperly_ernie_image_turbo"
+    }
+  }
+}
