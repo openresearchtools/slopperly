@@ -1,0 +1,16 @@
+{
+  "prompt": "local depth-controlled product render",
+  "image": "tests/fixtures/vsr_source.ppm",
+  "width": 1024,
+  "height": 1024,
+  "steps": 28,
+  "guidance": 3.5,
+  "strength": 0.8,
+  "seed": 510202,
+  "frames": 1,
+  "expected": {
+    "artifact": "image/png",
+    "width": 1024,
+    "height": 1024
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "source": "https://raw.githubusercontent.com/Comfy-Org/example_workflows/main/flux/controlnet/flux-1-canny-dev.png",
+  "note": "Editable source is the official Comfy FLUX.1 Canny workflow PNG metadata. The committed API graph adds the pinned CannyEdgePreprocessor and an ImageScale patch point before InstructPixToPixConditioning so the add-on can preserve the selected input strip and requested output dimensions.",
+  "workflow_id": "flux1_canny_control"
+}

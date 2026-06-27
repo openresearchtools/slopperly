@@ -1,0 +1,16 @@
+{
+  "prompt": "local canny-controlled architectural render",
+  "image": "tests/fixtures/vsr_source.ppm",
+  "width": 1024,
+  "height": 1024,
+  "steps": 28,
+  "guidance": 3.5,
+  "strength": 0.8,
+  "seed": 510101,
+  "frames": 1,
+  "expected": {
+    "artifact": "image/png",
+    "width": 1024,
+    "height": 1024
+  }
+}

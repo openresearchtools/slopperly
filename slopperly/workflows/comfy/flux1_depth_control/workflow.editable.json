@@ -1,0 +1,5 @@
+{
+  "source": "https://raw.githubusercontent.com/Comfy-Org/example_workflows/main/flux/controlnet/flux-1-depth-dev-lora.png",
+  "note": "Editable source is the official Comfy FLUX.1 Depth LoRA workflow PNG metadata. The committed API graph adds the pinned DepthAnythingV2Preprocessor and an ImageScale patch point before InstructPixToPixConditioning so the add-on can preserve the selected input strip and requested output dimensions.",
+  "workflow_id": "flux1_depth_control"
+}

@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "workflow_id": "flux1_canny_control",
+  "description": "Patch schema for FLUX.1 Canny control generation through local ComfyUI.",
+  "inputs": {
+    "width": [
+      {
+        "node": "2",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "2",
+        "input": "height"
+      }
+    ],
+    "prompt": [
+      {
+        "node": "7",
+        "input": "text"
+      }
+    ],
+    "flux1_canny_negative_prompt": [
+      {
+        "node": "8",
+        "input": "text"
+      }
+    ],
+    "flux1_canny_flux_guidance": [
+      {
+        "node": "9",
+        "input": "guidance"
+      }
+    ],
+    "steps": [
+      {
+        "node": "11",
+        "input": "steps"
+      }
+    ],
+    "seed": [
+      {
+        "node": "11",
+        "input": "seed"
+      }
+    ],
+    "flux1_canny_cfg": [
+      {
+        "node": "11",
+        "input": "cfg"
+      }
+    ],
+    "flux1_canny_sampler": [
+      {
+        "node": "11",
+        "input": "sampler_name"
+      }
+    ],
+    "flux1_canny_scheduler": [
+      {
+        "node": "11",
+        "input": "scheduler"
+      }
+    ],
+    "flux1_canny_denoise": [
+      {
+        "node": "11",
+        "input": "denoise"
+      }
+    ],
+    "flux1_canny_resolution": [
+      {
+        "node": "3",
+        "input": "resolution"
+      }
+    ],
+    "flux1_canny_low_threshold": [
+      {
+        "node": "3",
+        "input": "low_threshold"
+      }
+    ],
+    "flux1_canny_high_threshold": [
+      {
+        "node": "3",
+        "input": "high_threshold"
+      }
+    ],
+    "flux1_canny_model": [
+      {
+        "node": "4",
+        "input": "unet_name"
+      }
+    ],
+    "flux1_canny_weight_dtype": [
+      {
+        "node": "4",
+        "input": "weight_dtype"
+      }
+    ],
+    "flux1_canny_vae": [
+      {
+        "node": "5",
+        "input": "vae_name"
+      }
+    ],
+    "flux1_canny_clip_l": [
+      {
+        "node": "6",
+        "input": "clip_name1"
+      }
+    ],
+    "flux1_canny_t5": [
+      {
+        "node": "6",
+        "input": "clip_name2"
+      }
+    ],
+    "flux1_canny_clip_type": [
+      {
+        "node": "6",
+        "input": "type"
+      }
+    ]
+  },
+  "uploads": {
+    "image": [
+      {
+        "node": "1",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "image_strength": "The upstream FLUX.1 Canny Comfy graph uses InstructPixToPixConditioning and exposes no conditioning-strength input.",
+    "lora": "Project LoRA UI is preserved, but arbitrary project LoRA injection is not dynamically mapped in this certified graph yet.",
+    "negative_prompt": "The current FLUX Canny plugin does not expose a negative prompt section; the workflow patches an empty negative conditioning string."
+  },
+  "outputs": [
+    {
+      "node": "13",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ]
+}

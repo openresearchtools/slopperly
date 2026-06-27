@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "workflow_id": "flux1_depth_control",
+  "description": "Patch schema for FLUX.1 Depth LoRA control generation through local ComfyUI.",
+  "inputs": {
+    "width": [
+      {
+        "node": "2",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "2",
+        "input": "height"
+      }
+    ],
+    "prompt": [
+      {
+        "node": "8",
+        "input": "text"
+      }
+    ],
+    "flux1_depth_negative_prompt": [
+      {
+        "node": "9",
+        "input": "text"
+      }
+    ],
+    "flux1_depth_flux_guidance": [
+      {
+        "node": "10",
+        "input": "guidance"
+      }
+    ],
+    "steps": [
+      {
+        "node": "12",
+        "input": "steps"
+      }
+    ],
+    "seed": [
+      {
+        "node": "12",
+        "input": "seed"
+      }
+    ],
+    "flux1_depth_cfg": [
+      {
+        "node": "12",
+        "input": "cfg"
+      }
+    ],
+    "flux1_depth_sampler": [
+      {
+        "node": "12",
+        "input": "sampler_name"
+      }
+    ],
+    "flux1_depth_scheduler": [
+      {
+        "node": "12",
+        "input": "scheduler"
+      }
+    ],
+    "flux1_depth_denoise": [
+      {
+        "node": "12",
+        "input": "denoise"
+      }
+    ],
+    "flux1_depth_preprocessor_ckpt": [
+      {
+        "node": "3",
+        "input": "ckpt_name"
+      }
+    ],
+    "flux1_depth_preprocessor_resolution": [
+      {
+        "node": "3",
+        "input": "resolution"
+      }
+    ],
+    "flux1_depth_model": [
+      {
+        "node": "4",
+        "input": "unet_name"
+      }
+    ],
+    "flux1_depth_weight_dtype": [
+      {
+        "node": "4",
+        "input": "weight_dtype"
+      }
+    ],
+    "flux1_depth_lora": [
+      {
+        "node": "5",
+        "input": "lora_name"
+      }
+    ],
+    "flux1_depth_lora_strength": [
+      {
+        "node": "5",
+        "input": "strength_model"
+      }
+    ],
+    "flux1_depth_vae": [
+      {
+        "node": "6",
+        "input": "vae_name"
+      }
+    ],
+    "flux1_depth_clip_l": [
+      {
+        "node": "7",
+        "input": "clip_name1"
+      }
+    ],
+    "flux1_depth_t5": [
+      {
+        "node": "7",
+        "input": "clip_name2"
+      }
+    ],
+    "flux1_depth_clip_type": [
+      {
+        "node": "7",
+        "input": "type"
+      }
+    ]
+  },
+  "uploads": {
+    "image": [
+      {
+        "node": "1",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "image_strength": "The upstream FLUX.1 Depth LoRA Comfy graph uses InstructPixToPixConditioning and exposes no conditioning-strength input.",
+    "lora": "Project LoRA UI is preserved, but only the certified FLUX.1 Depth adapter is loaded in this graph.",
+    "negative_prompt": "The current FLUX Depth plugin does not expose a negative prompt section; the workflow patches an empty negative conditioning string."
+  },
+  "outputs": [
+    {
+      "node": "14",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ]
+}

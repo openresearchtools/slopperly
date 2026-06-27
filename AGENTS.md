@@ -1048,3 +1048,18 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: workflow-runner integration coverage verifies the committed schematic pack directly, and `tests/gpu/test_flux2_klein_schematic.py` now performs a plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core FLUX.2 Klein/LoRA node classes and the base 9B diffusion, Qwen 3 8B text encoder, FLUX.2 VAE, and schematic LoRA files installed locally.
 - Still blocked: the upstream workflow uses fixed negative prompt text; the current schematic UI does not expose a negative prompt section, so this remains a workflow constant rather than a user-editable field.
+
+### 2026-06-27 FLUX.1 Canny and Depth Comfy workflow block
+
+- Completed: `image/flux_canny.py` now routes `fuliucansheng/FLUX.1-Canny-dev-diffusers-lora` through the local Comfy workflow gateway instead of direct Torch/Diffusers/OpenCV execution in the add-on process.
+- Completed: `image/flux_depth.py` now routes `romanfratric234/FLUX.1-Depth-dev-lora` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers execution in the add-on process.
+- Completed: the existing prompt, image strip, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present for both control plugins.
+- Completed: `flux1_canny_control` and `flux1_depth_control` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Completed: the Canny workflow uses Comfy core `LoadImage`, `ImageScale`, `UNETLoader`, `VAELoader`, `DualCLIPLoader`, `CLIPTextEncode`, `FluxGuidance`, `InstructPixToPixConditioning`, `KSampler`, `VAEDecode`, and `SaveImage`, plus `CannyEdgePreprocessor` from pinned `Fannovel16/comfyui_controlnet_aux`.
+- Completed: the Depth workflow uses the same FLUX control graph plus `LoraLoaderModelOnly` for `flux1-depth-dev-lora.safetensors` and `DepthAnythingV2Preprocessor` from pinned `Fannovel16/comfyui_controlnet_aux`.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for FLUX.1 Canny, FLUX.1 Depth, text encoders, VAE, depth LoRA, and the DepthAnything V2 Large checkpoint.
+- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `FluxGuidance` and `InstructPixToPixConditioning`.
+- Evidence: integration coverage calls `FluxCannyPlugin.load()`/`generate()` and `FluxDepthPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus PNG artifact collection.
+- Evidence: workflow-runner integration coverage verifies both committed FLUX.1 control packs directly, and `tests/gpu/test_flux1_control.py` now performs plugin-path certification attempts.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with core FLUX control node classes, `comfyui_controlnet_aux`, `flux1-canny-dev.safetensors`, `flux1-dev.safetensors`, `flux1-depth-dev-lora.safetensors`, `clip_l.safetensors`, `t5xxl_fp16.safetensors`, `ae.safetensors`, and `depth_anything_v2_vitl.pth` installed locally.
+- Still blocked: the official Comfy control graphs do not expose a separate conditioning-strength input, so image strength is preserved in the UI and recorded as deliberately unmapped. Arbitrary project LoRA injection is likewise preserved as UI and recorded as a follow-up rather than loaded from placeholder filenames.

@@ -138,6 +138,10 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "VAELoader": {},
                 "DualCLIPLoader": {},
                 "EmptySD3LatentImage": {},
+                "FluxGuidance": {},
+                "InstructPixToPixConditioning": {},
+                "CannyEdgePreprocessor": {},
+                "DepthAnythingV2Preprocessor": {},
                 "TextEncodeAceStepAudio1.5": {},
                 "EmptyAceStep1.5LatentAudio": {},
                 "ConditioningZeroOut": {},
@@ -529,6 +533,46 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "images": [
                                     {
                                         "filename": "slopperly_flux2_klein_9b_schematic_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "CannyEdgePreprocessor"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "13": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_flux1_canny_control_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "DepthAnythingV2Preprocessor"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "14": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_flux1_depth_control_00001_.png",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -1747,6 +1791,105 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["13"]["inputs"]["vae_name"], "flux2-vae.safetensors")
         self.assertIn("dynamic project LoRA injection is not mapped", inputs.usage_note)
         self.assertIn("prompt upsampling UI is preserved", inputs.usage_note)
+
+    def test_flux_canny_uses_comfy_control_plugin_path(self):
+        module = load_plugin_module("image", "flux_canny")
+        plugin = module.FluxCannyPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local canny source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local FLUX.1 Canny control render",
+                image=str(source),
+                width=1024,
+                height=768,
+                steps=28,
+                guidance=3.5,
+                strength=0.45,
+                seed=6101,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["2"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["2"]["inputs"]["height"], 768)
+        self.assertEqual(prompt["3"]["class_type"], "CannyEdgePreprocessor")
+        self.assertEqual(prompt["3"]["inputs"]["low_threshold"], 50)
+        self.assertEqual(prompt["3"]["inputs"]["high_threshold"], 200)
+        self.assertEqual(prompt["3"]["inputs"]["resolution"], 1024)
+        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-canny-dev.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["weight_dtype"], "fp8_e4m3fn")
+        self.assertEqual(prompt["5"]["inputs"]["vae_name"], "ae.safetensors")
+        self.assertEqual(prompt["6"]["inputs"]["clip_name1"], "clip_l.safetensors")
+        self.assertEqual(prompt["6"]["inputs"]["clip_name2"], "t5xxl_fp16.safetensors")
+        self.assertEqual(prompt["7"]["inputs"]["text"], "local FLUX.1 Canny control render")
+        self.assertEqual(prompt["8"]["inputs"]["text"], "")
+        self.assertEqual(prompt["9"]["inputs"]["guidance"], 3.5)
+        self.assertEqual(prompt["10"]["class_type"], "InstructPixToPixConditioning")
+        self.assertEqual(prompt["11"]["inputs"]["seed"], 6101)
+        self.assertEqual(prompt["11"]["inputs"]["steps"], 28)
+        self.assertEqual(prompt["11"]["inputs"]["cfg"], 1.0)
+        self.assertIn("image strength slider is preserved", inputs.usage_note)
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_flux_depth_uses_comfy_control_plugin_path(self):
+        module = load_plugin_module("image", "flux_depth")
+        plugin = module.FluxDepthPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local depth source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local FLUX.1 Depth control render",
+                image=str(source),
+                width=768,
+                height=1024,
+                steps=28,
+                guidance=3.5,
+                strength=0.45,
+                seed=6102,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["2"]["inputs"]["width"], 768)
+        self.assertEqual(prompt["2"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["3"]["class_type"], "DepthAnythingV2Preprocessor")
+        self.assertEqual(prompt["3"]["inputs"]["ckpt_name"], "depth_anything_v2_vitl.pth")
+        self.assertEqual(prompt["3"]["inputs"]["resolution"], 768)
+        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-dev.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["weight_dtype"], "fp8_e4m3fn")
+        self.assertEqual(prompt["5"]["inputs"]["lora_name"], "flux1-depth-dev-lora.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["strength_model"], 1.0)
+        self.assertEqual(prompt["6"]["inputs"]["vae_name"], "ae.safetensors")
+        self.assertEqual(prompt["7"]["inputs"]["clip_name1"], "clip_l.safetensors")
+        self.assertEqual(prompt["7"]["inputs"]["clip_name2"], "t5xxl_fp16.safetensors")
+        self.assertEqual(prompt["8"]["inputs"]["text"], "local FLUX.1 Depth control render")
+        self.assertEqual(prompt["9"]["inputs"]["text"], "")
+        self.assertEqual(prompt["10"]["inputs"]["guidance"], 3.5)
+        self.assertEqual(prompt["11"]["class_type"], "InstructPixToPixConditioning")
+        self.assertEqual(prompt["12"]["inputs"]["seed"], 6102)
+        self.assertEqual(prompt["12"]["inputs"]["steps"], 28)
+        self.assertEqual(prompt["12"]["inputs"]["cfg"], 2.0)
+        self.assertIn("image strength slider is preserved", inputs.usage_note)
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
 
     def test_flux2_klein_4b_uses_comfy_t2i_and_edit_plugin_paths(self):
         module = load_plugin_module("image", "flux2_klein_4b")

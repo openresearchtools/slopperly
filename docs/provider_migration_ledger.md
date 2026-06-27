@@ -1027,3 +1027,33 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with core FLUX.2 Klein/LoRA node classes, `flux-2-klein-base-9b-fp8.safetensors`, `qwen_3_8b.safetensors`, `flux2-vae.safetensors`, and the selected schematic LoRA file installed locally.
 - The upstream workflow uses a fixed negative prompt, `text, worst quality, blurry, ugly`; the current schematic UI does not expose a negative prompt section, so this remains recorded as a workflow-level constant rather than a user-editable field.
+
+## 2026-06-27 FLUX.1 Canny and Depth Comfy workflow block
+
+### Production Paths Migrated
+
+- `models_plugins/image/flux_canny.py` now routes `fuliucansheng/FLUX.1-Canny-dev-diffusers-lora` through the local Comfy gateway instead of importing Torch/Diffusers/OpenCV and running the FLUX Canny pipeline in the add-on process.
+- `models_plugins/image/flux_depth.py` now routes `romanfratric234/FLUX.1-Depth-dev-lora` through the local Comfy gateway instead of importing Torch/Diffusers/Transformers and running the FLUX Depth LoRA pipeline in the add-on process.
+- The existing prompt, image strip, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present for both plugins.
+- The official Comfy control graphs use `InstructPixToPixConditioning` and do not expose a separate conditioning-strength input. The wrappers preserve the image-strength UI and record it as deliberately unmapped.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/flux1_canny_control/` with editable/API workflow JSON, schema, model manifest, smoke payload, and README.
+- Added `slopperly/workflows/comfy/flux1_depth_control/` with editable/API workflow JSON, schema, model manifest, smoke payload, and README.
+- The Canny workflow uses Comfy core `LoadImage`, `ImageScale`, `UNETLoader`, `VAELoader`, `DualCLIPLoader`, `CLIPTextEncode`, `FluxGuidance`, `InstructPixToPixConditioning`, `KSampler`, `VAEDecode`, and `SaveImage`, plus `CannyEdgePreprocessor` from pinned `Fannovel16/comfyui_controlnet_aux`.
+- The Depth workflow uses the same core FLUX graph plus `LoraLoaderModelOnly` for `flux1-depth-dev-lora.safetensors` and `DepthAnythingV2Preprocessor` from pinned `Fannovel16/comfyui_controlnet_aux`.
+- Registered `flux1_canny_control` and `flux1_depth_control` in `slopperly/config/models.yaml` with exact local artifact mappings for FLUX.1 diffusion files, `clip_l.safetensors`, `t5xxl_fp16.safetensors`, `ae.safetensors`, the depth LoRA, and the DepthAnything V2 Large checkpoint.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` to assert `FluxGuidance` and `InstructPixToPixConditioning`.
+
+### Verification
+
+- Integration coverage calls `FluxCannyPlugin.load()`/`generate()` and `FluxDepthPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies source image upload, preprocessing node parameters, model/text encoder/VAE filenames, prompt/guidance/sampler patching, usage notes, and PNG artifact collection.
+- Workflow-runner integration coverage verifies both committed FLUX.1 control packs directly and collects single PNG artifacts from Comfy history outputs.
+- GPU certification coverage is registered in `tests/gpu/test_flux1_control.py` and validates 1024x1024 PNG artifacts when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with core FLUX node classes, `comfyui_controlnet_aux`, `flux1-canny-dev.safetensors`, `flux1-dev.safetensors`, `flux1-depth-dev-lora.safetensors`, `clip_l.safetensors`, `t5xxl_fp16.safetensors`, `ae.safetensors`, and `depth_anything_v2_vitl.pth` installed locally.
+- Arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the wrappers preserve the LoRA UI and record dynamic LoRA injection as a follow-up rather than loading placeholder filenames.

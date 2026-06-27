@@ -356,6 +356,44 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "CannyEdgePreprocessor"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "13": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_flux1_canny_control_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "DepthAnythingV2Preprocessor"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "14": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_flux1_depth_control_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             if (
                 any(
                     node.get("class_type") == "UNETLoader"
@@ -620,6 +658,8 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "lumina2" in parsed.query
                 or "ideogram4" in parsed.query
                 or "flux2_klein" in parsed.query
+                or "flux1_canny" in parsed.query
+                or "flux1_depth" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
@@ -785,6 +825,15 @@ def _krea_object_info(workflow_id: str) -> dict:
 
 
 def _flux2_klein_object_info(workflow_id: str) -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _flux1_control_object_info(workflow_id: str) -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
             encoding="utf-8"
@@ -2256,6 +2305,129 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["15"]["inputs"]["steps"], 20)
         self.assertEqual(prompt["15"]["inputs"]["width"], 640)
         self.assertEqual(prompt["16"]["inputs"]["height"], 480)
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+
+    def test_flux1_canny_pack_patches_control_graph(self):
+        ComfyHandler.reset(_flux1_control_object_info("flux1_canny_control"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            destination = Path(tmp) / "flux1_canny.png"
+            source.write_bytes(b"local canny source image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local FLUX.1 Canny workflow render",
+                image=str(source),
+                width=1024,
+                height=768,
+                seed=6101,
+                steps=28,
+                flux1_canny_model="flux1-canny-dev.safetensors",
+                flux1_canny_weight_dtype="fp8_e4m3fn",
+                flux1_canny_clip_l="clip_l.safetensors",
+                flux1_canny_t5="t5xxl_fp16.safetensors",
+                flux1_canny_clip_type="flux",
+                flux1_canny_vae="ae.safetensors",
+                flux1_canny_negative_prompt="",
+                flux1_canny_flux_guidance=3.5,
+                flux1_canny_cfg=1.0,
+                flux1_canny_sampler="euler",
+                flux1_canny_scheduler="normal",
+                flux1_canny_denoise=1.0,
+                flux1_canny_low_threshold=50,
+                flux1_canny_high_threshold=200,
+                flux1_canny_resolution=1024,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/flux1_canny_control",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 1)
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["2"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["2"]["inputs"]["height"], 768)
+        self.assertEqual(prompt["3"]["inputs"]["low_threshold"], 50)
+        self.assertEqual(prompt["3"]["inputs"]["high_threshold"], 200)
+        self.assertEqual(prompt["3"]["inputs"]["resolution"], 1024)
+        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-canny-dev.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["weight_dtype"], "fp8_e4m3fn")
+        self.assertEqual(prompt["6"]["inputs"]["clip_name1"], "clip_l.safetensors")
+        self.assertEqual(prompt["6"]["inputs"]["clip_name2"], "t5xxl_fp16.safetensors")
+        self.assertEqual(prompt["7"]["inputs"]["text"], "local FLUX.1 Canny workflow render")
+        self.assertEqual(prompt["9"]["inputs"]["guidance"], 3.5)
+        self.assertEqual(prompt["10"]["inputs"]["pixels"], ["3", 0])
+        self.assertEqual(prompt["11"]["inputs"]["seed"], 6101)
+        self.assertEqual(prompt["11"]["inputs"]["cfg"], 1.0)
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+
+    def test_flux1_depth_pack_patches_control_graph(self):
+        ComfyHandler.reset(_flux1_control_object_info("flux1_depth_control"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            destination = Path(tmp) / "flux1_depth.png"
+            source.write_bytes(b"local depth source image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local FLUX.1 Depth workflow render",
+                image=str(source),
+                width=768,
+                height=1024,
+                seed=6102,
+                steps=28,
+                flux1_depth_model="flux1-dev.safetensors",
+                flux1_depth_weight_dtype="fp8_e4m3fn",
+                flux1_depth_lora="flux1-depth-dev-lora.safetensors",
+                flux1_depth_lora_strength=1.0,
+                flux1_depth_clip_l="clip_l.safetensors",
+                flux1_depth_t5="t5xxl_fp16.safetensors",
+                flux1_depth_clip_type="flux",
+                flux1_depth_vae="ae.safetensors",
+                flux1_depth_negative_prompt="",
+                flux1_depth_flux_guidance=3.5,
+                flux1_depth_cfg=2.0,
+                flux1_depth_sampler="euler",
+                flux1_depth_scheduler="normal",
+                flux1_depth_denoise=1.0,
+                flux1_depth_preprocessor_ckpt="depth_anything_v2_vitl.pth",
+                flux1_depth_preprocessor_resolution=768,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/flux1_depth_control",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 1)
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["2"]["inputs"]["width"], 768)
+        self.assertEqual(prompt["2"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["3"]["inputs"]["ckpt_name"], "depth_anything_v2_vitl.pth")
+        self.assertEqual(prompt["3"]["inputs"]["resolution"], 768)
+        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-dev.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["lora_name"], "flux1-depth-dev-lora.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["strength_model"], 1.0)
+        self.assertEqual(prompt["8"]["inputs"]["text"], "local FLUX.1 Depth workflow render")
+        self.assertEqual(prompt["10"]["inputs"]["guidance"], 3.5)
+        self.assertEqual(prompt["11"]["inputs"]["pixels"], ["3", 0])
+        self.assertEqual(prompt["12"]["inputs"]["seed"], 6102)
+        self.assertEqual(prompt["12"]["inputs"]["cfg"], 2.0)
         self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
 
     def test_lumina2_pack_patches_t2i_graph(self):
