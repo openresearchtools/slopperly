@@ -23,6 +23,7 @@
 - `python tests/integration/test_local_plugin_paths.py` exercises selected `ModelPlugin.generate()` paths against local fake OpenAI-compatible runtime servers.
 - `python tests/integration/test_comfy_workflow_runner.py` exercises the committed LTX 2.3 Comfy workflow pack against a local fake Comfy server, including `/object_info` node checks, input-image upload, API graph patching, queue submission, history polling, output collection, and existing queue phase/progress callbacks.
 - `python tests/unit/test_comfy_workflow_security.py` verifies that committed Comfy packs reject cloud/partner node classes and hosted endpoint URLs while allowing local self-hosted URLs.
+- `python tests/unit/test_media_timing.py` verifies shared audio-driven video timing math for audio duration, native frame count, target frame count, and 16 fps to 24 fps planning diagnostics.
 
 ## Current Blocks
 
@@ -32,6 +33,7 @@
 - vLLM, vLLM-Omni, and llama.cpp clients/supervisors now exist with unit coverage, but runtime launch and GPU artifact validation remain blocked until the local model servers are installed, model artifacts are downloaded, and servers are started.
 - MoviiGen prompt rewrite, Faster Whisper STT, OmniVoice TTS, and MOSS-TTS have plugin-path integration coverage against local fake servers, but not real GPU runtime artifact certification.
 - The LTX 2.3 Comfy workflow runner has local fake-server integration coverage, but it is not yet a plugin-path GPU artifact certification and the returned fake bytes are not claimed as a valid MP4.
+- Shared audio-driven timing planning exists, but LTX lipsync/dialogue and Wan interpolation workflows still need to call it from their local Comfy plugin paths and validate real MP4 duration/fps artifacts.
 - Artifact validators and workflow/dropdown audits now exist. Dropdown certification remains blocked until real plugin-path GPU artifact evidence is written for each registry entry.
 - Add-on preferences now expose local runtime endpoints only; remote backend discovery/API-key generation UI has been removed from production registration. Queue jobs snapshot local runtime endpoints.
 - Full doctor with `--cuda --runtimes all` reports CUDA evidence when present and remains BLOCKED for any local runtime server that is not running.

@@ -216,6 +216,22 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - This is static workflow-pack validation. Runtime network isolation during real GPU artifact generation is still required before final acceptance.
 
+## 2026-06-27 Audio-driven video timing block
+
+### Timing Utility Added
+
+- Added `slopperly.runtime.media_timing` to probe audio duration and compute native/final frame counts for dialogue, lipsync, and interpolation workflows.
+- The timing plan records the required diagnostics: audio duration, native fps, target fps, native frames, target frames, generated duration, and final duration.
+- The helper keeps audio duration authoritative when audio is present and falls back to requested frames only for non-dialogue paths.
+
+### Verification
+
+- `python tests/unit/test_media_timing.py`
+
+### Blocked / Not Yet Certified
+
+- This block adds shared timing logic only. LTX lipsync/dialogue workflows and Wan 16 fps to 24 fps workflows still need to integrate it into their local Comfy plugin paths and pass real MP4 artifact validation.
+
 ## 2026-06-27 Model artifact registry explicitness block
 
 ### Registry Tightened
