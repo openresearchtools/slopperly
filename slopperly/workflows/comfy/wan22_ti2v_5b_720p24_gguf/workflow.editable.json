@@ -1,0 +1,18 @@
+{
+  "workflow_id": "wan22_ti2v_5b_720p24_gguf",
+  "format": "slopperly-editable-comfy-blueprint",
+  "description": "Editable companion for the API-format Wan2.2 TI2V-5B Q5 GGUF workflow. Node ids match workflow.api.json so schema patches remain reviewable.",
+  "nodes": {
+    "1": "UnetLoaderGGUF",
+    "2": "ModelSamplingSD3",
+    "3": "CLIPLoader",
+    "4": "VAELoader",
+    "5": "CLIPTextEncode positive prompt",
+    "6": "CLIPTextEncode negative prompt",
+    "7": "Wan22ImageToVideoLatent optional image latent",
+    "8": "LoadImage optional start image",
+    "9": "KSampler",
+    "10": "VAEDecodeTiled",
+    "11": "VHS_VideoCombine MP4 output"
+  }
+}

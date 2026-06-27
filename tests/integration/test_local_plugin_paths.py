@@ -165,6 +165,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "BasicScheduler": {},
                 "BasicGuider": {},
                 "ModelSamplingFlux": {},
+                "ModelSamplingSD3": {},
                 "CLIPVisionLoader": {},
                 "CLIPVisionEncode": {},
                 "StyleModelLoader": {},
@@ -195,6 +196,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "LoraLoaderModelOnly": {},
                 "VAEEncode": {},
                 "VAEDecode": {},
+                "VAEDecodeTiled": {},
+                "Wan22ImageToVideoLatent": {},
             })
         if self.path.startswith("/view"):
             if ".mp4" in self.path:
@@ -442,6 +445,27 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                         "filename": "birefnet_rmbg.png",
                                         "subfolder": "",
                                         "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "Wan22ImageToVideoLatent"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "11": {
+                                "gifs": [
+                                    {
+                                        "filename": "slopperly_wan22_ti2v_5b.mp4",
+                                        "subfolder": "",
+                                        "type": "output",
+                                        "format": "video/h264-mp4",
                                     }
                                 ]
                             }
@@ -2613,6 +2637,80 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["5"]["inputs"]["format"], "video/h264-mp4")
         self.assertEqual(prompt["5"]["inputs"]["audio"], ["1", 2])
         self.assertIn(b'name="video"; filename="clip.mp4"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_wan22_ti2v_5b_uses_local_comfy_plugin_path(self):
+        module = load_plugin_module("video", "wan_ti2v_5b")
+        plugin = module.WanTI2V5BPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Wan TI2V motion",
+                neg_prompt="text, watermark",
+                width=1920,
+                height=1080,
+                frames=49,
+                steps=25,
+                guidance=5.0,
+                seed=220502,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.mp4_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "Wan2.2-TI2V-5B-Q5_K_M.gguf")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name"], "umt5_xxl_fp8_e4m3fn_scaled.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["type"], "wan")
+        self.assertEqual(prompt["4"]["inputs"]["vae_name"], "wan2.2_vae.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["text"], "local Wan TI2V motion")
+        self.assertEqual(prompt["6"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["7"]["inputs"]["width"], 1280)
+        self.assertEqual(prompt["7"]["inputs"]["height"], 704)
+        self.assertEqual(prompt["7"]["inputs"]["length"], 49)
+        self.assertNotIn("start_image", prompt["7"]["inputs"])
+        self.assertNotIn("8", prompt)
+        self.assertEqual(prompt["9"]["inputs"]["seed"], 220502)
+        self.assertEqual(prompt["9"]["inputs"]["steps"], 25)
+        self.assertEqual(prompt["9"]["inputs"]["cfg"], 5.0)
+        self.assertEqual(prompt["11"]["inputs"]["frame_rate"], 24.0)
+        self.assertEqual(prompt["11"]["inputs"]["format"], "video/h264-mp4")
+
+    def test_minimax_img2vid_alias_routes_image_to_wan22_ti2v_pack(self):
+        module = load_plugin_module("video", "minimax")
+        plugin = module.MiniMaxImg2VidPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local image fixture bytes")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="legacy image to local Wan motion",
+                image=str(source),
+                width=704,
+                height=1280,
+                frames=49,
+                steps=25,
+                guidance=5.0,
+                seed=330603,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.mp4_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["7"]["inputs"]["width"], 704)
+        self.assertEqual(prompt["7"]["inputs"]["height"], 1280)
+        self.assertEqual(prompt["7"]["inputs"]["start_image"], ["8", 0])
+        self.assertEqual(prompt["8"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["11"]["inputs"]["frame_rate"], 24.0)
+        self.assertIn(b'name="image"; filename="source.png"', RuntimeHandler.comfy_uploads[-1])
 
     def test_stem_split_uses_comfy_plugin_path(self):
         module = load_plugin_module("audio", "stem_split")

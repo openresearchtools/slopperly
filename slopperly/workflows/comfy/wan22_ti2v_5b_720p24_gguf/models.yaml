@@ -1,0 +1,50 @@
+workflow_id: wan22_ti2v_5b_720p24_gguf
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    commit: 6ea2651e7df66d7585f6ffee804b20e92fb38b8a
+    node_classes:
+      - UnetLoaderGGUF
+  - id: video_helper_suite
+    repo: https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git
+    commit: 4ee72c065db22c9d96c2427954dc69e7b908444b
+    node_classes:
+      - VHS_VideoCombine
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    node_classes:
+      - ModelSamplingSD3
+      - CLIPLoader
+      - CLIPTextEncode
+      - VAELoader
+      - Wan22ImageToVideoLatent
+      - KSampler
+      - VAEDecodeTiled
+      - LoadImage
+model_files:
+  - source: https://huggingface.co/QuantStack/Wan2.2-TI2V-5B-GGUF
+    download_mode: hf_file
+    files:
+      - path: Wan2.2-TI2V-5B-Q5_K_M.gguf
+        target: models/diffusion_models/Wan2.2-TI2V-5B-Q5_K_M.gguf
+  - source: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged
+    download_mode: hf_file
+    files:
+      - path: split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+        target: models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+      - path: split_files/vae/wan2.2_vae.safetensors
+        target: models/vae/wan2.2_vae.safetensors
+      - path: split_files/vae/wan_2.1_vae.safetensors
+        target: models/vae/wan_2.1_vae.safetensors
+artifact_contract:
+  type: video/mp4
+  width:
+    - 1280
+    - 704
+  height:
+    - 704
+    - 1280
+  fps: 24
+  output_shape: single artifact path

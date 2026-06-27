@@ -1187,3 +1187,34 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with `UnetLoaderGGUF`, core FLUX.2 node classes, `flux2-dev-Q5_K_M.gguf`, `mistral_3_small_flux2_fp8.safetensors`, and `flux2-vae.safetensors` installed locally.
 - FLUX.2 Dev Q5 is a heavy quality profile, not a 16 GB default dropdown entry; production visibility still requires a PASS certification record for the selected device profile.
+
+## 2026-06-27 Wan2.2 TI2V-5B local default block
+
+### Production Paths Migrated
+
+- Added `models_plugins/video/wan_ti2v_5b.py` as the production local default for `Wan-AI/Wan2.2-TI2V-5B`.
+- The plugin keeps the existing video UI flow: prompt, negative prompt, optional image strip, resolution, frame count, steps, guidance, and seed.
+- The wrapper maps arbitrary UI dimensions to the certified 720P-family sizes `1280x704` or `704x1280`, fixes the final output to 24fps, and calls the committed Comfy workflow through `ModelPlugin.generate()`.
+- Existing MiniMax/Hailuo and Google Veo saved-project aliases continue to resolve to `wan22_ti2v_5b_720p24_gguf` without exposing the old cloud provider names in the production dropdown.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/wan22_ti2v_5b_720p24_gguf/` with editable/API workflow JSON, schema, model manifest, smoke payload, and README.
+- The workflow uses `UnetLoaderGGUF`, `ModelSamplingSD3`, `CLIPLoader`, `CLIPTextEncode`, `VAELoader`, `Wan22ImageToVideoLatent`, `KSampler`, `VAEDecodeTiled`, and `VHS_VideoCombine`.
+- The optional image input is submitted through `/upload/image`; in T2V mode the `LoadImage` node is pruned and `Wan22ImageToVideoLatent.start_image` is disconnected before runtime node validation.
+- Registered `wan22_ti2v_5b_720p24_gguf` in `slopperly/config/models.yaml` with the QuantStack Q5_K_M GGUF artifact plus Comfy-Org UMT5 FP8 text encoder and Wan VAE files.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` so owned ComfyUI preflight asserts `ModelSamplingSD3`, `VAEDecodeTiled`, and `Wan22ImageToVideoLatent`.
+
+### Verification
+
+- Workflow-pack validation passes for all 47 committed Comfy packs, including `wan22_ti2v_5b_720p24_gguf`.
+- Integration coverage calls `WanTI2V5BPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies local model/text encoder/VAE filenames, 720P-family mapping, T2V optional-image pruning, sampler settings, 24fps output, and MP4 artifact collection.
+- Integration coverage calls `MiniMaxImg2VidPlugin.load()`/`generate()` against the same local fake server and verifies image upload into the Wan workflow, proving saved-project alias compatibility through the same `ModelPlugin.generate()` path.
+- Workflow-runner integration coverage verifies both T2V pruning and I2V upload behavior directly through the committed workflow pack.
+- `tests/gpu/test_wan22_ti2v_5b.py` now performs real plugin-path certification attempts for both the local dropdown plugin and the legacy MiniMax img2vid alias.
+
+### Blocked / Not Yet Certified
+
+- Live RTX 4090 certification was attempted with `python -m pytest tests/gpu/test_wan22_ti2v_5b.py --device cuda -q`.
+- The active local Comfy server reports `BLOCKED` because `/object_info` does not include `VHS_VideoCombine`.
+- Certification requires owned ComfyUI running with VideoHelperSuite, ComfyUI-GGUF, core Wan node classes, `Wan2.2-TI2V-5B-Q5_K_M.gguf`, `umt5_xxl_fp8_e4m3fn_scaled.safetensors`, and `wan2.2_vae.safetensors` installed locally.

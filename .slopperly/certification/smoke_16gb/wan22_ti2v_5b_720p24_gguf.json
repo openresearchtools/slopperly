@@ -1,0 +1,12 @@
+{
+  "artifact": null,
+  "command": "pytest tests/gpu/test_wan22_ti2v_5b.py::test_wan22_ti2v_5b_i2v_720p24 --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T10:22:07+00:00",
+  "logical_name": "wan22_ti2v_5b_720p24_gguf",
+  "metadata": {},
+  "profile": "smoke_16gb",
+  "reason": "Wan2.2 TI2V-5B I2V alias Comfy plugin path runtime error: ComfyUI is missing required workflow node classes: VHS_VideoCombine",
+  "schema_version": 1,
+  "status": "BLOCKED",
+  "validation": {}
+}

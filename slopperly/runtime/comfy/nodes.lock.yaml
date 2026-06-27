@@ -34,6 +34,7 @@ comfyui:
     - BasicScheduler
     - BasicGuider
     - ModelSamplingFlux
+    - ModelSamplingSD3
     - CLIPVisionLoader
     - CLIPVisionEncode
     - StyleModelLoader
@@ -47,7 +48,9 @@ comfyui:
     - LoraLoaderModelOnly
     - VAEEncode
     - VAEDecode
+    - VAEDecodeTiled
     - VAEDecodeAudio
+    - Wan22ImageToVideoLatent
     - UpscaleModelLoader
     - ImageUpscaleWithModel
     - ImageScale

@@ -535,6 +535,26 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "Wan22ImageToVideoLatent"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "11": {
+                                "gifs": [
+                                    {
+                                        "filename": "slopperly_wan22_ti2v_5b_00001_.mp4",
+                                        "subfolder": "",
+                                        "type": "output",
+                                        "format": "video/h264-mp4",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             if (
                 any(
                     node.get("class_type") == "UnetLoaderGGUF"
@@ -1018,6 +1038,15 @@ def _ideogram_object_info() -> dict:
     return {node["class_type"]: {} for node in workflow.values()}
 
 
+def _wan22_ti2v_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/wan22_ti2v_5b_720p24_gguf/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
 class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -1123,6 +1152,87 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertIn("missing required workflow node classes", str(raised.exception))
         self.assertEqual(ComfyHandler.upload_bodies, [])
         self.assertNotIn("/prompt", ComfyHandler.request_order)
+
+    def test_wan22_ti2v_pack_patches_t2v_and_i2v_graphs(self):
+        ComfyHandler.reset(_wan22_ti2v_object_info())
+        runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "wan_t2v.mp4"
+            inputs = SimpleNamespace(
+                prompt="local Wan motion test",
+                neg_prompt="text",
+                width=1280,
+                height=704,
+                frames=49,
+                fps=24,
+                steps=25,
+                guidance=5.0,
+                seed=220502,
+                batch=1,
+                wan_model="Wan2.2-TI2V-5B-Q5_K_M.gguf",
+                wan_text_encoder="umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+                wan_vae="wan2.2_vae.safetensors",
+                wan_clip_type="wan",
+                wan_sampler="euler",
+                wan_scheduler="simple",
+                wan_shift=5.0,
+                wan_denoise=1.0,
+                wan_video_format="video/h264-mp4",
+                wan_output_prefix="slopperly_wan22_ti2v_5b",
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/wan22_ti2v_5b_720p24_gguf",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.video_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertNotIn("8", prompt)
+        self.assertNotIn("start_image", prompt["7"]["inputs"])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "Wan2.2-TI2V-5B-Q5_K_M.gguf")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name"], "umt5_xxl_fp8_e4m3fn_scaled.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["vae_name"], "wan2.2_vae.safetensors")
+        self.assertEqual(prompt["7"]["inputs"]["width"], 1280)
+        self.assertEqual(prompt["7"]["inputs"]["height"], 704)
+        self.assertEqual(prompt["9"]["inputs"]["seed"], 220502)
+        self.assertEqual(prompt["11"]["inputs"]["frame_rate"], 24.0)
+        self.assertLess(
+            ComfyHandler.request_order.index("/object_info"),
+            ComfyHandler.request_order.index("/prompt"),
+        )
+        self.assertNotIn("/upload/image", ComfyHandler.request_order)
+
+        ComfyHandler.reset(_wan22_ti2v_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local image fixture bytes")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs.image = str(source)
+            inputs.width = 704
+            inputs.height = 1280
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/wan22_ti2v_5b_720p24_gguf",
+                    inputs,
+                    SimpleNamespace(),
+                    timeout=2,
+                )
+
+        self.assertEqual(Path(result).read_bytes(), ComfyHandler.video_bytes)
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["7"]["inputs"]["width"], 704)
+        self.assertEqual(prompt["7"]["inputs"]["height"], 1280)
+        self.assertEqual(prompt["7"]["inputs"]["start_image"], ["8", 0])
+        self.assertEqual(prompt["8"]["inputs"]["image"], "uploaded_source.png")
+        self.assertIn(b'name="image"; filename="source.png"', ComfyHandler.upload_bodies[0])
 
     def test_florence_pack_collects_text_and_json_history_outputs(self):
         ComfyHandler.reset(_florence2_object_info())

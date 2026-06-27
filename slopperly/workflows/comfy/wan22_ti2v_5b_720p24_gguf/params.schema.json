@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "workflow_id": "wan22_ti2v_5b_720p24_gguf",
+  "description": "Patch schema for local Wan2.2 TI2V-5B Q5 GGUF 720P-family 24fps text/image-to-video.",
+  "inputs": {
+    "wan_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "wan_shift": [
+      {
+        "node": "2",
+        "input": "shift"
+      }
+    ],
+    "wan_text_encoder": [
+      {
+        "node": "3",
+        "input": "clip_name"
+      }
+    ],
+    "wan_clip_type": [
+      {
+        "node": "3",
+        "input": "type"
+      }
+    ],
+    "wan_vae": [
+      {
+        "node": "4",
+        "input": "vae_name"
+      }
+    ],
+    "prompt": [
+      {
+        "node": "5",
+        "input": "text"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "6",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "7",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "7",
+        "input": "height"
+      }
+    ],
+    "frames": [
+      {
+        "node": "7",
+        "input": "length"
+      }
+    ],
+    "batch": [
+      {
+        "node": "7",
+        "input": "batch_size"
+      }
+    ],
+    "seed": [
+      {
+        "node": "9",
+        "input": "seed"
+      }
+    ],
+    "steps": [
+      {
+        "node": "9",
+        "input": "steps"
+      }
+    ],
+    "guidance": [
+      {
+        "node": "9",
+        "input": "cfg"
+      }
+    ],
+    "wan_sampler": [
+      {
+        "node": "9",
+        "input": "sampler_name"
+      }
+    ],
+    "wan_scheduler": [
+      {
+        "node": "9",
+        "input": "scheduler"
+      }
+    ],
+    "wan_denoise": [
+      {
+        "node": "9",
+        "input": "denoise"
+      }
+    ],
+    "fps": [
+      {
+        "node": "11",
+        "input": "frame_rate"
+      }
+    ],
+    "wan_output_prefix": [
+      {
+        "node": "11",
+        "input": "filename_prefix"
+      }
+    ],
+    "wan_video_format": [
+      {
+        "node": "11",
+        "input": "format"
+      }
+    ]
+  },
+  "uploads": {
+    "input_image": [
+      {
+        "node": "8",
+        "input": "image",
+        "type": "input",
+        "endpoint": "/upload/image",
+        "form_field": "image",
+        "optional": true,
+        "disconnect": {
+          "node": "7",
+          "input": "start_image"
+        },
+        "prune_node": true
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "lora_files": "The 5B TI2V local default does not expose LoRA slots until a pinned Wan LoRA workflow is certified."
+  },
+  "outputs": [
+    {
+      "node": "11",
+      "type": "video/mp4",
+      "contract": "Return an ffprobe-readable MP4 at 1280x704 or 704x1280, 24fps, with duration matching the requested Wan frame count."
+    }
+  ]
+}

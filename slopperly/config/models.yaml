@@ -664,6 +664,7 @@ models:
       - image/zimage.py
   - logical_name: wan22_ti2v_5b_720p24_gguf
     legacy_aliases:
+      - Wan-AI/Wan2.2-TI2V-5B
       - google/veo
       - Hailuo/MiniMax/txt2vid
       - Hailuo/MiniMax/img2vid
@@ -674,7 +675,29 @@ models:
     local_cache_path: models/diffusion_models/Wan2.2-TI2V-5B-Q5_K_M.gguf
     required_files:
       - Wan2.2-TI2V-5B-Q5_K_M.gguf
-    required_node_pack: comfyui_gguf
+    auxiliary_sources:
+      - id: wan22_ti2v_umt5_fp8_text_encoder
+        model_source: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+        required_files:
+          - path: split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+            target: umt5_xxl_fp8_e4m3fn_scaled.safetensors
+      - id: wan22_ti2v_vae
+        model_source: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged
+        download_mode: hf_file
+        local_cache_path: models/vae/wan2.2_vae.safetensors
+        required_files:
+          - path: split_files/vae/wan2.2_vae.safetensors
+            target: wan2.2_vae.safetensors
+      - id: wan22_ti2v_legacy_vae_alias
+        model_source: https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged
+        download_mode: hf_file
+        local_cache_path: models/vae/wan_2.1_vae.safetensors
+        required_files:
+          - path: split_files/vae/wan_2.1_vae.safetensors
+            target: wan_2.1_vae.safetensors
+    required_node_pack: comfyui_gguf + comfyui core wan + video_helper_suite
     supported_resolutions:
       - 1280x704
       - 704x1280
@@ -683,10 +706,15 @@ models:
     default_parameters:
       fps: 24
       steps: 25
+      guidance: 5.0
+      sampler: euler
+      scheduler: simple
+      shift: 5.0
     minimum_vram_gb: 16
     validation_command: pytest tests/gpu/test_wan22_ti2v_5b.py --device cuda
     workflows:
       - wan22_ti2v_5b_720p24_gguf
+      - video/wan_ti2v_5b.py
   - logical_name: vllm_whisper_large_v3_turbo_stt
     legacy_aliases:
       - faster-whisper-transcribe
