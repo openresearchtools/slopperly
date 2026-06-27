@@ -1098,3 +1098,15 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: integration coverage calls `KontextRelightPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed Relight pack directly, and `tests/gpu/test_kontext_relight.py` now performs a plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with FLUX Kontext-capable core node classes and `flux1-dev-kontext_fp8_scaled.safetensors`, `relighting-kontext-dev-lora-v3.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors` installed locally.
+
+### 2026-06-27 Nucleus Image Slopperly node block
+
+- Completed: `image/nucleus_moe.py` now routes `NucleusAI/Nucleus-Image` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution in the add-on process.
+- Completed: the existing prompt, negative prompt, resolution, frames, steps, guidance, and seed UI sections remain present.
+- Completed: the repo-local `slopperly_nodes` Comfy custom node package now exposes `SlopperlyDiffusersImageGenerate`, which wraps the existing Nucleus diffusers pipeline and pinned FP8 patch/weights inside owned ComfyUI.
+- Completed: the Comfy installer and `slopperly/runtime/comfy/nodes.lock.yaml` now support a `source: local` custom-node entry so owned ComfyUI can install the in-repo node package.
+- Completed: `nucleus_image_t2i` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for the `NucleusAI/Nucleus-Image` snapshot and `D-Squarius-Green-Jr/Nucleus-Image-FP8` patch, config, and weights.
+- Evidence: integration coverage calls `NucleusMoEPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies custom-node parameter patching plus PNG artifact collection.
+- Evidence: workflow-runner integration coverage verifies the committed Nucleus pack directly, and `tests/gpu/test_nucleus_image.py` now performs a plugin-path certification attempt.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI installed with `slopperly_nodes`, Diffusers dependencies, the local Nucleus snapshot, and the FP8 patch/weights present in the Slopperly model cache.

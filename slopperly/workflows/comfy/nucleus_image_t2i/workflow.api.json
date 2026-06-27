@@ -1,0 +1,29 @@
+{
+  "1": {
+    "class_type": "SlopperlyDiffusersImageGenerate",
+    "inputs": {
+      "model_id": "NucleusAI/Nucleus-Image",
+      "model_path": ".slopperly/model-cache/models/diffusers/nucleus_image_base",
+      "fp8_patch_path": ".slopperly/model-cache/models/diffusers/nucleus_image_fp8/moe_fp8_patch.py",
+      "fp8_weights_path": ".slopperly/model-cache/models/diffusers/nucleus_image_fp8/Nucleus-Image-FP8.safetensors",
+      "prompt": "A clean local Slopperly Nucleus Image smoke test.",
+      "negative_prompt": "text, watermark, low quality",
+      "width": 1024,
+      "height": 1024,
+      "steps": 20,
+      "guidance": 8.0,
+      "seed": 0,
+      "local_files_only": true
+    }
+  },
+  "2": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ],
+      "filename_prefix": "slopperly_nucleus_image"
+    }
+  }
+}

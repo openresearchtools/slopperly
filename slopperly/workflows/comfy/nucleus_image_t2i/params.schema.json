@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "workflow_id": "nucleus_image_t2i",
+  "description": "Patch schema for local Nucleus Image text-to-image through the Slopperly-owned Comfy diffusers node.",
+  "inputs": {
+    "nucleus_model_id": [
+      {
+        "node": "1",
+        "input": "model_id"
+      }
+    ],
+    "nucleus_model_path": [
+      {
+        "node": "1",
+        "input": "model_path"
+      }
+    ],
+    "nucleus_fp8_patch_path": [
+      {
+        "node": "1",
+        "input": "fp8_patch_path"
+      }
+    ],
+    "nucleus_fp8_weights_path": [
+      {
+        "node": "1",
+        "input": "fp8_weights_path"
+      }
+    ],
+    "prompt": [
+      {
+        "node": "1",
+        "input": "prompt"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "1",
+        "input": "negative_prompt"
+      }
+    ],
+    "width": [
+      {
+        "node": "1",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "1",
+        "input": "height"
+      }
+    ],
+    "steps": [
+      {
+        "node": "1",
+        "input": "steps"
+      }
+    ],
+    "guidance": [
+      {
+        "node": "1",
+        "input": "guidance"
+      }
+    ],
+    "seed": [
+      {
+        "node": "1",
+        "input": "seed"
+      }
+    ],
+    "nucleus_local_files_only": [
+      {
+        "node": "1",
+        "input": "local_files_only"
+      }
+    ]
+  },
+  "uploads": {},
+  "unmapped_ui_parameters": {
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call."
+  },
+  "outputs": [
+    {
+      "node": "2",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ]
+}

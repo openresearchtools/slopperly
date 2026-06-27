@@ -1,0 +1,6 @@
+{
+  "workflow_id": "nucleus_image_t2i",
+  "note": "Editable source is the committed Slopperly-owned Comfy custom node graph. The custom node wraps the existing NucleusAI/Nucleus-Image diffusers pipeline and pinned FP8 patch artifacts inside owned ComfyUI.",
+  "custom_node": "SlopperlyDiffusersImageGenerate",
+  "api_workflow": "workflow.api.json"
+}

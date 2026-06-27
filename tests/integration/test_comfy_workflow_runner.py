@@ -376,6 +376,25 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "SlopperlyDiffusersImageGenerate"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "2": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_nucleus_image_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             if (
                 any(
                     node.get("class_type") == "LoraLoaderModelOnly"
@@ -724,6 +743,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "flux_kontext" in parsed.query
                 or "flux_redux" in parsed.query
                 or "kontext_relight" in parsed.query
+                or "nucleus_image" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
@@ -827,6 +847,15 @@ def _chatterbox_object_info(workflow_id: str) -> dict:
 def _omnigen_object_info() -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy/omnigen_v1_multi_image/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _nucleus_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/nucleus_image_t2i/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -2772,6 +2801,54 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["6"]["inputs"]["cfg"], 4.0)
         self.assertEqual(prompt["6"]["inputs"]["sampler_name"], "res_multistep")
         self.assertEqual(prompt["6"]["inputs"]["scheduler"], "simple")
+
+    def test_nucleus_pack_patches_slopperly_diffusers_node(self):
+        ComfyHandler.reset(_nucleus_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "nucleus_image.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local Nucleus workflow render",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                seed=5301,
+                steps=20,
+                guidance=8.0,
+                nucleus_model_id="NucleusAI/Nucleus-Image",
+                nucleus_model_path="/models/diffusers/nucleus_image_base",
+                nucleus_fp8_patch_path="/models/diffusers/nucleus_image_fp8/moe_fp8_patch.py",
+                nucleus_fp8_weights_path="/models/diffusers/nucleus_image_fp8/Nucleus-Image-FP8.safetensors",
+                nucleus_local_files_only=True,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/nucleus_image_t2i",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(ComfyHandler.upload_bodies, [])
+        self.assertEqual(prompt["1"]["class_type"], "SlopperlyDiffusersImageGenerate")
+        self.assertEqual(prompt["1"]["inputs"]["model_id"], "NucleusAI/Nucleus-Image")
+        self.assertEqual(prompt["1"]["inputs"]["model_path"], "/models/diffusers/nucleus_image_base")
+        self.assertEqual(prompt["1"]["inputs"]["fp8_patch_path"], "/models/diffusers/nucleus_image_fp8/moe_fp8_patch.py")
+        self.assertEqual(prompt["1"]["inputs"]["fp8_weights_path"], "/models/diffusers/nucleus_image_fp8/Nucleus-Image-FP8.safetensors")
+        self.assertEqual(prompt["1"]["inputs"]["prompt"], "local Nucleus workflow render")
+        self.assertEqual(prompt["1"]["inputs"]["negative_prompt"], "text, watermark")
+        self.assertEqual(prompt["1"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["1"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["1"]["inputs"]["steps"], 20)
+        self.assertEqual(prompt["1"]["inputs"]["guidance"], 8.0)
+        self.assertEqual(prompt["1"]["inputs"]["seed"], 5301)
+        self.assertIs(prompt["1"]["inputs"]["local_files_only"], True)
 
     def test_ideogram4_pack_patches_t2i_graph(self):
         ComfyHandler.reset(_ideogram_object_info())

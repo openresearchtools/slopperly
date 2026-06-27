@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 from pathlib import Path
 
 from slopperly.config.registry import load_yaml
@@ -63,15 +64,26 @@ def install_comfy(
             steps.append(InstallStep("BLOCKED", "custom_nodes", "node id is required"))
             continue
         node_path = custom_nodes_dir / node_id
-        steps.extend(
-            git_checkout(
-                repo=str(node.get("repo", "")),
-                commit=str(node.get("commit", "")),
-                destination=node_path,
-                dry_run=dry_run,
-                force=force,
+        if str(node.get("source") or "git").strip().lower() == "local":
+            steps.extend(
+                install_local_custom_node(
+                    node=node,
+                    destination=node_path,
+                    pin=pin,
+                    dry_run=dry_run,
+                    force=force,
+                )
             )
-        )
+        else:
+            steps.extend(
+                git_checkout(
+                    repo=str(node.get("repo", "")),
+                    commit=str(node.get("commit", "")),
+                    destination=node_path,
+                    dry_run=dry_run,
+                    force=force,
+                )
+            )
         if not skip_pip:
             steps.extend(install_python_requirements(node_path, node, pip, dry_run=dry_run))
 
@@ -91,6 +103,54 @@ def install_comfy(
         )
     )
     return steps
+
+
+def install_local_custom_node(
+    *,
+    node: dict,
+    destination: Path,
+    pin: Path,
+    dry_run: bool,
+    force: bool,
+) -> list[InstallStep]:
+    source = resolve_local_node_path(str(node.get("path") or ""), pin=pin)
+    if source is None:
+        return [InstallStep("BLOCKED", destination.name, "local node path is required")]
+    if not source.is_dir():
+        return [InstallStep("BLOCKED", destination.name, f"local node path does not exist: {source}")]
+    if destination.exists():
+        if not force:
+            return [InstallStep("PASS", destination.name, f"local node already installed at {destination}")]
+        if dry_run:
+            return [
+                InstallStep("PLAN", destination.name, f"remove {destination}"),
+                InstallStep("PLAN", destination.name, f"copy {source} -> {destination}"),
+            ]
+        shutil.rmtree(destination)
+    if dry_run:
+        return [InstallStep("PLAN", destination.name, f"copy {source} -> {destination}")]
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(source, destination)
+    return [InstallStep("PASS", destination.name, f"copied {source} -> {destination}")]
+
+
+def resolve_local_node_path(raw_path: str, *, pin: Path) -> Path | None:
+    text = raw_path.strip()
+    if not text:
+        return None
+    path = Path(text)
+    if path.is_absolute():
+        return path.resolve()
+
+    candidates = [Path.cwd() / path, pin.resolve().parent / path]
+    try:
+        candidates.append(pin.resolve().parents[3] / path)
+    except IndexError:
+        pass
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    return (Path.cwd() / path).resolve()
 
 
 def install_python_requirements(

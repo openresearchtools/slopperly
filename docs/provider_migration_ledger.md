@@ -1134,3 +1134,29 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with FLUX Kontext-capable core node classes, `flux1-dev-kontext_fp8_scaled.safetensors`, `relighting-kontext-dev-lora-v3.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors` installed locally.
+
+## 2026-06-27 Nucleus Image Slopperly node block
+
+### Production Paths Migrated
+
+- `models_plugins/image/nucleus_moe.py` now routes `NucleusAI/Nucleus-Image` through the local Comfy gateway instead of importing Torch/Diffusers and running Nucleus inference in the add-on process.
+- The existing prompt, negative prompt, resolution, frames, steps, guidance, and seed UI sections remain present.
+- The wrapper preserves the existing `ModelPlugin.generate()` result shape and writes a local PNG artifact path for existing Blender output insertion.
+
+### Workflow And Registry Added
+
+- Added the repo-local `slopperly_nodes` Comfy custom node package with `SlopperlyDiffusersImageGenerate`.
+- Updated the Comfy installer and `slopperly/runtime/comfy/nodes.lock.yaml` so owned ComfyUI can copy the in-repo node package into `custom_nodes/slopperly_nodes`.
+- Added `slopperly/workflows/comfy/nucleus_image_t2i/` with editable/API workflow JSON, schema, model manifest, smoke payload, and README.
+- Registered `nucleus_image_t2i` in `slopperly/config/models.yaml` with the `NucleusAI/Nucleus-Image` snapshot and `D-Squarius-Green-Jr/Nucleus-Image-FP8` patch/weight artifacts.
+
+### Verification
+
+- Integration coverage calls `NucleusMoEPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies custom-node parameter patching plus PNG artifact collection.
+- Workflow-runner integration coverage verifies the committed `nucleus_image_t2i` pack directly and collects a single PNG artifact from Comfy history outputs.
+- GPU certification coverage is registered in `tests/gpu/test_nucleus_image.py` and validates a 1024x1024 PNG artifact when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI installed with `slopperly_nodes`, Diffusers dependencies, the local `NucleusAI/Nucleus-Image` snapshot, and the FP8 patch/weights present in the Slopperly model cache.

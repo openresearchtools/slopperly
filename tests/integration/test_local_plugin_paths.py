@@ -187,6 +187,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "FL_ChatterboxTurboTTS": {},
                 "FL_ChatterboxMultilingualTTS": {},
                 "ailab_OmniGen": {},
+                "SlopperlyDiffusersImageGenerate": {},
                 "UnetLoaderGGUF": {},
                 "TextEncodeQwenImageEditPlus": {},
                 "FluxKontextImageScale": {},
@@ -500,6 +501,26 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "images": [
                                     {
                                         "filename": "slopperly_omnigen_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "SlopperlyDiffusersImageGenerate"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "2": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_nucleus_image_00001_.png",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -2395,6 +2416,44 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["12"]["inputs"]["prompt"], "legacy project edit")
         self.assertEqual(prompt["16"]["inputs"]["seed"], 404)
         self.assertIn(b'filename="alias.png"', RuntimeHandler.comfy_uploads[0])
+
+    def test_nucleus_image_uses_slopperly_comfy_node_plugin_path(self):
+        module = load_plugin_module("image", "nucleus_moe")
+        plugin = module.NucleusMoEPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Nucleus Image render",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                steps=20,
+                guidance=8.0,
+                seed=530101,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["class_type"], "SlopperlyDiffusersImageGenerate")
+        self.assertEqual(prompt["1"]["inputs"]["model_id"], "NucleusAI/Nucleus-Image")
+        self.assertTrue(prompt["1"]["inputs"]["model_path"].endswith("models/diffusers/nucleus_image_base"))
+        self.assertTrue(prompt["1"]["inputs"]["fp8_patch_path"].endswith("moe_fp8_patch.py"))
+        self.assertTrue(prompt["1"]["inputs"]["fp8_weights_path"].endswith("Nucleus-Image-FP8.safetensors"))
+        self.assertEqual(prompt["1"]["inputs"]["prompt"], "local Nucleus Image render")
+        self.assertEqual(prompt["1"]["inputs"]["negative_prompt"], "text, watermark")
+        self.assertEqual(prompt["1"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["1"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["1"]["inputs"]["steps"], 20)
+        self.assertEqual(prompt["1"]["inputs"]["guidance"], 8.0)
+        self.assertEqual(prompt["1"]["inputs"]["seed"], 530101)
+        self.assertIs(prompt["1"]["inputs"]["local_files_only"], True)
 
     def test_local_video_vsr_uses_comfy_plugin_path(self):
         module = load_plugin_module("video", "maxine_vsr_video")

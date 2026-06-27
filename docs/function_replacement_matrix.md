@@ -36,6 +36,7 @@ This matrix is the working replacement plan for production-visible functions.
 | `Runware/FLUX.1-Redux-dev` | Migrated wrapper, GPU/server test pending | ComfyUI | `flux_redux_restyle` |
 | `yuvraj108c/FLUX.1-Kontext-dev` | Migrated wrapper, GPU/server test pending | ComfyUI | `flux_kontext_edit` |
 | `kontext-community/relighting-kontext-dev-lora-v3` | Migrated wrapper, GPU/server test pending | ComfyUI | `kontext_relight` |
+| `NucleusAI/Nucleus-Image` | Migrated wrapper, GPU/server test pending | ComfyUI | `nucleus_image_t2i` |
 | `StemSplitter` | Migrated wrapper, GPU/server test pending | ComfyUI | `audio_stem_split_demucs` |
 | `MMAudio` | Migrated wrapper, GPU/server test pending | ComfyUI | `mmaudio_video_to_audio` |
 | `cocktailpeanut/stable-audio-3-medium-base` | Migrated wrapper, GPU/server test pending | ComfyUI | `stable_audio_3_medium_base` |

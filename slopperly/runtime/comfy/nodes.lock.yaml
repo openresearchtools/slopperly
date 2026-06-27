@@ -55,6 +55,18 @@ comfyui:
     - LoadAudio
     - SaveAudio
 custom_nodes:
+  - id: slopperly_nodes
+    source: local
+    path: slopperly/runtime/comfy/slopperly_nodes
+    install_command: ""
+    python_extras:
+      - diffusers
+      - transformers
+      - huggingface_hub
+      - accelerate
+      - safetensors
+    required_node_classes:
+      - SlopperlyDiffusersImageGenerate
   - id: comfyui_gguf
     repo: https://github.com/city96/ComfyUI-GGUF.git
     commit: 6ea2651e7df66d7585f6ffee804b20e92fb38b8a

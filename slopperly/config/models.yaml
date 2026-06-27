@@ -504,6 +504,40 @@ models:
     workflows:
       - kontext_relight
       - image/kontext_relight.py
+  - logical_name: nucleus_image_t2i
+    legacy_aliases:
+      - NucleusAI/Nucleus-Image
+      - D-Squarius-Green-Jr/Nucleus-Image-FP8
+    task: image_t2i
+    runtime: comfy
+    model_source: https://huggingface.co/NucleusAI/Nucleus-Image
+    download_mode: hf_snapshot
+    local_cache_path: models/diffusers/nucleus_image_base
+    required_files:
+      - model_index.json
+    auxiliary_sources:
+      - id: nucleus_image_fp8
+        model_source: https://huggingface.co/D-Squarius-Green-Jr/Nucleus-Image-FP8
+        download_mode: hf_file
+        local_cache_path: models/diffusers/nucleus_image_fp8
+        required_files:
+          - moe_fp8_patch.py
+          - Nucleus-Image-FP8.safetensors
+          - config.json
+    required_node_pack: slopperly_nodes + comfyui core SaveImage
+    supported_resolutions:
+      - 1024x1024
+      - 1280x720
+      - 720x1280
+    default_parameters:
+      steps: 20
+      guidance: 8.0
+      fps: null
+    minimum_vram_gb: 24
+    validation_command: pytest tests/gpu/test_nucleus_image.py --device cuda
+    workflows:
+      - nucleus_image_t2i
+      - image/nucleus_moe.py
   - logical_name: zimage_t2i_i2i
     legacy_aliases:
       - Tongyi-MAI/Z-Image

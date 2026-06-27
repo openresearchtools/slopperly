@@ -29,6 +29,7 @@ class RuntimeInstallerTests(unittest.TestCase):
         details = "\n".join(step.detail for step in steps)
         self.assertIn("ComfyUI", details)
         self.assertIn("custom_nodes", details)
+        self.assertIn("slopperly_nodes", details)
         self.assertIn("install-manifest.json", details)
 
     def test_vllm_install_dry_run_records_audio_extra(self):
