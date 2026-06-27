@@ -1,0 +1,65 @@
+# krea2_base_t2i
+
+Local ComfyUI text-to-image workflow pack for the existing `ethanfel/Krea-2-Base-Diffusers` Krea 2 plugin.
+
+## Existing Addon Function
+
+- Current plugin/function: `models_plugins/image/_krea2_base.py`.
+- Runtime: Slopperly-owned ComfyUI.
+- API workflow: `workflow.api.json`.
+- Editable workflow: `workflow.editable.json`.
+
+## Required Nodes
+
+- `UNETLoader`
+- `CLIPLoader`
+- `VAELoader`
+- `TextGenerate`
+- `CLIPTextEncode`
+- `EmptyLatentImage`
+- `KSampler`
+- `VAEDecode`
+- `SaveImage`
+
+These are ComfyUI core node classes from pinned ComfyUI commit `603d891eaf045d726d9c23276b4428daf2977624`. The workflow follows the official Krea-2 local Comfy template shape while using the RAW/base diffusion model file.
+
+## Model Files
+
+- `models/diffusion_models/krea2_raw_fp8_scaled.safetensors`
+- `models/text_encoders/qwen3vl_4b_fp8_scaled.safetensors`
+- `models/vae/qwen_image_vae.safetensors`
+
+The files are sourced from `Comfy-Org/Krea-2`. Hugging Face is used only as a local artifact source.
+
+## UI Parameter Mapping
+
+- `prompt` -> local `TextGenerate` prompt request at node `4`, input `prompt`
+- `negative_prompt` -> node `6`, input `text`
+- `width` -> node `7`, input `width`
+- `height` -> node `7`, input `height`
+- `steps` -> node `8`, input `steps`
+- `guidance` -> node `8`, input `cfg`
+- `seed` -> node `8`, input `seed`
+- Krea RAW model file -> node `1`, input `unet_name`
+- Krea text encoder -> node `2`, input `clip_name`
+- Krea VAE -> node `3`, input `vae_name`
+- sampler/scheduler defaults -> node `8`, inputs `sampler_name` and `scheduler`
+
+The LoRA UI remains visible. Arbitrary project LoRA injection is recorded as unmapped until a certified dynamic LoRA graph is added.
+
+## Output Contract
+
+Node `10` saves a PNG image. The plugin path returns the resulting local PNG path and downstream Blender insertion continues to use the existing generated-file behavior.
+
+## Test Command
+
+```bash
+pytest tests/gpu/test_krea2.py --device cuda
+```
+
+## Expected Validation
+
+- Comfy `/object_info` includes all required node classes.
+- `workflow.api.json` validates as Comfy API format.
+- The addon plugin path submits this workflow through `SlopperlyRuntimeGateway`.
+- PIL can open the output PNG and dimensions match the requested size.

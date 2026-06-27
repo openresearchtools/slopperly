@@ -458,6 +458,36 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "UNETLoader"
+                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("krea2_")
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                unet_name = next(
+                    str((node.get("inputs") or {}).get("unet_name", ""))
+                    for node in ComfyHandler.last_prompt.values()
+                    if node.get("class_type") == "UNETLoader"
+                )
+                filename = (
+                    "slopperly_krea2_turbo_00001_.png"
+                    if "turbo" in unet_name
+                    else "slopperly_krea2_base_00001_.png"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "10": {
+                                "images": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -491,6 +521,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "zimage" in parsed.query
                 or "anima" in parsed.query
                 or "ernie_image" in parsed.query
+                or "krea2" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
@@ -638,6 +669,15 @@ def _anima_object_info(workflow_id: str) -> dict:
 
 
 def _ernie_object_info(workflow_id: str) -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _krea_object_info(workflow_id: str) -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
             encoding="utf-8"
@@ -1755,6 +1795,106 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["9"]["inputs"]["seed"], 3201)
         self.assertEqual(prompt["9"]["inputs"]["steps"], 8)
         self.assertEqual(prompt["9"]["inputs"]["cfg"], 1.0)
+
+    def test_krea2_packs_patch_base_and_turbo_graphs(self):
+        ComfyHandler.reset(_krea_object_info("krea2_base_t2i"))
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "krea2_base.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            sampling = {
+                "sampling_mode": "on",
+                "temperature": 0.7,
+                "top_k": 64,
+                "top_p": 0.95,
+                "min_p": 0.05,
+                "repetition_penalty": 1.05,
+                "presence_penalty": 0.0,
+                "seed": 4101,
+            }
+            inputs = SimpleNamespace(
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                batch=1,
+                seed=4101,
+                krea_model="krea2_raw_fp8_scaled.safetensors",
+                krea_text_encoder="qwen3vl_4b_fp8_scaled.safetensors",
+                krea_clip_type="krea2",
+                krea_vae="qwen_image_vae.safetensors",
+                krea_sampler="euler",
+                krea_scheduler="simple",
+                krea_denoise=1.0,
+                krea_steps=28,
+                krea_guidance=4.5,
+                krea_prompt_request="enhance local Krea base prompt",
+                krea_textgen_max_length=512,
+                krea_textgen_sampling_mode=sampling,
+                krea_textgen_thinking=False,
+                krea_textgen_use_default_template=True,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/krea2_base_t2i",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(ComfyHandler.upload_bodies, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "krea2_raw_fp8_scaled.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["clip_name"], "qwen3vl_4b_fp8_scaled.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["type"], "krea2")
+        self.assertEqual(prompt["3"]["inputs"]["vae_name"], "qwen_image_vae.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["prompt"], "enhance local Krea base prompt")
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"], sampling)
+        self.assertEqual(prompt["5"]["inputs"]["text"], ["4", 0])
+        self.assertEqual(prompt["6"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["7"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["7"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["seed"], 4101)
+        self.assertEqual(prompt["8"]["inputs"]["steps"], 28)
+        self.assertEqual(prompt["8"]["inputs"]["cfg"], 4.5)
+        self.assertEqual(prompt["8"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["8"]["inputs"]["scheduler"], "simple")
+
+        ComfyHandler.reset(_krea_object_info("krea2_turbo_t2i"))
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "krea2_turbo.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs.krea_model = "krea2_turbo_fp8_scaled.safetensors"
+            inputs.krea_prompt_request = "enhance local Krea Turbo prompt"
+            inputs.seed = 4201
+            inputs.krea_steps = 8
+            inputs.krea_guidance = 1.0
+            inputs.krea_textgen_sampling_mode = {**sampling, "seed": 4201}
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/krea2_turbo_t2i",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "krea2_turbo_fp8_scaled.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["prompt"], "enhance local Krea Turbo prompt")
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"]["seed"], 4201)
+        self.assertEqual(prompt["6"]["class_type"], "ConditioningZeroOut")
+        self.assertEqual(prompt["6"]["inputs"]["conditioning"], ["5", 0])
+        self.assertEqual(prompt["8"]["inputs"]["seed"], 4201)
+        self.assertEqual(prompt["8"]["inputs"]["steps"], 8)
+        self.assertEqual(prompt["8"]["inputs"]["cfg"], 1.0)
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):
         with tempfile.TemporaryDirectory() as tmp:

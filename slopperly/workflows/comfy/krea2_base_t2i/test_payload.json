@@ -1,0 +1,11 @@
+{
+  "prompt": "a local Krea 2 RAW render of a compact workstation, natural window light",
+  "negative_prompt": "text, watermark, low quality",
+  "width": 1024,
+  "height": 1024,
+  "frames": 1,
+  "steps": 28,
+  "guidance": 4.5,
+  "seed": 410101,
+  "batch": 1
+}

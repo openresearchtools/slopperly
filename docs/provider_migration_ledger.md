@@ -867,3 +867,29 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with core ERNIE node classes, `ernie-image.safetensors`, `ernie-image-turbo.safetensors`, `ministral-3-3b.safetensors`, `ernie-image-prompt-enhancer.safetensors`, and `flux2-vae.safetensors` installed locally.
+
+## 2026-06-27 Krea 2 Comfy workflow block
+
+### Production Paths Migrated
+
+- `models_plugins/image/_krea2_base.py` now routes `ethanfel/Krea-2-Base-Diffusers` through the local Comfy gateway instead of importing Torch, Diffusers, Transformers, and BitsAndBytes in the add-on process.
+- `models_plugins/image/krea2_turbo.py` now routes `OzzyGT/Krea_2_Turbo_sdnq_dynamic_8bit` through the local Comfy gateway instead of importing Torch, Diffusers, Transformers, SDNQ, and Safetensors in the add-on process.
+- The existing prompt, negative prompt, resolution, frames, steps, guidance, seed, and LoRA UI sections remain present. Turbo records a usage note when negative prompt text is supplied because the official Comfy Turbo graph uses `ConditioningZeroOut`.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/krea2_base_t2i/` and `slopperly/workflows/comfy/krea2_turbo_t2i/` with editable/API workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- The workflows use Comfy core `UNETLoader`, `CLIPLoader`, `VAELoader`, `TextGenerate`, `CLIPTextEncode`, `EmptyLatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`; Turbo adds `ConditioningZeroOut`.
+- Registered `krea2_base_t2i` and `krea2_turbo_t2i` in `slopperly/config/models.yaml` with legacy aliases for the old Diffusers/SDNQ plugin IDs, Hugging Face artifact source `Comfy-Org/Krea-2`, and exact file mappings for the RAW/Turbo diffusion models, `qwen3vl_4b_fp8_scaled.safetensors`, and `qwen_image_vae.safetensors`.
+
+### Verification
+
+- Integration coverage calls `Krea2BasePlugin.load()`/`generate()` and `Krea2TurboPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching and local `TextGenerate` prompt-enhancer wiring.
+- Workflow-runner integration coverage verifies both committed Krea packs directly, and `tests/gpu/test_krea2.py` now performs base/Turbo text-to-image plugin-path certification attempts.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with core Krea node classes, `krea2_raw_fp8_scaled.safetensors`, `krea2_turbo_fp8_scaled.safetensors`, `qwen3vl_4b_fp8_scaled.safetensors`, and `qwen_image_vae.safetensors` installed locally.
+- Krea 2 Turbo negative prompts are deliberately unmapped because the official Comfy Turbo graph uses `ConditioningZeroOut`; the wrapper records this in `inputs.usage_note` when a negative prompt is supplied.
+- Arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the wrappers preserve the LoRA UI and record custom LoRA injection as a follow-up rather than loading placeholder filenames.

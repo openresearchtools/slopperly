@@ -1,0 +1,11 @@
+{
+  "prompt": "a fast local Krea 2 Turbo render of a clean product card, crisp studio lighting",
+  "negative_prompt": "text, watermark, low quality",
+  "width": 1024,
+  "height": 1024,
+  "frames": 1,
+  "steps": 8,
+  "guidance": 1.0,
+  "seed": 420101,
+  "batch": 1
+}

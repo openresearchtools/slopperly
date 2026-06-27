@@ -1,0 +1,127 @@
+{
+  "workflow_id": "krea2_turbo_t2i",
+  "inputs": {
+    "krea_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "krea_text_encoder": [
+      {
+        "node": "2",
+        "input": "clip_name"
+      }
+    ],
+    "krea_clip_type": [
+      {
+        "node": "2",
+        "input": "type"
+      }
+    ],
+    "krea_vae": [
+      {
+        "node": "3",
+        "input": "vae_name"
+      }
+    ],
+    "krea_prompt_request": [
+      {
+        "node": "4",
+        "input": "prompt"
+      }
+    ],
+    "krea_textgen_max_length": [
+      {
+        "node": "4",
+        "input": "max_length"
+      }
+    ],
+    "krea_textgen_sampling_mode": [
+      {
+        "node": "4",
+        "input": "sampling_mode"
+      }
+    ],
+    "krea_textgen_thinking": [
+      {
+        "node": "4",
+        "input": "thinking"
+      }
+    ],
+    "krea_textgen_use_default_template": [
+      {
+        "node": "4",
+        "input": "use_default_template"
+      }
+    ],
+    "width": [
+      {
+        "node": "7",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "7",
+        "input": "height"
+      }
+    ],
+    "batch": [
+      {
+        "node": "7",
+        "input": "batch_size"
+      }
+    ],
+    "seed": [
+      {
+        "node": "8",
+        "input": "seed"
+      }
+    ],
+    "krea_steps": [
+      {
+        "node": "8",
+        "input": "steps"
+      }
+    ],
+    "krea_guidance": [
+      {
+        "node": "8",
+        "input": "cfg"
+      }
+    ],
+    "krea_sampler": [
+      {
+        "node": "8",
+        "input": "sampler_name"
+      }
+    ],
+    "krea_scheduler": [
+      {
+        "node": "8",
+        "input": "scheduler"
+      }
+    ],
+    "krea_denoise": [
+      {
+        "node": "8",
+        "input": "denoise"
+      }
+    ]
+  },
+  "uploads": {},
+  "outputs": [
+    {
+      "node": "10",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ],
+  "notes": [
+    "The positive prompt is locally polished through Comfy core TextGenerate using the Krea/Qwen3VL text encoder before CLIPTextEncode.",
+    "The official Turbo graph uses ConditioningZeroOut for the negative branch; the negative prompt field is preserved in the UI and recorded as deliberately unmapped.",
+    "The LoRA UI is preserved, but arbitrary project LoRA injection is recorded as unmapped until a certified dynamic LoRA graph is added."
+  ]
+}

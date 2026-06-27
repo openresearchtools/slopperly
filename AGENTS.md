@@ -975,3 +975,15 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: integration coverage calls `ErniePlugin.load()`/`generate()` and `ErnieTurboPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching and local `TextGenerate` prompt-enhancer wiring.
 - Evidence: workflow-runner integration coverage verifies both committed ERNIE packs directly, and `tests/gpu/test_ernie.py` now performs base/Turbo text-to-image plugin-path certification attempts.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core ERNIE node classes and the ERNIE diffusion/text encoder/prompt enhancer/VAE files installed locally.
+
+### 2026-06-27 Krea 2 Comfy workflow block
+
+- Completed: `image/_krea2_base.py` and `image/krea2_turbo.py` now route `ethanfel/Krea-2-Base-Diffusers` and `OzzyGT/Krea_2_Turbo_sdnq_dynamic_8bit` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers/BitsAndBytes/SDNQ execution in the add-on process.
+- Completed: the existing prompt, negative prompt, resolution, frames, steps, guidance, seed, and LoRA UI sections remain present. Turbo records the negative prompt field as deliberately unmapped because the official Comfy Turbo graph uses `ConditioningZeroOut`.
+- Completed: `krea2_base_t2i` and `krea2_turbo_t2i` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Completed: the workflows use official Comfy core Krea template node classes: `UNETLoader`, `CLIPLoader`, `VAELoader`, `TextGenerate`, `CLIPTextEncode`, `EmptyLatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`; Turbo adds `ConditioningZeroOut`.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact sources from `Comfy-Org/Krea-2` for `krea2_raw_fp8_scaled.safetensors`, `krea2_turbo_fp8_scaled.safetensors`, `qwen3vl_4b_fp8_scaled.safetensors`, and `qwen_image_vae.safetensors`.
+- Evidence: integration coverage calls `Krea2BasePlugin.load()`/`generate()` and `Krea2TurboPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching and local `TextGenerate` prompt-enhancer wiring.
+- Evidence: workflow-runner integration coverage verifies both committed Krea packs directly, and `tests/gpu/test_krea2.py` now performs base/Turbo text-to-image plugin-path certification attempts.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with core Krea node classes and the Krea diffusion/text encoder/VAE files installed locally.
+- Still blocked: arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the wrappers preserve the LoRA UI and record custom LoRA injection as a follow-up rather than loading placeholder filenames.

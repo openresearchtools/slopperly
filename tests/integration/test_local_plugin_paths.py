@@ -623,6 +623,37 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "UNETLoader"
+                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("krea2_")
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                unet_name = next(
+                    str((node.get("inputs") or {}).get("unet_name", ""))
+                    for node in RuntimeHandler.comfy_prompt.values()
+                    if isinstance(node, dict) and node.get("class_type") == "UNETLoader"
+                )
+                filename = (
+                    "slopperly_krea2_turbo_00001_.png"
+                    if "turbo" in unet_name
+                    else "slopperly_krea2_base_00001_.png"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "10": {
+                                "images": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -1441,6 +1472,82 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["9"]["inputs"]["seed"], 3201)
         self.assertEqual(prompt["9"]["inputs"]["steps"], 8)
         self.assertEqual(prompt["9"]["inputs"]["cfg"], 1.0)
+        self.assertIn("negative prompt field is preserved", inputs.usage_note)
+
+    def test_krea2_base_uses_comfy_t2i_plugin_path(self):
+        module = load_plugin_module("image", "_krea2_base")
+        plugin = module.Krea2BasePlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Krea 2 RAW text to image",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                steps=28,
+                guidance=4.5,
+                seed=4101,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(RuntimeHandler.comfy_uploads, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "krea2_raw_fp8_scaled.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["clip_name"], "qwen3vl_4b_fp8_scaled.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["type"], "krea2")
+        self.assertEqual(prompt["3"]["inputs"]["vae_name"], "qwen_image_vae.safetensors")
+        self.assertIn("local Krea 2 RAW text to image", prompt["4"]["inputs"]["prompt"])
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"]["seed"], 4101)
+        self.assertEqual(prompt["5"]["inputs"]["text"], ["4", 0])
+        self.assertEqual(prompt["6"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["7"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["7"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["seed"], 4101)
+        self.assertEqual(prompt["8"]["inputs"]["steps"], 28)
+        self.assertEqual(prompt["8"]["inputs"]["cfg"], 4.5)
+
+    def test_krea2_turbo_uses_comfy_t2i_plugin_path(self):
+        module = load_plugin_module("image", "krea2_turbo")
+        plugin = module.Krea2TurboPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Krea 2 Turbo text to image",
+                neg_prompt="recorded as unmapped",
+                width=1024,
+                height=1024,
+                steps=8,
+                guidance=1.0,
+                seed=4201,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(RuntimeHandler.comfy_uploads, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "krea2_turbo_fp8_scaled.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["clip_name"], "qwen3vl_4b_fp8_scaled.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["type"], "krea2")
+        self.assertIn("local Krea 2 Turbo text to image", prompt["4"]["inputs"]["prompt"])
+        self.assertEqual(prompt["4"]["inputs"]["sampling_mode"]["seed"], 4201)
+        self.assertEqual(prompt["5"]["inputs"]["text"], ["4", 0])
+        self.assertEqual(prompt["6"]["class_type"], "ConditioningZeroOut")
+        self.assertEqual(prompt["8"]["inputs"]["seed"], 4201)
+        self.assertEqual(prompt["8"]["inputs"]["steps"], 8)
+        self.assertEqual(prompt["8"]["inputs"]["cfg"], 1.0)
         self.assertIn("negative prompt field is preserved", inputs.usage_note)
 
     def test_google_nano_banana_alias_uses_local_qwen_workflow(self):
