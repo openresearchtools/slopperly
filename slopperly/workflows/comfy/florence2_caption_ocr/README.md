@@ -14,6 +14,7 @@ Local ComfyUI workflow pack for the existing Florence-2 image caption, OCR, and 
 - `LoadImage`
 - `DownloadAndLoadFlorence2Model`
 - `Florence2Run`
+- `PreviewAny`
 
 The Florence classes come from the pinned `kijai/ComfyUI-Florence2` node pack in `slopperly/runtime/comfy/nodes.lock.yaml`.
 
@@ -35,7 +36,7 @@ The Comfy node can download the model from `microsoft/Florence-2-large`; Slopper
 
 ## Output Contract
 
-Node `3` returns Florence2Run text and JSON data through Comfy history outputs. The Slopperly Comfy runner collects text-like history keys, and the plugin maps them back to the existing plain caption string or Ideogram-4 JSON string.
+Node `3` returns Florence2Run text and JSON data. Nodes `4` and `5` route the STRING and JSON outputs through Comfy core `PreviewAny` output nodes so API prompt validation accepts the graph and the Slopperly Comfy runner can collect real history text outputs. The plugin maps those values back to the existing plain caption string or Ideogram-4 JSON string.
 
 ## Test Command
 
@@ -45,7 +46,7 @@ pytest tests/gpu/test_florence2_caption.py --device cuda
 
 ## Expected Validation
 
-- Comfy `/object_info` includes `LoadImage`, `DownloadAndLoadFlorence2Model`, and `Florence2Run`.
+- Comfy `/object_info` includes `LoadImage`, `DownloadAndLoadFlorence2Model`, `Florence2Run`, and `PreviewAny`.
 - `workflow.api.json` validates as Comfy API format.
 - The addon plugin path submits the workflow through `SlopperlyRuntimeGateway`.
 - Caption mode returns non-empty text.

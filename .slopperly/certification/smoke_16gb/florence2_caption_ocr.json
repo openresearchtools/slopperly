@@ -1,0 +1,52 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/florence2_caption_ocr/florence2_manifest.json",
+  "command": "pytest tests/gpu/test_florence2_caption.py::test_florence2_caption_and_ideogram4 --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T19:17:38+00:00",
+  "logical_name": "florence2_caption_ocr",
+  "metadata": {
+    "caption_artifact": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/florence2_caption_ocr/caption.txt",
+    "ideogram4_artifact": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/florence2_caption_ocr/ideogram4.json",
+    "runtime_url": "http://127.0.0.1:8190",
+    "source_image": "/home/user/Documents/Slopperly/tests/fixtures/florence2_caption.png"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "caption": {
+      "chars": 380,
+      "kind": "text",
+      "matched_concepts": [
+        "block",
+        "blue",
+        "circle",
+        "green",
+        "local",
+        "red",
+        "slopperly",
+        "test",
+        "text"
+      ]
+    },
+    "ideogram4": {
+      "chars": 970,
+      "element_count": 2,
+      "json_keys": [
+        "compositional_deconstruction",
+        "high_level_description",
+        "light_direction",
+        "light_setting",
+        "style_description"
+      ],
+      "kind": "text",
+      "matched_ocr_terms": [
+        "local",
+        "slopperly",
+        "test",
+        "text"
+      ],
+      "text_element_count": 0
+    }
+  }
+}

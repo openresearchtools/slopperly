@@ -505,6 +505,10 @@ class ComfyWorkflowRunner:
         output_root: Path,
         destination: str | None,
     ) -> None:
+        for nested_key in ("ui", "result"):
+            nested = node_out.get(nested_key)
+            if isinstance(nested, dict):
+                self._collect_text_outputs(nested, results, output_root, destination)
         for key in ("text", "texts", "caption", "captions", "string", "strings", "data", "json"):
             if key not in node_out:
                 continue

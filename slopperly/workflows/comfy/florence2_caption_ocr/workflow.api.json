@@ -34,5 +34,23 @@
       "output_mask_select": "",
       "seed": 1
     }
+  },
+  "4": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "3",
+        2
+      ]
+    }
+  },
+  "5": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "3",
+        3
+      ]
+    }
   }
 }

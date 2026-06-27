@@ -43,5 +43,29 @@
     "_meta": {
       "title": "Florence2 Run"
     }
+  },
+  "4": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "3",
+        2
+      ]
+    },
+    "_meta": {
+      "title": "Preview Caption Text"
+    }
+  },
+  "5": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "3",
+        3
+      ]
+    },
+    "_meta": {
+      "title": "Preview Florence2 JSON"
+    }
   }
 }

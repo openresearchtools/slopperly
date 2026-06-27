@@ -485,8 +485,45 @@ class Florence2Plugin(ModelPlugin):
             l = label.lower().strip()
             return l == "head" or "face" in l
 
+        def _is_number(value) -> bool:
+            return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+        def _flatten_singleton_box(value):
+            while (
+                isinstance(value, (list, tuple))
+                and len(value) == 1
+                and isinstance(value[0], (list, tuple))
+            ):
+                value = value[0]
+            return value
+
+        def normalize_bbox(value):
+            """Return a flat [x1, y1, x2, y2] bbox from Florence's varied JSON shapes."""
+            value = _flatten_singleton_box(value)
+            if isinstance(value, (list, tuple)) and len(value) == 4 and all(_is_number(v) for v in value):
+                return [float(v) for v in value]
+            if isinstance(value, (list, tuple)):
+                for candidate in value:
+                    if isinstance(candidate, (list, tuple)):
+                        box = normalize_bbox(candidate)
+                        if box is not None:
+                            return box
+            return None
+
+        def normalize_quad(value):
+            value = _flatten_singleton_box(value)
+            if isinstance(value, (list, tuple)) and len(value) == 8 and all(_is_number(v) for v in value):
+                return [float(v) for v in value]
+            box = normalize_bbox(value)
+            if box is not None:
+                x1, y1, x2, y2 = box
+                return [x1, y1, x2, y1, x2, y2, x1, y2]
+            return None
+
         def bbox_contains_center(outer_ib, inner_ib) -> bool:
             """True if the center of inner_ib falls inside outer_ib ([y1,x1,y2,x2])."""
+            if not outer_ib or not inner_ib:
+                return False
             cy = (inner_ib[0] + inner_ib[2]) / 2
             cx = (inner_ib[1] + inner_ib[3]) / 2
             return (outer_ib[0] <= cy <= outer_ib[2]
@@ -494,6 +531,9 @@ class Florence2Plugin(ModelPlugin):
 
         def region_description(bbox_px) -> str:
             """Run <REGION_TO_DESCRIPTION> for a pixel bbox; return description string."""
+            bbox_px = normalize_bbox(bbox_px)
+            if bbox_px is None:
+                return ""
             x1, y1, x2, y2 = bbox_px
             # Florence-2 location tokens use 0–999 scale
             lx1 = round(x1 / W * 999)
@@ -508,13 +548,22 @@ class Florence2Plugin(ModelPlugin):
                 return ""
 
         def dominant_palette(count=5):
-            import numpy as np
-            small = image.resize((80, 80))
-            arr   = np.asarray(small).reshape(-1, 3)
-            bins  = np.clip((arr // 32) * 32 + 16, 0, 255).astype(np.uint8)
-            colors, counts = np.unique(bins, axis=0, return_counts=True)
-            order = np.argsort(counts)[::-1][:count]
-            return [f"#{r:02X}{g:02X}{b:02X}" for r, g, b in colors[order]]
+            bins = {}
+            small = image.resize((80, 80)).convert("RGB")
+            pixels = (
+                small.get_flattened_data()
+                if hasattr(small, "get_flattened_data")
+                else small.getdata()
+            )
+            for r, g, b in pixels:
+                key = (
+                    min(255, (int(r) // 32) * 32 + 16),
+                    min(255, (int(g) // 32) * 32 + 16),
+                    min(255, (int(b) // 32) * 32 + 16),
+                )
+                bins[key] = bins.get(key, 0) + 1
+            ordered = sorted(bins.items(), key=lambda item: item[1], reverse=True)
+            return [f"#{r:02X}{g:02X}{b:02X}" for (r, g, b), _ in ordered[:count]]
 
         def infer_style(text: str) -> dict:
             t = text.lower()
@@ -623,6 +672,9 @@ class Florence2Plugin(ModelPlugin):
             return direction, setting
 
         def to_ideogram(bbox_px):
+            bbox_px = normalize_bbox(bbox_px)
+            if bbox_px is None:
+                return None
             x1, y1, x2, y2 = bbox_px
             return [
                 round(y1 / H * 1000), round(x1 / W * 1000),
@@ -630,9 +682,13 @@ class Florence2Plugin(ModelPlugin):
             ]
 
         def area(b):
+            if not b or len(b) != 4:
+                return 0
             return max(0, b[2] - b[0]) * max(0, b[3] - b[1])
 
         def iou(a, b):
+            if not a or not b or len(a) != 4 or len(b) != 4:
+                return 0.0
             iy1, ix1 = max(a[0], b[0]), max(a[1], b[1])
             iy2, ix2 = min(a[2], b[2]), min(a[3], b[3])
             inter = max(0, iy2 - iy1) * max(0, ix2 - ix1)
@@ -647,7 +703,7 @@ class Florence2Plugin(ModelPlugin):
             dense_data.get("labels", []),
         ):
             ib = to_ideogram(bbox_px)
-            if area(ib) > 40:
+            if ib and area(ib) > 40:
                 dense_items.append({"bbox": ib, "description": label})
 
         # ---- build elements from OD, enriched by dense descriptions ----
@@ -656,7 +712,11 @@ class Florence2Plugin(ModelPlugin):
         od_bboxes = od_data.get("bboxes", [])
         od_labels = od_data.get("labels", [])
         if od_bboxes:
-            od_items = list(zip(od_bboxes, od_labels))
+            od_items = []
+            for bbox_px, label in zip(od_bboxes, od_labels):
+                box = normalize_bbox(bbox_px)
+                if box is not None:
+                    od_items.append((box, label))
             persons = [(b, l) for b, l in od_items if is_person_label(l)]
             faces   = [(b, l) for b, l in od_items if is_face_label(l)]
             others  = [(b, l) for b, l in od_items
@@ -668,7 +728,7 @@ class Florence2Plugin(ModelPlugin):
             # Detected face boxes — a person box with NO face inside it is the
             # most reliable signal that the figure is turned away (back to camera);
             # Florence's region captions rarely state orientation explicitly.
-            face_ibs = [to_ideogram(b) for b, _ in faces]
+            face_ibs = [ib for ib in (to_ideogram(b) for b, _ in faces) if ib]
 
             def _articled(text: str) -> str:
                 return text if re.match(r"^(a |an |the )", text.lower()) else f"a {text}"
@@ -725,6 +785,8 @@ class Florence2Plugin(ModelPlugin):
             # ---- faces: reuse the containing person's gender/facing when possible ----
             for bbox_px, label in faces:
                 ib = to_ideogram(bbox_px)
+                if not ib:
+                    continue
                 match, best_ov = None, 0.0
                 for pi in person_infos:
                     if bbox_contains_center(pi["ib"], ib):
@@ -751,6 +813,8 @@ class Florence2Plugin(ModelPlugin):
             # ---- other objects: enrich from dense region captions ----
             for bbox_px, label in others:
                 ib   = to_ideogram(bbox_px)
+                if not ib:
+                    continue
                 desc = label
                 if dense_items:
                     best = max(dense_items, key=lambda d: iou(ib, d["bbox"]))
@@ -788,7 +852,7 @@ class Florence2Plugin(ModelPlugin):
                 if part not in lab and lab not in part:
                     continue              # keep only the queried part
                 ib = to_ideogram(bbox_px)
-                if area(ib) < 4:          # drop degenerate boxes
+                if not ib or area(ib) < 4:          # drop degenerate boxes
                     continue
                 owner = next(
                     (pi for pi in person_infos if bbox_contains_center(pi["ib"], ib)),
@@ -814,6 +878,9 @@ class Florence2Plugin(ModelPlugin):
             ocr_data.get("quad_boxes", []),
             ocr_data.get("labels", []),
         ):
+            quad = normalize_quad(quad)
+            if not quad:
+                continue
             xs = [quad[i] for i in range(0, 8, 2)]
             ys = [quad[i] for i in range(1, 8, 2)]
             ib = [
@@ -887,15 +954,17 @@ class Florence2Plugin(ModelPlugin):
                 "<REFERRING_EXPRESSION_COMPREHENSION>the main light source",
             )
             light_bbox_px = (rec_result.get("<REFERRING_EXPRESSION_COMPREHENSION>") or {}).get("bboxes", [[]])[0]
+            light_bbox_px = normalize_bbox(light_bbox_px)
             if light_bbox_px:
                 light_ib   = to_ideogram(light_bbox_px)
-                light_desc = region_description(light_bbox_px) or "light source"
-                light_dir, light_setting = detect_lighting(caption)
-                light_element = {
-                    "type": "obj",
-                    "bbox": light_ib,
-                    "desc": f"{light_desc} ({light_setting}, from {light_dir})",
-                }
+                if light_ib:
+                    light_desc = region_description(light_bbox_px) or "light source"
+                    light_dir, light_setting = detect_lighting(caption)
+                    light_element = {
+                        "type": "obj",
+                        "bbox": light_ib,
+                        "desc": f"{light_desc} ({light_setting}, from {light_dir})",
+                    }
         except Exception:
             pass
         if light_element is None:

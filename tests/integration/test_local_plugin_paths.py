@@ -136,6 +136,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "BiRefNetRMBG": {},
                 "DownloadAndLoadFlorence2Model": {},
                 "Florence2Run": {},
+                "PreviewAny": {},
                 "LoadAudio": {},
                 "AudioSeparation": {},
                 "SaveAudio": {},
@@ -958,17 +959,18 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            florence_data = {
+                "bboxes": [[10, 20, 80, 120]],
+                "labels": ["person"],
+            }
             return self._json({
                 "prompt-1": {
                     "outputs": {
-                        "3": {
-                            "text": ["A person stands in warm local light."],
-                            "data": [
-                                {
-                                    "bboxes": [[10, 20, 80, 120]],
-                                    "labels": ["person"],
-                                }
-                            ],
+                        "4": {
+                            "ui": {"text": ["A person stands in warm local light."]},
+                        },
+                        "5": {
+                            "ui": {"text": [json.dumps(florence_data)]},
                         }
                     }
                 }
@@ -1277,6 +1279,10 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(RuntimeHandler.comfy_prompts[0]["1"]["inputs"]["image"], "uploaded_source.png")
         self.assertEqual(RuntimeHandler.comfy_prompts[0]["3"]["inputs"]["task"], "more_detailed_caption")
         self.assertEqual(RuntimeHandler.comfy_prompts[0]["3"]["inputs"]["seed"], 123)
+        self.assertEqual(RuntimeHandler.comfy_prompts[0]["4"]["class_type"], "PreviewAny")
+        self.assertEqual(RuntimeHandler.comfy_prompts[0]["4"]["inputs"]["source"], ["3", 2])
+        self.assertEqual(RuntimeHandler.comfy_prompts[0]["5"]["class_type"], "PreviewAny")
+        self.assertEqual(RuntimeHandler.comfy_prompts[0]["5"]["inputs"]["source"], ["3", 3])
         self.assertTrue(
             any(prompt["3"]["inputs"]["task"] == "caption_to_phrase_grounding"
                 for prompt in RuntimeHandler.comfy_prompts)

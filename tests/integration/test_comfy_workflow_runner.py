@@ -281,17 +281,18 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 node.get("class_type") == "Florence2Run"
                 for node in ComfyHandler.last_prompt.values()
             ):
+                florence_data = {
+                    "bboxes": [[10, 20, 80, 120]],
+                    "labels": ["person"],
+                }
                 return self._json({
                     "prompt-1": {
                         "outputs": {
-                            "3": {
-                                "text": ["A person stands in warm local light."],
-                                "data": [
-                                    {
-                                        "bboxes": [[10, 20, 80, 120]],
-                                        "labels": ["person"],
-                                    }
-                                ],
+                            "4": {
+                                "ui": {"text": ["A person stands in warm local light."]},
+                            },
+                            "5": {
+                                "ui": {"text": [json.dumps(florence_data)]},
                             }
                         }
                     }
@@ -1266,6 +1267,10 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
         self.assertEqual(prompt["3"]["inputs"]["task"], "more_detailed_caption")
         self.assertEqual(prompt["3"]["inputs"]["seed"], 123)
+        self.assertEqual(prompt["4"]["class_type"], "PreviewAny")
+        self.assertEqual(prompt["4"]["inputs"]["source"], ["3", 2])
+        self.assertEqual(prompt["5"]["class_type"], "PreviewAny")
+        self.assertEqual(prompt["5"]["inputs"]["source"], ["3", 3])
 
     def test_audio_stem_split_pack_uploads_audio_and_collects_four_outputs(self):
         ComfyHandler.reset(_stem_split_object_info())

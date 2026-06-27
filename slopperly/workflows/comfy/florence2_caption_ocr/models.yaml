@@ -9,6 +9,7 @@ required_custom_nodes:
   - id: comfyui_core
     classes:
       - LoadImage
+      - PreviewAny
 model_files:
   LLM:
     - Florence-2-large/config.json

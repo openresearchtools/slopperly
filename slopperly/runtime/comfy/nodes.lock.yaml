@@ -55,6 +55,7 @@ comfyui:
     - ImageUpscaleWithModel
     - ImageScale
     - SaveImage
+    - PreviewAny
     - LoadAudio
     - SaveAudio
 custom_nodes:
