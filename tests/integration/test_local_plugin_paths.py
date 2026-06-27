@@ -57,6 +57,9 @@ def install_plugin_import_harness() -> None:
     helpers.clean_filename = lambda value: re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_")
     helpers.solve_path = lambda filename: str(Path(tempfile.gettempdir()) / filename)
     helpers.remove_duplicate_phrases = lambda text: text
+    helpers.ILLUMINATION_OPTIONS = {
+        "golden time": "Warm golden hour lighting with enhanced warm colors and soft shadows",
+    }
     helpers.find_strip_by_name = _find_strip_by_name
     helpers.get_strip_path = _get_strip_path
     sys.modules[f"{TEST_PACKAGE}.utils.helpers"] = helpers
@@ -497,6 +500,28 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "images": [
                                     {
                                         "filename": "slopperly_omnigen_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "LoraLoaderModelOnly"
+                and (node.get("inputs") or {}).get("lora_name")
+                == "relighting-kontext-dev-lora-v3.safetensors"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "136": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_kontext_relight_00001_.png",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -2064,6 +2089,65 @@ class LocalPluginPathTests(unittest.TestCase):
         prompt = RuntimeHandler.comfy_prompts[-1]
         self.assertEqual(prompt["142"]["inputs"]["image"], "uploaded_source.png")
         self.assertIn(b'filename="slopperly_image_', RuntimeHandler.comfy_uploads[-1])
+
+    def test_kontext_relight_uses_comfy_lora_plugin_path(self):
+        module = load_plugin_module("image", "kontext_relight")
+        plugin = module.KontextRelightPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local relight source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="",
+                image=str(source),
+                width=1024,
+                height=768,
+                steps=28,
+                guidance=3.5,
+                seed=6401,
+                frames=1,
+            )
+            scene = SimpleNamespace(
+                illumination_style="golden time",
+                light_direction="left",
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        expected_prompt = (
+            "Relight the image with golden time lighting coming from the left. "
+            "Warm golden hour lighting with enhanced warm colors and soft shadows "
+            "Maintain the identity of the foreground subjects."
+        )
+        self.assertEqual(prompt["142"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["188"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["188"]["inputs"]["height"], 768)
+        self.assertEqual(prompt["37"]["inputs"]["unet_name"], "flux1-dev-kontext_fp8_scaled.safetensors")
+        self.assertEqual(prompt["37"]["inputs"]["weight_dtype"], "default")
+        self.assertEqual(prompt["50"]["inputs"]["lora_name"], "relighting-kontext-dev-lora-v3.safetensors")
+        self.assertEqual(prompt["50"]["inputs"]["strength_model"], 0.75)
+        self.assertEqual(prompt["38"]["inputs"]["clip_name1"], "clip_l.safetensors")
+        self.assertEqual(prompt["38"]["inputs"]["clip_name2"], "t5xxl_fp8_e4m3fn_scaled.safetensors")
+        self.assertEqual(prompt["38"]["inputs"]["type"], "flux")
+        self.assertEqual(prompt["39"]["inputs"]["vae_name"], "ae.safetensors")
+        self.assertEqual(prompt["6"]["inputs"]["text"], expected_prompt)
+        self.assertEqual(prompt["35"]["inputs"]["guidance"], 3.5)
+        self.assertEqual(prompt["31"]["inputs"]["seed"], 6401)
+        self.assertEqual(prompt["31"]["inputs"]["steps"], 28)
+        self.assertEqual(prompt["31"]["inputs"]["cfg"], 1.0)
+        self.assertEqual(prompt["31"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["31"]["inputs"]["scheduler"], "simple")
+        self.assertEqual(prompt["31"]["inputs"]["denoise"], 1.0)
+        self.assertEqual(prompt["42"]["class_type"], "FluxKontextImageScale")
+        self.assertEqual(prompt["177"]["class_type"], "ReferenceLatent")
+        self.assertEqual(prompt["135"]["class_type"], "ConditioningZeroOut")
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
 
     def test_flux2_klein_4b_uses_comfy_t2i_and_edit_plugin_paths(self):
         module = load_plugin_module("image", "flux2_klein_4b")

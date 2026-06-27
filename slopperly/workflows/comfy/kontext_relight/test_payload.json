@@ -1,0 +1,12 @@
+{
+  "prompt": "",
+  "image": "tests/fixtures/vsr_source.ppm",
+  "illumination_style": "golden time",
+  "light_direction": "left",
+  "width": 1024,
+  "height": 1024,
+  "steps": 28,
+  "guidance": 3.5,
+  "seed": 6401,
+  "frames": 1
+}

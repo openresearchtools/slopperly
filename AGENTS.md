@@ -1087,3 +1087,14 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: workflow-runner integration coverage verifies the committed Kontext pack directly, and `tests/gpu/test_flux_kontext.py` now performs a plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with FLUX Kontext-capable core node classes and `flux1-dev-kontext_fp8_scaled.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors` installed locally.
 - Still blocked: the committed workflow is the official reference-latent edit path; the old inpaint mask and image strength controls remain non-breaking UI inputs and are recorded as unmapped until separate local Comfy graphs are certified for those controls.
+
+### 2026-06-27 Kontext Relight Comfy workflow block
+
+- Completed: `image/kontext_relight.py` now routes `kontext-community/relighting-kontext-dev-lora-v3` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution in the add-on process.
+- Completed: the existing prompt, image strip, resolution, frames, steps, guidance, illumination style, light direction, and seed UI sections remain present; the wrapper preserves the legacy relight prompt builder using `ILLUMINATION_OPTIONS`.
+- Completed: `kontext_relight` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Completed: the workflow uses Comfy core `LoadImage`, `UNETLoader`, `LoraLoaderModelOnly`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `FluxKontextImageScale`, `VAEEncode`, `ReferenceLatent`, `ConditioningZeroOut`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `flux1-dev-kontext_fp8_scaled.safetensors`, `relighting-kontext-dev-lora-v3.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors`.
+- Evidence: integration coverage calls `KontextRelightPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus PNG artifact collection.
+- Evidence: workflow-runner integration coverage verifies the committed Relight pack directly, and `tests/gpu/test_kontext_relight.py` now performs a plugin-path certification attempt.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with FLUX Kontext-capable core node classes and `flux1-dev-kontext_fp8_scaled.safetensors`, `relighting-kontext-dev-lora-v3.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors` installed locally.

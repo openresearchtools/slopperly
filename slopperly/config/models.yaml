@@ -448,6 +448,62 @@ models:
     workflows:
       - flux_kontext_edit
       - image/flux_kontext.py
+  - logical_name: kontext_relight
+    legacy_aliases:
+      - kontext-community/relighting-kontext-dev-lora-v3
+    task: image_relight
+    runtime: comfy
+    model_source: https://huggingface.co/Comfy-Org/flux1-kontext-dev_ComfyUI
+    download_mode: hf_file
+    local_cache_path: models/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors
+    required_files:
+      - path: split_files/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors
+        target: flux1-dev-kontext_fp8_scaled.safetensors
+    auxiliary_sources:
+      - id: kontext_relight_lora
+        model_source: https://huggingface.co/kontext-community/relighting-kontext-dev-lora-v3
+        download_mode: hf_file
+        local_cache_path: models/loras/relighting-kontext-dev-lora-v3.safetensors
+        required_files:
+          - relighting-kontext-dev-lora-v3.safetensors
+      - id: kontext_relight_clip_l
+        model_source: https://huggingface.co/comfyanonymous/flux_text_encoders
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/clip_l.safetensors
+        required_files:
+          - clip_l.safetensors
+      - id: kontext_relight_t5_fp8
+        model_source: https://huggingface.co/comfyanonymous/flux_text_encoders
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors
+        required_files:
+          - t5xxl_fp8_e4m3fn_scaled.safetensors
+      - id: kontext_relight_vae
+        model_source: https://huggingface.co/black-forest-labs/FLUX.1-schnell
+        download_mode: hf_file
+        local_cache_path: models/vae/ae.safetensors
+        required_files:
+          - ae.safetensors
+    required_node_pack: comfyui core FLUX Kontext edit + Relight LoRA
+    supported_resolutions:
+      - 1024x1024
+      - 1280x720
+      - 720x1280
+    default_parameters:
+      steps: 28
+      guidance: 3.5
+      cfg: 1.0
+      sampler: euler
+      scheduler: simple
+      denoise: 1.0
+      lora_strength: 0.75
+      fp8_weight_dtype: default
+      fps: null
+    minimum_vram_gb: 20
+    validation_command: pytest tests/gpu/test_kontext_relight.py --device cuda
+    workflows:
+      - kontext_relight
+      - image/kontext_relight.py
   - logical_name: zimage_t2i_i2i
     legacy_aliases:
       - Tongyi-MAI/Z-Image

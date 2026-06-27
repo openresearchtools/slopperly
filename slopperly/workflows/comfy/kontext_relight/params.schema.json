@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "workflow_id": "kontext_relight",
+  "description": "Patch schema for FLUX Kontext relighting through local ComfyUI and a pinned Relight LoRA.",
+  "inputs": {
+    "kontext_relight_prompt": [
+      {
+        "node": "6",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "188",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "188",
+        "input": "height"
+      }
+    ],
+    "steps": [
+      {
+        "node": "31",
+        "input": "steps"
+      }
+    ],
+    "seed": [
+      {
+        "node": "31",
+        "input": "seed"
+      }
+    ],
+    "kontext_relight_cfg": [
+      {
+        "node": "31",
+        "input": "cfg"
+      }
+    ],
+    "kontext_relight_sampler": [
+      {
+        "node": "31",
+        "input": "sampler_name"
+      }
+    ],
+    "kontext_relight_scheduler": [
+      {
+        "node": "31",
+        "input": "scheduler"
+      }
+    ],
+    "kontext_relight_denoise": [
+      {
+        "node": "31",
+        "input": "denoise"
+      }
+    ],
+    "kontext_relight_flux_guidance": [
+      {
+        "node": "35",
+        "input": "guidance"
+      }
+    ],
+    "kontext_relight_model": [
+      {
+        "node": "37",
+        "input": "unet_name"
+      }
+    ],
+    "kontext_relight_weight_dtype": [
+      {
+        "node": "37",
+        "input": "weight_dtype"
+      }
+    ],
+    "kontext_relight_clip_l": [
+      {
+        "node": "38",
+        "input": "clip_name1"
+      }
+    ],
+    "kontext_relight_t5": [
+      {
+        "node": "38",
+        "input": "clip_name2"
+      }
+    ],
+    "kontext_relight_clip_type": [
+      {
+        "node": "38",
+        "input": "type"
+      }
+    ],
+    "kontext_relight_vae": [
+      {
+        "node": "39",
+        "input": "vae_name"
+      }
+    ],
+    "kontext_relight_lora": [
+      {
+        "node": "50",
+        "input": "lora_name"
+      }
+    ],
+    "kontext_relight_lora_strength": [
+      {
+        "node": "50",
+        "input": "strength_model"
+      }
+    ]
+  },
+  "uploads": {
+    "image": [
+      {
+        "node": "142",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "prompt": "The plugin combines the visible prompt, illumination style, light direction, and subject-preservation instruction into kontext_relight_prompt before patching node 6.",
+    "illumination_style": "Mapped in the plugin prompt builder to a natural-language relight instruction using the existing ILLUMINATION_OPTIONS table.",
+    "light_direction": "Mapped in the plugin prompt builder to a natural-language direction phrase when not set to auto.",
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "negative_prompt": "FLUX Kontext's official reference graph derives negative conditioning by zeroing the positive prompt conditioning with ConditioningZeroOut."
+  },
+  "outputs": [
+    {
+      "node": "136",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ]
+}

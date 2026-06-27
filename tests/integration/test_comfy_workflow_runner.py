@@ -316,6 +316,27 @@ class ComfyHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
+                node.get("class_type") == "LoraLoaderModelOnly"
+                and (node.get("inputs") or {}).get("lora_name")
+                == "relighting-kontext-dev-lora-v3.safetensors"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "136": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_kontext_relight_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
                 node.get("class_type") == "UNETLoader"
                 and (node.get("inputs") or {}).get("unet_name")
                 == "flux1-dev-kontext_fp8_scaled.safetensors"
@@ -702,6 +723,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "flux1_depth" in parsed.query
                 or "flux_kontext" in parsed.query
                 or "flux_redux" in parsed.query
+                or "kontext_relight" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
@@ -896,6 +918,15 @@ def _flux_redux_object_info() -> dict:
 def _flux_kontext_object_info() -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy/flux_kontext_edit/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _kontext_relight_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/kontext_relight/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -2611,6 +2642,77 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["6"]["inputs"]["text"], "turn the cup red while preserving the table layout")
         self.assertEqual(prompt["35"]["inputs"]["guidance"], 3.5)
         self.assertEqual(prompt["31"]["inputs"]["seed"], 6301)
+        self.assertEqual(prompt["31"]["inputs"]["steps"], 28)
+        self.assertEqual(prompt["31"]["inputs"]["cfg"], 1.0)
+        self.assertEqual(prompt["31"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["31"]["inputs"]["scheduler"], "simple")
+        self.assertEqual(prompt["31"]["inputs"]["denoise"], 1.0)
+        self.assertEqual(prompt["42"]["class_type"], "FluxKontextImageScale")
+        self.assertEqual(prompt["177"]["class_type"], "ReferenceLatent")
+        self.assertEqual(prompt["135"]["class_type"], "ConditioningZeroOut")
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+
+    def test_kontext_relight_pack_uploads_reference_and_patches_lora_graph(self):
+        ComfyHandler.reset(_kontext_relight_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            destination = Path(tmp) / "kontext_relight.png"
+            source.write_bytes(b"local relight source image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                image=str(source),
+                width=1024,
+                height=768,
+                seed=6401,
+                steps=28,
+                kontext_relight_prompt=(
+                    "Relight the image with golden time lighting coming from the left. "
+                    "Warm golden hour lighting with enhanced warm colors and soft shadows "
+                    "Maintain the identity of the foreground subjects."
+                ),
+                kontext_relight_cfg=1.0,
+                kontext_relight_sampler="euler",
+                kontext_relight_scheduler="simple",
+                kontext_relight_denoise=1.0,
+                kontext_relight_flux_guidance=3.5,
+                kontext_relight_model="flux1-dev-kontext_fp8_scaled.safetensors",
+                kontext_relight_weight_dtype="default",
+                kontext_relight_lora="relighting-kontext-dev-lora-v3.safetensors",
+                kontext_relight_lora_strength=0.75,
+                kontext_relight_clip_l="clip_l.safetensors",
+                kontext_relight_t5="t5xxl_fp8_e4m3fn_scaled.safetensors",
+                kontext_relight_clip_type="flux",
+                kontext_relight_vae="ae.safetensors",
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/kontext_relight",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 1)
+        self.assertEqual(prompt["142"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["188"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["188"]["inputs"]["height"], 768)
+        self.assertEqual(prompt["37"]["inputs"]["unet_name"], "flux1-dev-kontext_fp8_scaled.safetensors")
+        self.assertEqual(prompt["37"]["inputs"]["weight_dtype"], "default")
+        self.assertEqual(prompt["50"]["inputs"]["lora_name"], "relighting-kontext-dev-lora-v3.safetensors")
+        self.assertEqual(prompt["50"]["inputs"]["strength_model"], 0.75)
+        self.assertEqual(prompt["38"]["inputs"]["clip_name1"], "clip_l.safetensors")
+        self.assertEqual(prompt["38"]["inputs"]["clip_name2"], "t5xxl_fp8_e4m3fn_scaled.safetensors")
+        self.assertEqual(prompt["38"]["inputs"]["type"], "flux")
+        self.assertEqual(prompt["39"]["inputs"]["vae_name"], "ae.safetensors")
+        self.assertIn("golden time lighting", prompt["6"]["inputs"]["text"])
+        self.assertEqual(prompt["35"]["inputs"]["guidance"], 3.5)
+        self.assertEqual(prompt["31"]["inputs"]["seed"], 6401)
         self.assertEqual(prompt["31"]["inputs"]["steps"], 28)
         self.assertEqual(prompt["31"]["inputs"]["cfg"], 1.0)
         self.assertEqual(prompt["31"]["inputs"]["sampler_name"], "euler")
