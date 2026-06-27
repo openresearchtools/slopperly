@@ -48,6 +48,7 @@ class RemoteBackendClient:
                 "No backend URL configured. Set the add-on preference "
                 "'Remote Backend URL' or the PALLAIDIUM_BACKEND_URL env var."
             )
+        _assert_local_backend_url(base_url)
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key or ""
         # Short timeout for health/poll/download; longer one for the submit POST
@@ -309,6 +310,19 @@ def client_from_prefs(prefs, timeout: float = 60.0) -> RemoteBackendClient:
         "PALLAIDIUM_BACKEND_KEY", ""
     )
     return RemoteBackendClient(url, key, timeout=timeout)
+
+
+def _assert_local_backend_url(base_url: str) -> None:
+    """Reject cloud/non-local inference endpoints in production Slopperly."""
+    parsed = urllib.parse.urlparse(base_url)
+    if parsed.scheme not in {"http", "https"}:
+        raise RemoteBackendError(f"Backend URL must be http(s), got {base_url!r}.")
+    host = (parsed.hostname or "").lower()
+    if host not in {"127.0.0.1", "localhost", "::1"}:
+        raise RemoteBackendError(
+            "Slopperly production backends must be local-only. "
+            f"Refusing non-local backend URL: {base_url!r}."
+        )
 
 
 # ---------------------------------------------------------------------------

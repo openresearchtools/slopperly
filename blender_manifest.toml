@@ -70,7 +70,7 @@ paths_exclude_pattern = [
   "__pycache__/",
   "/.git/",
   "/*.zip",
-  # Example remote-backend servers (mock + fal.ai adapter): shipped in the repo
+  # Local backend server examples and ComfyUI bridge.
   # for the tutorial, but not part of the installable add-on.
   "/remote_backends/",
   # Dev/test artifacts.

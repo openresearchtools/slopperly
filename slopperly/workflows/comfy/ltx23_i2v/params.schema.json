@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "workflow_id": "ltx23_i2v",
+  "description": "Patch schema for the committed LTX 2.3 Q5 image-to-video API workflow.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "11",
+        "input": "text"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "12",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "8",
+        "input": "width"
+      },
+      {
+        "node": "14",
+        "input": "width"
+      },
+      {
+        "node": "36",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "8",
+        "input": "height"
+      },
+      {
+        "node": "14",
+        "input": "height"
+      },
+      {
+        "node": "36",
+        "input": "height"
+      }
+    ],
+    "frames": [
+      {
+        "node": "14",
+        "input": "length"
+      },
+      {
+        "node": "16",
+        "input": "frames_number"
+      }
+    ],
+    "fps": [
+      {
+        "node": "13",
+        "input": "frame_rate"
+      },
+      {
+        "node": "16",
+        "input": "frame_rate"
+      },
+      {
+        "node": "37",
+        "input": "fps"
+      }
+    ],
+    "strength": [
+      {
+        "node": "15",
+        "input": "strength"
+      }
+    ],
+    "seed": [
+      {
+        "node": "19",
+        "input": "noise_seed"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "steps": "The committed workflow uses ManualSigmas at node 21 instead of a direct steps input.",
+    "guidance": "The committed workflow uses BasicGuider without a direct CFG input."
+  },
+  "output": {
+    "node": "38",
+    "type": "video/mp4",
+    "contract": "Return the first SaveVideo artifact as the generated MP4 path."
+  }
+}

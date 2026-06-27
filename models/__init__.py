@@ -225,11 +225,17 @@ def discover(plugins_dir: Path = _PLUGINS_DIR) -> None:
             _PLUGIN_ORIGIN[inst.MODEL_ID] = "local"
 
             media_type = inst.MODEL_TYPE
-            if media_type in _ENUM_ITEMS:
+            visible = bool(getattr(inst, "production_visible", True))
+            if media_type in _ENUM_ITEMS and visible:
                 _ENUM_ITEMS[media_type].append(
                     (inst.MODEL_ID, inst.DISPLAY_NAME, inst.DESCRIPTION)
                 )
                 print(f"[Pallaidium] Registered {media_type} plugin: {inst.MODEL_ID}")
+            elif media_type in _ENUM_ITEMS:
+                print(
+                    f"[Pallaidium] Registered hidden compatibility alias: "
+                    f"{inst.MODEL_ID} -> {getattr(inst, 'alias_target', '') or 'local runtime'}"
+                )
             else:
                 print(
                     f"[Pallaidium] Plugin {inst.MODEL_ID!r} has unknown "

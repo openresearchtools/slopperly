@@ -1,0 +1,24 @@
+comfyui:
+  runtime: comfy
+  host: 127.0.0.1
+  port: 8188
+  owned_runtime_path: .slopperly/runtimes/ComfyUI
+  node_lock: slopperly/runtime/comfy/nodes.lock.yaml
+vllm:
+  runtime: vllm
+  host: 127.0.0.1
+  port: 8090
+  venv: .slopperly/vllm-venv
+vllm_omni:
+  runtime: vllm_omni
+  host: 127.0.0.1
+  port: 8091
+  venv: .slopperly/vllm-omni-venv
+llamacpp:
+  runtime: llamacpp
+  host: 127.0.0.1
+  port: 8092
+  context_length_default: 60000
+  max_new_tokens_default: 30000
+  release: b9803
+  artifact: ubuntu-x64-cuda13

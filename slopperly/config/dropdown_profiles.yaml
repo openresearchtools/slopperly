@@ -1,0 +1,16 @@
+production_hidden_aliases:
+  google/nano-banana:
+    replacement_workflow: qwen_image_edit_2511_multi_gguf
+    reason: saved-project compatibility alias for local Qwen Image Edit
+  google/veo:
+    replacement_workflow: wan22_ti2v_5b_720p24_gguf
+    reason: saved-project compatibility alias for local Wan/LTX video
+  Hailuo/MiniMax/txt2vid:
+    replacement_workflow: wan22_ti2v_5b_720p24_gguf
+    reason: saved-project compatibility alias for local Wan TI2V
+  Hailuo/MiniMax/img2vid:
+    replacement_workflow: wan22_ti2v_5b_720p24_gguf
+    reason: saved-project compatibility alias for local Wan TI2V
+  Hailuo/MiniMax/subject2vid:
+    replacement_workflow: ltx23_ic_lora_subject_i2v
+    reason: saved-project compatibility alias for local reference-video workflow

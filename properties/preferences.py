@@ -248,13 +248,6 @@ class GeneratorAddonPreferences(AddonPreferences):
         default="hugginface_token",
         subtype="PASSWORD",
     )
-    gemini_api_key: bpy.props.StringProperty(
-        name="Google Gemini API Key",
-        description="API key for Google Gemini cloud models (Nano Banana image, Veo video). "
-                    "Falls back to the GEMINI_API_KEY environment variable if left empty.",
-        default="",
-        subtype="PASSWORD",
-    )
     # ---- Remote backend (OpenAI-/v1-dialect Backend Contract) -------------
     model_source: EnumProperty(
         name="Model Source",
@@ -276,9 +269,8 @@ class GeneratorAddonPreferences(AddonPreferences):
         default="",
     )
     remote_backend_key: bpy.props.StringProperty(
-        name="Remote Backend Key",
-        description="API key for the remote backend / fal.ai. Falls back to the "
-                    "PALLAIDIUM_BACKEND_KEY environment variable if left empty",
+        name="Local Backend Key",
+        description="Optional shared secret for a self-hosted localhost backend",
         default="",
         subtype="PASSWORD",
     )
@@ -289,9 +281,31 @@ class GeneratorAddonPreferences(AddonPreferences):
         items=_remote_adapter_items,
     )
     comfyui_url: StringProperty(
-        name="ComfyUI URL",
-        description="Address of your running ComfyUI server (start ComfyUI first)",
+        name="Owned ComfyUI URL",
+        description="Local Slopperly-owned ComfyUI API URL",
         default="http://127.0.0.1:8188",
+    )
+    vllm_url: StringProperty(
+        name="vLLM URL",
+        description="Local vLLM API URL for STT/VLM",
+        default="http://127.0.0.1:8090",
+    )
+    vllm_omni_url: StringProperty(
+        name="vLLM-Omni URL",
+        description="Local vLLM-Omni API URL for TTS and voice cloning",
+        default="http://127.0.0.1:8091",
+    )
+    llamacpp_url: StringProperty(
+        name="llama.cpp URL",
+        description="Local llama.cpp server URL for chat and prompt rewriting",
+        default="http://127.0.0.1:8092",
+    )
+    slopperly_runtime_root: StringProperty(
+        name="Runtime Root",
+        description="Directory for Slopperly-owned local runtime installs",
+        subtype="DIR_PATH",
+        default=os.path.join(os.path.expanduser("~"), ".slopperly", "runtimes"),
+        maxlen=1024,
     )
     # Remote-backend runtime state (SKIP_SAVE — reset each session)
     adapter_running:     BoolProperty(default=False, options={'SKIP_SAVE'})
@@ -422,58 +436,14 @@ class GeneratorAddonPreferences(AddonPreferences):
             box.prop(self, "audio_model_card")
         except:
             pass
-        row = box.row(align=True)
-        row.prop(self, "gemini_api_key")
-        row.operator(
-            "wm.url_open", text="", icon="URL"
-        ).url = "https://aistudio.google.com/apikey"
-
-        # ---- Remote backend ----------------------------------------------
+        # ---- Local runtime endpoints --------------------------------------
         rb = box.box()
-        rb.label(text="Remote Backend (OpenAI-/v1-dialect)", icon="WORLD")
-        rb.prop(self, "model_source")
-        if self.model_source in {"REMOTE", "BOTH"}:
-            from ..utils.adapter_launcher import get_manifest
-            rb.prop(self, "remote_adapter")
-            adapter_id = self.remote_adapter
-            man = None if adapter_id == "CUSTOM" else get_manifest(adapter_id)
-
-            # Per-adapter configuration.
-            if adapter_id == "CUSTOM":
-                rb.prop(self, "remote_backend_url")
-                rb.prop(self, "remote_backend_key")
-            else:
-                if man and man.get("description"):
-                    col = rb.column(align=True)
-                    col.scale_y = 0.7
-                    for line in _wrap_text(man["description"], 64):
-                        col.label(text=line)
-                for f in (man.get("config_fields") if man else None) or []:
-                    pref = f.get("pref")
-                    if pref and hasattr(self, pref):
-                        rb.prop(self, pref)
-
-            # Start / Stop + Refresh.
-            row = rb.row(align=True)
-            if self.adapter_running and adapter_id != "CUSTOM":
-                row.operator("pallaidium.stop_backend",
-                             text="Stop Backend", icon="CANCEL")
-                row.operator("pallaidium.refresh_remote_models",
-                             text="Refresh Models", icon="FILE_REFRESH")
-            else:
-                txt = "Connect & Load Models" if adapter_id == "CUSTOM" else "Start Backend"
-                row.operator("pallaidium.start_backend", text=txt, icon="PLAY")
-
-            if self.adapter_status_line:
-                rb.label(text=self.adapter_status_line, icon="INFO")
-
-            # ComfyUI: add / browse workflow files without leaving Blender.
-            if man and man.get("supports_workflow_import"):
-                wf = rb.row(align=True)
-                wf.operator("pallaidium.import_comfy_workflow",
-                            text="Import Workflow", icon="IMPORT")
-                wf.operator("pallaidium.open_workflows_folder",
-                            text="Open Folder", icon="FILE_FOLDER")
+        rb.label(text="Local Runtimes", icon="PREFERENCES")
+        rb.prop(self, "slopperly_runtime_root")
+        rb.prop(self, "comfyui_url")
+        rb.prop(self, "vllm_url")
+        rb.prop(self, "vllm_omni_url")
+        rb.prop(self, "llamacpp_url")
 
         box.prop(self, "generator_ai")
         box.prop(self, "hf_cache_dir")

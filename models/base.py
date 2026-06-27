@@ -253,6 +253,8 @@ class ModelPlugin:
     requires_main_thread:      bool = False  # True  → run generate() on main thread (bpy access needed)
     supports_batch:            bool = True   # False → hide "Batch Count" (deterministic single-output
                                              #         models: captioning, transcription, stem split, …)
+    production_visible:        bool = True   # False -> saved-project alias only; hidden from dropdowns
+    alias_target:              str = ""      # local workflow/profile used by a hidden legacy alias
 
     # -----------------------------------------------------------------------
 

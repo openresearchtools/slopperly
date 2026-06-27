@@ -57,6 +57,8 @@ def discover_adapters() -> list:
             except Exception as e:  # noqa: BLE001
                 print(f"[pallaidium] bad adapter manifest {p.name}: {e}")
                 continue
+            if m.get("production_visible") is False:
+                continue
             entry = m.get("entry")
             if not entry or not (REMOTE_BACKENDS_DIR / entry).is_file():
                 print(f"[pallaidium] manifest {p.name}: missing entry script {entry!r}")

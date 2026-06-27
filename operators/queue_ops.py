@@ -142,7 +142,6 @@ class RenderQueueJob(PropertyGroup):
 
     # Prefs snapshot
     hugginface_token: StringProperty()
-    gemini_api_key:   StringProperty()
     remote_backend_url: StringProperty()
     remote_backend_key: StringProperty()
     local_files_only: BoolProperty()
@@ -402,7 +401,6 @@ def _run_job(snapshot: dict, result_queue, cancel_event, progress_store) -> None
         # ---- Proxy objects — every field comes from the snapshot ----------
         prefs_proxy = types.SimpleNamespace(
             hugginface_token = snapshot.get("hugginface_token", ""),
-            gemini_api_key   = snapshot.get("gemini_api_key", ""),
             remote_backend_url = snapshot.get("remote_backend_url", ""),
             remote_backend_key = snapshot.get("remote_backend_key", ""),
             local_files_only = snapshot.get("local_files_only", False),
@@ -1340,7 +1338,6 @@ class SEQUENCER_OT_add_to_queue(Operator):
             ref_audio_path    = bpy.path.abspath(getattr(scene, "ref_audio_path", "") or ""),
             ref_text          = getattr(scene, "ref_text", ""),
             hugginface_token  = getattr(prefs, "hugginface_token", ""),
-            gemini_api_key    = getattr(prefs, "gemini_api_key", ""),
             remote_backend_url = getattr(prefs, "remote_backend_url", ""),
             remote_backend_key = getattr(prefs, "remote_backend_key", ""),
             local_files_only  = getattr(prefs, "local_files_only", False),
@@ -1805,7 +1802,7 @@ def _queue_start_job(scene, job) -> None:
         "chat_temperature", "fps", "music_bpm", "music_lyrics",
         "music_key_scale", "music_time_signature",
         "image_path", "movie_path", "sound_path", "last_image_path", "middle_images_json", "ref_audio_path",
-        "ref_text", "hugginface_token", "gemini_api_key",
+        "ref_text", "hugginface_token",
         "remote_backend_url", "remote_backend_key", "local_files_only", "display_console",
         "generator_ai", "hf_cache_dir", "lora_files_json", "lora_folder",
         "insert_frame_start", "insert_frame_end",

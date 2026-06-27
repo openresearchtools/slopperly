@@ -1,0 +1,87 @@
+comfyui:
+  repo: https://github.com/comfyanonymous/ComfyUI.git
+  commit: 603d891eaf045d726d9c23276b4428daf2977624
+  required_node_classes:
+    - LoadImage
+    - CLIPTextEncode
+    - VAEDecode
+    - SaveImage
+custom_nodes:
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    commit: 6ea2651e7df66d7585f6ffee804b20e92fb38b8a
+    required_node_classes:
+      - UnetLoaderGGUF
+      - UnetLoaderGGUFAdvanced
+      - CLIPLoaderGGUF
+      - DualCLIPLoaderGGUF
+      - TripleCLIPLoaderGGUF
+      - QuadrupleCLIPLoaderGGUF
+  - id: video_helper_suite
+    repo: https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git
+    commit: 4ee72c065db22c9d96c2427954dc69e7b908444b
+    required_node_classes:
+      - VHS_LoadVideo
+      - VHS_VideoCombine
+  - id: frame_interpolation
+    repo: https://github.com/Fannovel16/ComfyUI-Frame-Interpolation.git
+    commit: 26545cc2dd95bc3d27f056016300673bdeee78f5
+    required_node_classes:
+      - RIFE VFI
+      - FILM VFI
+      - AMT VFI
+      - Make Interpolation State List
+      - VFI FloatToInt
+  - id: controlnet_aux
+    repo: https://github.com/Fannovel16/comfyui_controlnet_aux.git
+    commit: e8b689a513c3e6b63edc44066560ca5919c0576e
+    required_node_classes:
+      - AIO Aux Preprocessor
+      - CannyEdgePreprocessor
+      - DepthAnythingV2Preprocessor
+  - id: advanced_controlnet
+    repo: https://github.com/Kosinkadink/ComfyUI-Advanced-ControlNet.git
+    commit: ba0795aaaa6d100f8d84a1f060df682bcc1091fa
+    required_node_classes: []
+  - id: florence2
+    repo: https://github.com/kijai/ComfyUI-Florence2.git
+    commit: 9ece3de914214c5f581d725167bc9d0eeb0d1120
+    required_node_classes:
+      - DownloadAndLoadFlorence2Model
+      - Florence2Run
+  - id: mmaudio
+    repo: https://github.com/kijai/ComfyUI-MMAudio.git
+    commit: 8eaeb72edc3aaf2059b57f2d96a1f6f689f19ae2
+    required_node_classes:
+      - MMAudioModelLoader
+      - MMAudioFeatureUtilsLoader
+      - MMAudioSampler
+      - MMAudioVoCoderLoader
+  - id: audio_separation
+    repo: https://github.com/christian-byrne/audio-separation-nodes-comfyui.git
+    commit: ac339561973f0c1e56db2f9d40f11b0fddda6763
+    required_node_classes:
+      - Audio Separation
+      - Audio Combine
+      - Audio Crop
+      - Audio Tempo Match
+      - Audio Speed Shift
+      - Audio Get Tempo
+      - Audio Video Combine
+  - id: chatterbox
+    repo: https://github.com/filliptm/ComfyUI_Fill-ChatterBox.git
+    commit: 596850bc61665e9318914841b41ee4154253f020
+    required_node_classes:
+      - FL Chatterbox TTS
+      - FL Chatterbox Turbo TTS
+      - FL Chatterbox Multilingual TTS
+      - FL Chatterbox VC
+      - FL Chatterbox Dialog TTS
+  - id: foundation_1
+    repo: https://github.com/Saganaki22/ComfyUI-Foundation-1.git
+    commit: 41f4692dd20268d40cc806989063a7a1f4b5b3fe
+    required_node_classes: []
+  - id: omnigen
+    repo: https://github.com/1038lab/ComfyUI-OmniGen.git
+    commit: 5890d3fdb7ac5b598d025a2a14fbd2d6c9d8104b
+    required_node_classes: []
