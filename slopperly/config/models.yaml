@@ -331,6 +331,39 @@ models:
     workflows:
       - ace_step_15_music
       - audio/ace_step.py
+  - logical_name: foundation1_music_loop
+    legacy_aliases:
+      - tintwotin/Foundation-1-Diffusers
+    task: text_to_music_loop
+    runtime: comfy
+    model_source: https://huggingface.co/RoyalCities/Foundation-1
+    download_mode: hf_snapshot
+    local_cache_path: models/stable_audio/Foundation-1
+    required_files:
+      - Foundation_1.safetensors
+      - model_config.json
+    required_node_pack: comfyui_foundation_1 + comfyui core audio
+    supported_resolutions: []
+    supported_fps: []
+    context_limits: {}
+    default_parameters:
+      model: Foundation-1/Foundation_1.safetensors
+      attention: auto
+      sample_rate: 44100
+      bpm: "100 BPM"
+      bars: "4 Bars"
+      key: C major
+      steps: 100
+      cfg_scale: 7.0
+      sampler_type: dpmpp-3m-sde
+      sigma_min: 0.3
+      sigma_max: 500.0
+      duration_formula: round(bars * 4 / bpm * 60)
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_foundation_music.py --device cuda
+    workflows:
+      - foundation1_music_loop
+      - audio/foundation_music.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter

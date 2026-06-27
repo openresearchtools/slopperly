@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "workflow_id": "foundation1_music_loop",
+  "description": "Patch schema for local Foundation-1 structured loop generation through ComfyUI.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "2",
+        "input": "tags"
+      }
+    ],
+    "steps": [
+      {
+        "node": "2",
+        "input": "steps"
+      }
+    ],
+    "seed": [
+      {
+        "node": "2",
+        "input": "seed"
+      }
+    ],
+    "foundation1_bpm": [
+      {
+        "node": "2",
+        "input": "bpm"
+      }
+    ],
+    "foundation1_bars": [
+      {
+        "node": "2",
+        "input": "bars"
+      }
+    ],
+    "foundation1_key": [
+      {
+        "node": "2",
+        "input": "key"
+      }
+    ],
+    "foundation1_model": [
+      {
+        "node": "1",
+        "input": "model"
+      }
+    ],
+    "foundation1_attention": [
+      {
+        "node": "1",
+        "input": "attention"
+      }
+    ],
+    "foundation1_cfg_scale": [
+      {
+        "node": "2",
+        "input": "cfg_scale"
+      }
+    ],
+    "foundation1_sampler_type": [
+      {
+        "node": "2",
+        "input": "sampler_type"
+      }
+    ],
+    "foundation1_sigma_min": [
+      {
+        "node": "2",
+        "input": "sigma_min"
+      }
+    ],
+    "foundation1_sigma_max": [
+      {
+        "node": "2",
+        "input": "sigma_max"
+      }
+    ],
+    "foundation1_unload_after_generate": [
+      {
+        "node": "2",
+        "input": "unload_after_generate"
+      }
+    ],
+    "foundation1_torch_compile": [
+      {
+        "node": "2",
+        "input": "torch_compile"
+      }
+    ],
+    "foundation1_init_noise_level": [
+      {
+        "node": "2",
+        "input": "init_noise_level"
+      }
+    ]
+  },
+  "uploads": {},
+  "unmapped_ui_parameters": {
+    "negative_prompt": "ComfyUI-Foundation-1 exposes only one structured tags input. The production plugin preserves the existing negative prompt control by folding it into the tags string as an avoidance phrase before patching node 2.tags.",
+    "audio_length": "Foundation-1 duration is derived from BPM and bar count by round(bars * 4 / bpm * 60). The production plugin maps requested audio duration to the nearest supported BPM/bar pair unless scene overrides provide foundation1_bpm and foundation1_bars.",
+    "hf_cache_dir": "Model downloads are handled by the Slopperly model manager, not by generation-time Hugging Face calls.",
+    "local_files_only": "The Comfy node must find pre-downloaded local model files; generation-time downloads are not part of the production path."
+  },
+  "output": {
+    "node": "3",
+    "type": "audio/flac",
+    "contract": "Return one readable FLAC audio artifact at 44100 Hz with duration matching the selected Foundation-1 BPM/bar mapping within tolerance."
+  }
+}

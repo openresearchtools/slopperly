@@ -1,0 +1,17 @@
+{
+  "prompt": "warm analog bass, clipped house drums, bright plucked synth, clean loop",
+  "negative_prompt": "speech, vocals, clipping",
+  "audio_length": 10.0,
+  "steps": 20,
+  "seed": 424242,
+  "foundation1_bpm": "100 BPM",
+  "foundation1_bars": "4 Bars",
+  "foundation1_key": "C minor",
+  "expected": {
+    "artifact": "audio/flac",
+    "sample_rate": 44100,
+    "duration_seconds": 10.0,
+    "duration_tolerance_seconds": 0.5,
+    "non_silent": true
+  }
+}

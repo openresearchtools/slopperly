@@ -1,0 +1,41 @@
+{
+  "1": {
+    "class_type": "Foundation1ModelLoader",
+    "inputs": {
+      "model": "Foundation-1/Foundation_1.safetensors",
+      "attention": "auto"
+    }
+  },
+  "2": {
+    "class_type": "Foundation1Generate",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "tags": "",
+      "bpm": "100 BPM",
+      "bars": "4 Bars",
+      "key": "C major",
+      "steps": 100,
+      "cfg_scale": 7.0,
+      "seed": 0,
+      "sampler_type": "dpmpp-3m-sde",
+      "sigma_min": 0.3,
+      "sigma_max": 500.0,
+      "unload_after_generate": false,
+      "torch_compile": false,
+      "init_noise_level": 0.7
+    }
+  },
+  "3": {
+    "class_type": "SaveAudio",
+    "inputs": {
+      "audio": [
+        "2",
+        0
+      ],
+      "filename_prefix": "slopperly_foundation1"
+    }
+  }
+}

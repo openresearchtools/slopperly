@@ -1,0 +1,65 @@
+{
+  "last_node_id": 3,
+  "last_link_id": 2,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "Foundation1ModelLoader",
+      "title": "Foundation-1 model",
+      "widgets_values": [
+        "Foundation-1/Foundation_1.safetensors",
+        "auto"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "Foundation1Generate",
+      "title": "Foundation-1 structured loop",
+      "widgets_values": [
+        "",
+        "100 BPM",
+        "4 Bars",
+        "C major",
+        100,
+        7.0,
+        0,
+        "dpmpp-3m-sde",
+        0.3,
+        500.0,
+        false,
+        false,
+        0.7
+      ]
+    },
+    {
+      "id": 3,
+      "type": "SaveAudio",
+      "title": "Save generated loop",
+      "widgets_values": [
+        "slopperly_foundation1"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "FOUNDATION1_MODEL"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      0,
+      "AUDIO"
+    ]
+  ],
+  "extra": {
+    "slopperly_workflow_id": "foundation1_music_loop",
+    "source": "Hand-authored API graph from ComfyUI-Foundation-1 node classes verified at pinned commit 41f4692dd20268d40cc806989063a7a1f4b5b3fe."
+  }
+}

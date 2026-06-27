@@ -150,6 +150,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "MMAudioFeatureUtilsLoader": {},
                 "MMAudioSampler": {},
                 "MMAudioVoCoderLoader": {},
+                "Foundation1ModelLoader": {},
+                "Foundation1Generate": {},
             })
         if self.path.startswith("/view"):
             if ".mp4" in self.path:
@@ -237,6 +239,26 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "audio": [
                                     {
                                         "filename": "slopperly_ace_step_15_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "Foundation1Generate"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "3": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_foundation1_00001_.flac",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -883,6 +905,51 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["8"]["inputs"]["scheduler"], "simple")
         self.assertEqual(prompt["9"]["inputs"]["samples"], ["8", 0])
         self.assertEqual(prompt["10"]["inputs"]["audio"], ["9", 0])
+
+    def test_foundation_music_uses_comfy_plugin_path(self):
+        module = load_plugin_module("audio", "foundation_music")
+        plugin = module.FoundationMusicPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(
+                foundation1_cfg_scale=6.5,
+                foundation1_sampler_type="k-dpm-fast",
+            )
+            inputs = self.base.ModelInputs(
+                prompt="clean house bass, clipped drums, bright stab",
+                neg_prompt="speech, vocals",
+                audio_length=15.0,
+                steps=12,
+                seed=4242,
+                bpm=128,
+                key_scale="A minor",
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["class_type"], "Foundation1ModelLoader")
+        self.assertEqual(prompt["1"]["inputs"]["model"], "Foundation-1/Foundation_1.safetensors")
+        self.assertEqual(prompt["1"]["inputs"]["attention"], "auto")
+        self.assertEqual(prompt["2"]["class_type"], "Foundation1Generate")
+        self.assertEqual(
+            prompt["2"]["inputs"]["tags"],
+            "clean house bass, clipped drums, bright stab, avoid speech, vocals",
+        )
+        self.assertEqual(prompt["2"]["inputs"]["bpm"], "128 BPM")
+        self.assertEqual(prompt["2"]["inputs"]["bars"], "8 Bars")
+        self.assertEqual(prompt["2"]["inputs"]["key"], "A minor")
+        self.assertEqual(prompt["2"]["inputs"]["steps"], 12)
+        self.assertEqual(prompt["2"]["inputs"]["cfg_scale"], 6.5)
+        self.assertEqual(prompt["2"]["inputs"]["seed"], 4242)
+        self.assertEqual(prompt["2"]["inputs"]["sampler_type"], "k-dpm-fast")
+        self.assertEqual(prompt["3"]["class_type"], "SaveAudio")
+        self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
 
     def test_marlin_video_captions_uses_vllm_vlm_plugin_path(self):
         module = load_plugin_module("text", "marlin_video_captions")

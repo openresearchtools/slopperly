@@ -120,7 +120,9 @@ custom_nodes:
     commit: 41f4692dd20268d40cc806989063a7a1f4b5b3fe
     install_command: pip install -r requirements.txt
     python_extras: []
-    required_node_classes: []
+    required_node_classes:
+      - Foundation1ModelLoader
+      - Foundation1Generate
   - id: omnigen
     repo: https://github.com/1038lab/ComfyUI-OmniGen.git
     commit: 5890d3fdb7ac5b598d025a2a14fbd2d6c9d8104b

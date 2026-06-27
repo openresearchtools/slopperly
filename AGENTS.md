@@ -865,3 +865,14 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: integration coverage calls `AceStepPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies exact node/input patching plus FLAC artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed `ace_step_15_music` pack patches the graph and collects one Comfy audio artifact.
 - Still blocked: real RTX 4090 ACE-Step artifact certification requires owned ComfyUI running with core ACE-Step nodes and the ACE-Step 1.5 split model files installed in `models/diffusion_models`, `models/vae`, and `models/text_encoders`.
+
+### 2026-06-27 Foundation-1 Comfy workflow block
+
+- Completed: `audio/foundation_music.py` now routes the legacy Foundation-1 plugin through the local Comfy workflow gateway instead of direct Torch/SciPy/Diffusers execution and generation-time Hugging Face model loading in the add-on process.
+- Completed: `foundation1_music_loop` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Completed: The workflow uses `Foundation1ModelLoader -> Foundation1Generate -> SaveAudio`, preserving prompt, negative prompt as an avoidance tag, requested duration through BPM/bar mapping, steps, seed, and returned artifact path.
+- Completed: `foundation1_music_loop` is registered in `slopperly/config/models.yaml` with legacy alias `tintwotin/Foundation-1-Diffusers` and artifact source `RoyalCities/Foundation-1`.
+- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `Foundation1ModelLoader` and `Foundation1Generate` from pinned `Saganaki22/ComfyUI-Foundation-1`.
+- Evidence: integration coverage calls `FoundationMusicPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies exact node/input patching plus FLAC artifact collection.
+- Evidence: workflow-runner integration coverage verifies the committed `foundation1_music_loop` pack patches the graph and collects one Comfy audio artifact.
+- Still blocked: real RTX 4090 Foundation-1 artifact certification requires owned ComfyUI running with ComfyUI-Foundation-1, core `SaveAudio`, `Foundation_1.safetensors`, and `model_config.json` installed in `models/stable_audio/Foundation-1/`.

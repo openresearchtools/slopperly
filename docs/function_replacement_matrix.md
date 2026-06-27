@@ -21,5 +21,6 @@ This matrix is the working replacement plan for production-visible functions.
 | `MMAudio` | Migrated wrapper, GPU/server test pending | ComfyUI | `mmaudio_video_to_audio` |
 | `cocktailpeanut/stable-audio-3-medium-base` | Migrated wrapper, GPU/server test pending | ComfyUI | `stable_audio_3_medium_base` |
 | `ACE-Step/acestep-v15-xl-turbo-diffusers` | Migrated wrapper, GPU/server test pending | ComfyUI | `ace_step_15_music` |
+| `tintwotin/Foundation-1-Diffusers` | Migrated wrapper, GPU/server test pending | ComfyUI | `foundation1_music_loop` |
 
 Entries are complete only after the corresponding GPU artifact test produces a real artifact through the addon plugin path.

@@ -1,0 +1,29 @@
+workflow_id: foundation1_music_loop
+runtime: comfy
+required_custom_nodes:
+  - id: foundation_1
+    repo: https://github.com/Saganaki22/ComfyUI-Foundation-1.git
+    commit: 41f4692dd20268d40cc806989063a7a1f4b5b3fe
+    node_classes:
+      - Foundation1ModelLoader
+      - Foundation1Generate
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    node_classes:
+      - SaveAudio
+model_files:
+  - source: https://huggingface.co/RoyalCities/Foundation-1
+    download_mode: hf_snapshot
+    files:
+      - path: Foundation_1.safetensors
+        target: models/stable_audio/Foundation-1/Foundation_1.safetensors
+      - path: model_config.json
+        target: models/stable_audio/Foundation-1/model_config.json
+artifact_contract:
+  type: audio/flac
+  sample_rate: 44100
+  duration_formula: round(bars * 4 / bpm * 60)
+  duration_tolerance_seconds: 0.5
+  non_silent: true
+  output_shape: single artifact path

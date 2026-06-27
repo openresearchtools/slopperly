@@ -621,3 +621,31 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with core ACE-Step 1.5 nodes and all four ACE-Step 1.5 split files installed in the Comfy model folders.
+
+## 2026-06-27 Foundation-1 Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/audio/foundation_music.py` now routes the legacy `tintwotin/Foundation-1-Diffusers` music path through the local Comfy gateway instead of importing Torch, SciPy, Diffusers, and `StableAudioPipeline` in the add-on process.
+- The existing audio plugin contract is preserved for prompt, negative prompt, audio duration, steps, seed, and returned artifact path.
+- The native Foundation-1 Comfy node exposes structured tags instead of separate negative conditioning, so the production wrapper folds the negative prompt into the tags as an avoidance phrase and records the mapping in the workflow schema.
+- Requested audio duration is mapped to Foundation-1's supported BPM/bar duration formula, with scene overrides available through `foundation1_bpm`, `foundation1_bars`, and `foundation1_key`.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/foundation1_music_loop/` with editable/API workflow JSON, schema, model manifest, smoke payload, and README.
+- The workflow uses `Foundation1ModelLoader -> Foundation1Generate -> SaveAudio`.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` so `Foundation1ModelLoader` and `Foundation1Generate` are asserted by owned Comfy runtime preflight.
+- Registered `foundation1_music_loop` in `slopperly/config/models.yaml` with legacy alias `tintwotin/Foundation-1-Diffusers` and Hugging Face artifact source `RoyalCities/Foundation-1`.
+- Required local files are `Foundation_1.safetensors` and `model_config.json` under `models/stable_audio/Foundation-1/`; upstream `model_config.json` declares sample rate 44100.
+
+### Verification
+
+- Integration coverage calls `FoundationMusicPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies exact node/input patching plus FLAC artifact collection.
+- Workflow-runner integration coverage verifies the committed `foundation1_music_loop` pack patches the structured music graph and collects one audio output.
+- GPU certification coverage is registered in `tests/gpu/test_foundation_music.py` and validates a 44.1 kHz non-silent FLAC artifact when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with ComfyUI-Foundation-1, core `SaveAudio`, `Foundation_1.safetensors`, and `model_config.json` installed in `models/stable_audio/Foundation-1/`.

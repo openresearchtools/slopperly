@@ -145,6 +145,25 @@ class ComfyHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
+                node.get("class_type") == "Foundation1Generate"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "3": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_foundation1_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
                 node.get("class_type") == "VAEDecodeAudio"
                 for node in ComfyHandler.last_prompt.values()
             ):
@@ -204,6 +223,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "mmaudio" in parsed.query
                 or "stable_audio_3" in parsed.query
                 or "ace_step_15" in parsed.query
+                or "foundation1" in parsed.query
             ):
                 return self._binary(self.audio_bytes, "audio/flac")
             return self._binary(self.video_bytes)
@@ -280,6 +300,15 @@ def _stable_audio_3_object_info() -> dict:
 def _ace_step_object_info() -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy/ace_step_15_music/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _foundation1_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/foundation1_music_loop/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -619,6 +648,62 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["8"]["inputs"]["denoise"], 0.95)
         self.assertEqual(prompt["9"]["inputs"]["samples"], ["8", 0])
         self.assertEqual(prompt["10"]["inputs"]["audio"], ["9", 0])
+
+    def test_foundation1_pack_patches_structured_loop_generation_graph(self):
+        ComfyHandler.reset(_foundation1_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "foundation1.flac"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="clean house bass, clipped drums, bright stab, avoid speech",
+                steps=14,
+                seed=13579,
+                foundation1_bpm="100 BPM",
+                foundation1_bars="4 Bars",
+                foundation1_key="D minor",
+            )
+            scene = SimpleNamespace(
+                foundation1_cfg_scale=6.75,
+                foundation1_sampler_type="k-heun",
+                foundation1_sigma_min=0.25,
+                foundation1_sigma_max=480.0,
+                foundation1_unload_after_generate=True,
+                foundation1_torch_compile=False,
+                foundation1_init_noise_level=0.6,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/foundation1_music_loop",
+                    inputs,
+                    scene,
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.audio_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["class_type"], "Foundation1ModelLoader")
+        self.assertEqual(prompt["1"]["inputs"]["model"], "Foundation-1/Foundation_1.safetensors")
+        self.assertEqual(prompt["1"]["inputs"]["attention"], "auto")
+        self.assertEqual(prompt["2"]["class_type"], "Foundation1Generate")
+        self.assertEqual(prompt["2"]["inputs"]["model"], ["1", 0])
+        self.assertEqual(prompt["2"]["inputs"]["tags"], "clean house bass, clipped drums, bright stab, avoid speech")
+        self.assertEqual(prompt["2"]["inputs"]["bpm"], "100 BPM")
+        self.assertEqual(prompt["2"]["inputs"]["bars"], "4 Bars")
+        self.assertEqual(prompt["2"]["inputs"]["key"], "D minor")
+        self.assertEqual(prompt["2"]["inputs"]["steps"], 14)
+        self.assertEqual(prompt["2"]["inputs"]["cfg_scale"], 6.75)
+        self.assertEqual(prompt["2"]["inputs"]["seed"], 13579)
+        self.assertEqual(prompt["2"]["inputs"]["sampler_type"], "k-heun")
+        self.assertEqual(prompt["2"]["inputs"]["sigma_min"], 0.25)
+        self.assertEqual(prompt["2"]["inputs"]["sigma_max"], 480.0)
+        self.assertTrue(prompt["2"]["inputs"]["unload_after_generate"])
+        self.assertFalse(prompt["2"]["inputs"]["torch_compile"])
+        self.assertEqual(prompt["2"]["inputs"]["init_noise_level"], 0.6)
+        self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):
         with tempfile.TemporaryDirectory() as tmp:
