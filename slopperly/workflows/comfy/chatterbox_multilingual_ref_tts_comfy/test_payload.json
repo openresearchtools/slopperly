@@ -1,0 +1,9 @@
+{
+  "prompt": "A calm local multilingual Chatterbox voice uses the supplied reference audio.",
+  "audio_ref": "tests/fixtures/chatterbox_ref.wav",
+  "chatterbox_mtl_language": "English (en)",
+  "exaggeration": 0.5,
+  "pace": 0.5,
+  "temperature": 0.8,
+  "seed": 4567
+}

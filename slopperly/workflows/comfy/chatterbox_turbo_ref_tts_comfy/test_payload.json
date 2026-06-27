@@ -1,0 +1,7 @@
+{
+  "prompt": "A quick local Turbo voice uses the supplied reference audio.",
+  "audio_ref": "tests/fixtures/chatterbox_ref.wav",
+  "audio_length": 2.0,
+  "temperature": 0.8,
+  "seed": 2345
+}

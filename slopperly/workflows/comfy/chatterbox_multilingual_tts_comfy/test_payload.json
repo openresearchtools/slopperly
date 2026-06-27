@@ -1,0 +1,8 @@
+{
+  "prompt": "A calm local multilingual Chatterbox voice confirms the workflow is running.",
+  "chatterbox_mtl_language": "English (en)",
+  "exaggeration": 0.5,
+  "pace": 0.5,
+  "temperature": 0.8,
+  "seed": 3456
+}

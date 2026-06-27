@@ -1,0 +1,6 @@
+{
+  "prompt": "A quick local Turbo voice confirms the workflow is running. [laugh]",
+  "audio_length": 2.0,
+  "temperature": 0.8,
+  "seed": 1234
+}

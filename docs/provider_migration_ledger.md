@@ -678,3 +678,32 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with ComfyUI_Fill-ChatterBox, core `LoadAudio`/`SaveAudio`, `ve.safetensors`, `t3_cfg.safetensors`, `s3gen.safetensors`, `tokenizer.json`, and `conds.pt` installed under `models/chatterbox/chatterbox/`.
 - True cross-speaker Chatterbox VC remains blocked until the UI/runtime contract carries a separate target voice audio path for `FL_ChatterboxVC.target_voice`; the committed compatibility graph is local-only and non-breaking for the current one-audio UI.
+
+## 2026-06-27 Chatterbox Turbo and Multilingual Comfy workflow block
+
+### Production Paths Migrated
+
+- `models_plugins/audio/chatterbox_turbo.py` now routes the legacy `ChatterboxTurbo` path through the local Comfy gateway instead of importing Torch, Torchaudio, `chatterbox.tts_turbo`, or patching Chatterbox conditionals in the add-on process.
+- `models_plugins/audio/chatterbox_multilingual.py` now routes the legacy `ChatterboxMultilingual` path through the local Comfy gateway instead of importing Torch, Torchaudio, `chatterbox.mtl_tts`, `chatterbox.vc`, or the local Python Chatterbox package.
+- The existing plugin contracts are preserved for prompt, optional reference audio, chat params where supported by the pinned nodes, seed, language selection for Multilingual, and returned artifact paths.
+- Turbo and Multilingual reference-audio modes are mapped to the pinned nodes' zero-shot TTS `audio_prompt` inputs. True two-audio speech-to-speech VC remains documented as covered only by the standard Chatterbox VC compatibility profile until a second target voice audio path exists.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/chatterbox_turbo_tts_comfy/` and `slopperly/workflows/comfy/chatterbox_turbo_ref_tts_comfy/` using `FL_ChatterboxTurboTTS -> SaveAudio`, with optional `LoadAudio` for reference voice conditioning.
+- Added `slopperly/workflows/comfy/chatterbox_multilingual_tts_comfy/` and `slopperly/workflows/comfy/chatterbox_multilingual_ref_tts_comfy/` using `FL_ChatterboxMultilingualTTS -> SaveAudio`, with optional `LoadAudio` for reference voice conditioning.
+- Registered `chatterbox_turbo_tts_comfy` in `slopperly/config/models.yaml` with legacy alias `ChatterboxTurbo`, Hugging Face artifact source `ResembleAI/chatterbox-turbo`, and required Turbo files including `t3_turbo_v1.safetensors`, `s3gen_meanflow.safetensors`, tokenizer files, and `conds.pt`.
+- Registered `chatterbox_multilingual_tts_comfy` in `slopperly/config/models.yaml` with legacy alias `ChatterboxMultilingual`, Hugging Face artifact source `ResembleAI/chatterbox`, and required multilingual files including `ve.pt`, `t3_mtl23ls_v2.safetensors`, `s3gen.pt`, `grapheme_mtl_merged_expanded_v1.json`, `conds.pt`, and `Cangjie5_TC.json`.
+
+### Verification
+
+- Integration coverage calls `ChatterboxTurboPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies plain Turbo TTS and reference-audio Turbo TTS graph patching plus FLAC artifact collection.
+- Integration coverage calls `ChatterboxMultilingualPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies plain Multilingual TTS, reference-audio Multilingual TTS, and Blender language-code conversion such as `fr` -> `French (fr)`.
+- Workflow-runner integration coverage verifies `chatterbox_turbo_ref_tts_comfy` and `chatterbox_multilingual_ref_tts_comfy` upload WAV input, patch exact node inputs, and collect one Comfy audio artifact.
+- GPU certification coverage is registered in `tests/gpu/test_chatterbox_turbo.py` and `tests/gpu/test_chatterbox_multilingual.py` and validates 24 kHz non-silent FLAC artifacts when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with ComfyUI_Fill-ChatterBox, core `LoadAudio`/`SaveAudio`, the Turbo snapshot installed under `models/chatterbox/chatterbox_turbo/`, and the multilingual snapshot installed under `models/chatterbox/chatterbox_multilingual/`.
+- Turbo and Multilingual do not expose audio duration, silence trimming, or direct speed controls in the pinned nodes; those existing UI fields are preserved and recorded as deliberately unmapped in workflow schemas.

@@ -1,0 +1,38 @@
+{
+  "1": {
+    "class_type": "LoadAudio",
+    "inputs": {
+      "audio": "speaker_reference.wav"
+    }
+  },
+  "2": {
+    "class_type": "FL_ChatterboxMultilingualTTS",
+    "inputs": {
+      "text": "",
+      "language": "English (en)",
+      "audio_prompt": [
+        "1",
+        0
+      ],
+      "exaggeration": 0.5,
+      "cfg_weight": 0.5,
+      "temperature": 0.8,
+      "repetition_penalty": 2.0,
+      "min_p": 0.05,
+      "top_p": 1.0,
+      "seed": 0,
+      "use_cpu": false,
+      "keep_model_loaded": false
+    }
+  },
+  "3": {
+    "class_type": "SaveAudio",
+    "inputs": {
+      "audio": [
+        "2",
+        0
+      ],
+      "filename_prefix": "slopperly_chatterbox_multilingual_ref"
+    }
+  }
+}

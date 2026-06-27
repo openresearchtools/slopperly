@@ -403,6 +403,76 @@ models:
       - chatterbox_tts_vc_comfy
       - chatterbox_vc_comfy
       - audio/chatterbox.py
+  - logical_name: chatterbox_turbo_tts_comfy
+    legacy_aliases:
+      - ChatterboxTurbo
+    task: tts_voice_clone
+    runtime: comfy
+    model_source: https://huggingface.co/ResembleAI/chatterbox-turbo
+    download_mode: hf_snapshot
+    local_cache_path: models/chatterbox/chatterbox_turbo
+    required_files:
+      - ve.safetensors
+      - t3_turbo_v1.safetensors
+      - s3gen_meanflow.safetensors
+      - tokenizer_config.json
+      - special_tokens_map.json
+      - vocab.json
+      - merges.txt
+      - added_tokens.json
+      - conds.pt
+    required_node_pack: comfyui_chatterbox + comfyui core audio
+    supported_resolutions: []
+    supported_fps: []
+    context_limits: {}
+    default_parameters:
+      sample_rate: 24000
+      temperature: 0.8
+      top_k: 1000
+      top_p: 0.95
+      repetition_penalty: 1.2
+      keep_model_loaded: false
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_chatterbox_turbo.py --device cuda
+    workflows:
+      - chatterbox_turbo_tts_comfy
+      - chatterbox_turbo_ref_tts_comfy
+      - audio/chatterbox_turbo.py
+  - logical_name: chatterbox_multilingual_tts_comfy
+    legacy_aliases:
+      - ChatterboxMultilingual
+    task: multilingual_tts_voice_clone
+    runtime: comfy
+    model_source: https://huggingface.co/ResembleAI/chatterbox
+    download_mode: hf_snapshot
+    local_cache_path: models/chatterbox/chatterbox_multilingual
+    required_files:
+      - ve.pt
+      - t3_mtl23ls_v2.safetensors
+      - s3gen.pt
+      - grapheme_mtl_merged_expanded_v1.json
+      - conds.pt
+      - Cangjie5_TC.json
+    required_node_pack: comfyui_chatterbox + comfyui core audio
+    supported_resolutions: []
+    supported_fps: []
+    context_limits: {}
+    default_parameters:
+      sample_rate: 24000
+      language: English (en)
+      exaggeration: 0.5
+      cfg_weight: 0.5
+      temperature: 0.8
+      repetition_penalty: 2.0
+      min_p: 0.05
+      top_p: 1.0
+      keep_model_loaded: false
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_chatterbox_multilingual.py --device cuda
+    workflows:
+      - chatterbox_multilingual_tts_comfy
+      - chatterbox_multilingual_ref_tts_comfy
+      - audio/chatterbox_multilingual.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter

@@ -1,0 +1,42 @@
+{
+  "last_node_id": 2,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "FL_ChatterboxMultilingualTTS",
+      "title": "Chatterbox Multilingual TTS",
+      "widgets_values": [
+        "",
+        "English (en)",
+        0.5,
+        0.5,
+        0.8,
+        2.0,
+        0.05,
+        1.0,
+        0,
+        false,
+        false
+      ]
+    },
+    {
+      "id": 2,
+      "type": "SaveAudio",
+      "title": "Save Chatterbox multilingual audio",
+      "widgets_values": [
+        "slopperly_chatterbox_multilingual"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "AUDIO"
+    ]
+  ]
+}

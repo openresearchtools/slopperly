@@ -1,0 +1,40 @@
+workflow_id: chatterbox_turbo_tts_comfy
+runtime: comfy
+required_custom_nodes:
+  - id: chatterbox
+    repo: https://github.com/filliptm/ComfyUI_Fill-ChatterBox.git
+    commit: 596850bc61665e9318914841b41ee4154253f020
+    node_classes:
+      - FL_ChatterboxTurboTTS
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    node_classes:
+      - SaveAudio
+model_files:
+  - source: https://huggingface.co/ResembleAI/chatterbox-turbo
+    download_mode: hf_snapshot
+    files:
+      - path: ve.safetensors
+        target: models/chatterbox/chatterbox_turbo/ve.safetensors
+      - path: t3_turbo_v1.safetensors
+        target: models/chatterbox/chatterbox_turbo/t3_turbo_v1.safetensors
+      - path: s3gen_meanflow.safetensors
+        target: models/chatterbox/chatterbox_turbo/s3gen_meanflow.safetensors
+      - path: tokenizer_config.json
+        target: models/chatterbox/chatterbox_turbo/tokenizer_config.json
+      - path: special_tokens_map.json
+        target: models/chatterbox/chatterbox_turbo/special_tokens_map.json
+      - path: vocab.json
+        target: models/chatterbox/chatterbox_turbo/vocab.json
+      - path: merges.txt
+        target: models/chatterbox/chatterbox_turbo/merges.txt
+      - path: added_tokens.json
+        target: models/chatterbox/chatterbox_turbo/added_tokens.json
+      - path: conds.pt
+        target: models/chatterbox/chatterbox_turbo/conds.pt
+artifact_contract:
+  type: audio/flac
+  sample_rate: 24000
+  non_silent: true
+  output_shape: single artifact path

@@ -208,6 +208,56 @@ class ComfyHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
+                node.get("class_type") == "FL_ChatterboxTurboTTS"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                output_node = "3" if "3" in ComfyHandler.last_prompt else "2"
+                filename = (
+                    "slopperly_chatterbox_turbo_ref_00001_.flac"
+                    if output_node == "3"
+                    else "slopperly_chatterbox_turbo_00001_.flac"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "audio": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "FL_ChatterboxMultilingualTTS"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                output_node = "3" if "3" in ComfyHandler.last_prompt else "2"
+                filename = (
+                    "slopperly_chatterbox_multilingual_ref_00001_.flac"
+                    if output_node == "3"
+                    else "slopperly_chatterbox_multilingual_00001_.flac"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "audio": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
                 node.get("class_type") == "VAEDecodeAudio"
                 for node in ComfyHandler.last_prompt.values()
             ):
@@ -828,6 +878,84 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["2"]["inputs"]["input_audio"], ["1", 0])
         self.assertEqual(prompt["2"]["inputs"]["target_voice"], ["1", 0])
         self.assertEqual(prompt["2"]["inputs"]["seed"], 1357)
+        self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
+
+    def test_chatterbox_turbo_reference_pack_uploads_audio_and_patches_graph(self):
+        ComfyHandler.reset(_chatterbox_object_info("chatterbox_turbo_ref_tts_comfy"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "speaker.wav"
+            destination = Path(tmp) / "chatterbox_turbo.flac"
+            source.write_bytes(b"local wav fixture bytes")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local turbo reference speech",
+                audio_ref=str(source),
+                temperature=0.7,
+                seed=24602,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/chatterbox_turbo_ref_tts_comfy",
+                    inputs,
+                    SimpleNamespace(chatterbox_turbo_top_k=321),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.audio_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["inputs"]["audio"], "uploaded_audio.wav")
+        self.assertEqual(prompt["2"]["class_type"], "FL_ChatterboxTurboTTS")
+        self.assertEqual(prompt["2"]["inputs"]["audio_prompt"], ["1", 0])
+        self.assertEqual(prompt["2"]["inputs"]["text"], "local turbo reference speech")
+        self.assertEqual(prompt["2"]["inputs"]["temperature"], 0.7)
+        self.assertEqual(prompt["2"]["inputs"]["top_k"], 321)
+        self.assertEqual(prompt["2"]["inputs"]["seed"], 24602)
+        self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
+
+    def test_chatterbox_multilingual_reference_pack_uploads_audio_and_patches_graph(self):
+        ComfyHandler.reset(_chatterbox_object_info("chatterbox_multilingual_ref_tts_comfy"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "speaker.wav"
+            destination = Path(tmp) / "chatterbox_multilingual.flac"
+            source.write_bytes(b"local wav fixture bytes")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local multilingual reference speech",
+                audio_ref=str(source),
+                chatterbox_mtl_language="Spanish (es)",
+                exaggeration=0.6,
+                pace=0.4,
+                temperature=0.75,
+                seed=24603,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/chatterbox_multilingual_ref_tts_comfy",
+                    inputs,
+                    SimpleNamespace(chatterbox_multilingual_top_p=0.91),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.audio_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["inputs"]["audio"], "uploaded_audio.wav")
+        self.assertEqual(prompt["2"]["class_type"], "FL_ChatterboxMultilingualTTS")
+        self.assertEqual(prompt["2"]["inputs"]["audio_prompt"], ["1", 0])
+        self.assertEqual(prompt["2"]["inputs"]["text"], "local multilingual reference speech")
+        self.assertEqual(prompt["2"]["inputs"]["language"], "Spanish (es)")
+        self.assertEqual(prompt["2"]["inputs"]["exaggeration"], 0.6)
+        self.assertEqual(prompt["2"]["inputs"]["cfg_weight"], 0.4)
+        self.assertEqual(prompt["2"]["inputs"]["temperature"], 0.75)
+        self.assertEqual(prompt["2"]["inputs"]["top_p"], 0.91)
+        self.assertEqual(prompt["2"]["inputs"]["seed"], 24603)
         self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):

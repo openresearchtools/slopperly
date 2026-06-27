@@ -1,0 +1,39 @@
+{
+  "last_node_id": 2,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "FL_ChatterboxTurboTTS",
+      "title": "Chatterbox Turbo TTS",
+      "widgets_values": [
+        "",
+        0.8,
+        1000,
+        0.95,
+        1.2,
+        0,
+        false,
+        false
+      ]
+    },
+    {
+      "id": 2,
+      "type": "SaveAudio",
+      "title": "Save Chatterbox Turbo audio",
+      "widgets_values": [
+        "slopperly_chatterbox_turbo"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "AUDIO"
+    ]
+  ]
+}

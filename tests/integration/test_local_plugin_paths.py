@@ -154,6 +154,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "Foundation1Generate": {},
                 "FL_ChatterboxTTS": {},
                 "FL_ChatterboxVC": {},
+                "FL_ChatterboxTurboTTS": {},
+                "FL_ChatterboxMultilingualTTS": {},
             })
         if self.path.startswith("/view"):
             if ".mp4" in self.path:
@@ -299,6 +301,58 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                     "slopperly_chatterbox_ref_00001_.flac"
                     if output_node == "3"
                     else "slopperly_chatterbox_00001_.flac"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "audio": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "FL_ChatterboxTurboTTS"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                output_node = "3" if "3" in RuntimeHandler.comfy_prompt else "2"
+                filename = (
+                    "slopperly_chatterbox_turbo_ref_00001_.flac"
+                    if output_node == "3"
+                    else "slopperly_chatterbox_turbo_00001_.flac"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "audio": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "FL_ChatterboxMultilingualTTS"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                output_node = "3" if "3" in RuntimeHandler.comfy_prompt else "2"
+                filename = (
+                    "slopperly_chatterbox_multilingual_ref_00001_.flac"
+                    if output_node == "3"
+                    else "slopperly_chatterbox_multilingual_00001_.flac"
                 )
                 return self._json({
                     "prompt-1": {
@@ -1098,6 +1152,155 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertIn("legacy single audio picker", inputs.usage_note)
         self.assertEqual(prompt["3"]["class_type"], "SaveAudio")
         self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
+
+    def test_chatterbox_turbo_uses_comfy_tts_plugin_path(self):
+        module = load_plugin_module("audio", "chatterbox_turbo")
+        plugin = module.ChatterboxTurboPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(
+                chatterbox_turbo_top_k=777,
+                chatterbox_turbo_top_p=0.85,
+                chatterbox_turbo_repetition_penalty=1.4,
+            )
+            inputs = self.base.ModelInputs(
+                prompt="local turbo narration [laugh]",
+                audio_length=2.0,
+                exaggeration=0.65,
+                pace=0.35,
+                temperature=0.72,
+                seed=8180,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["class_type"], "FL_ChatterboxTurboTTS")
+        self.assertEqual(prompt["1"]["inputs"]["text"], "local turbo narration [laugh]")
+        self.assertEqual(prompt["1"]["inputs"]["temperature"], 0.72)
+        self.assertEqual(prompt["1"]["inputs"]["top_k"], 777)
+        self.assertEqual(prompt["1"]["inputs"]["top_p"], 0.85)
+        self.assertEqual(prompt["1"]["inputs"]["repetition_penalty"], 1.4)
+        self.assertEqual(prompt["1"]["inputs"]["seed"], 8180)
+        self.assertEqual(prompt["2"]["class_type"], "SaveAudio")
+        self.assertEqual(prompt["2"]["inputs"]["audio"], ["1", 0])
+
+    def test_chatterbox_turbo_uses_comfy_reference_tts_plugin_path(self):
+        module = load_plugin_module("audio", "chatterbox_turbo")
+        plugin = module.ChatterboxTurboPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            wav_path = Path(tmp) / "speaker.wav"
+            _tiny_wav(wav_path)
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(chatterbox_turbo_top_k=1234)
+            inputs = self.base.ModelInputs(
+                prompt="turbo reference speech",
+                audio_ref=str(wav_path),
+                temperature=0.66,
+                seed=8280,
+                is_voice_clone=True,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["class_type"], "LoadAudio")
+        self.assertEqual(prompt["1"]["inputs"]["audio"], "uploaded_audio.wav")
+        self.assertEqual(prompt["2"]["class_type"], "FL_ChatterboxTurboTTS")
+        self.assertEqual(prompt["2"]["inputs"]["audio_prompt"], ["1", 0])
+        self.assertEqual(prompt["2"]["inputs"]["text"], "turbo reference speech")
+        self.assertEqual(prompt["2"]["inputs"]["temperature"], 0.66)
+        self.assertEqual(prompt["2"]["inputs"]["top_k"], 1234)
+        self.assertEqual(prompt["2"]["inputs"]["seed"], 8280)
+        self.assertIn("reference-audio TTS", inputs.usage_note)
+        self.assertEqual(prompt["3"]["class_type"], "SaveAudio")
+        self.assertIn(b'name="image"; filename="speaker.wav"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_chatterbox_multilingual_uses_comfy_tts_plugin_path(self):
+        module = load_plugin_module("audio", "chatterbox_multilingual")
+        plugin = module.ChatterboxMultilingualPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(
+                chatterbox_mtl_language="fr",
+                chatterbox_multilingual_repetition_penalty=2.5,
+                chatterbox_multilingual_min_p=0.07,
+                chatterbox_multilingual_top_p=0.92,
+            )
+            inputs = self.base.ModelInputs(
+                prompt="bonjour depuis le moteur local",
+                exaggeration=0.6,
+                pace=0.4,
+                temperature=0.7,
+                seed=8380,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["class_type"], "FL_ChatterboxMultilingualTTS")
+        self.assertEqual(prompt["1"]["inputs"]["text"], "bonjour depuis le moteur local")
+        self.assertEqual(prompt["1"]["inputs"]["language"], "French (fr)")
+        self.assertEqual(prompt["1"]["inputs"]["exaggeration"], 0.6)
+        self.assertEqual(prompt["1"]["inputs"]["cfg_weight"], 0.4)
+        self.assertEqual(prompt["1"]["inputs"]["temperature"], 0.7)
+        self.assertEqual(prompt["1"]["inputs"]["repetition_penalty"], 2.5)
+        self.assertEqual(prompt["1"]["inputs"]["min_p"], 0.07)
+        self.assertEqual(prompt["1"]["inputs"]["top_p"], 0.92)
+        self.assertEqual(prompt["1"]["inputs"]["seed"], 8380)
+        self.assertEqual(prompt["2"]["class_type"], "SaveAudio")
+        self.assertEqual(prompt["2"]["inputs"]["audio"], ["1", 0])
+
+    def test_chatterbox_multilingual_uses_comfy_reference_tts_plugin_path(self):
+        module = load_plugin_module("audio", "chatterbox_multilingual")
+        plugin = module.ChatterboxMultilingualPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            wav_path = Path(tmp) / "speaker.wav"
+            _tiny_wav(wav_path)
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(chatterbox_mtl_language="ja")
+            inputs = self.base.ModelInputs(
+                prompt="local multilingual reference speech",
+                audio_ref=str(wav_path),
+                exaggeration=0.55,
+                pace=0.45,
+                temperature=0.75,
+                seed=8480,
+                is_voice_clone=True,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["class_type"], "LoadAudio")
+        self.assertEqual(prompt["1"]["inputs"]["audio"], "uploaded_audio.wav")
+        self.assertEqual(prompt["2"]["class_type"], "FL_ChatterboxMultilingualTTS")
+        self.assertEqual(prompt["2"]["inputs"]["audio_prompt"], ["1", 0])
+        self.assertEqual(prompt["2"]["inputs"]["language"], "Japanese (ja)")
+        self.assertEqual(prompt["2"]["inputs"]["seed"], 8480)
+        self.assertIn("reference-audio TTS", inputs.usage_note)
+        self.assertEqual(prompt["3"]["class_type"], "SaveAudio")
+        self.assertIn(b'name="image"; filename="speaker.wav"', RuntimeHandler.comfy_uploads[-1])
 
     def test_marlin_video_captions_uses_vllm_vlm_plugin_path(self):
         module = load_plugin_module("text", "marlin_video_captions")

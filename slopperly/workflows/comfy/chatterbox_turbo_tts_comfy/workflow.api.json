@@ -1,0 +1,25 @@
+{
+  "1": {
+    "class_type": "FL_ChatterboxTurboTTS",
+    "inputs": {
+      "text": "",
+      "temperature": 0.8,
+      "top_k": 1000,
+      "top_p": 0.95,
+      "repetition_penalty": 1.2,
+      "seed": 0,
+      "use_cpu": false,
+      "keep_model_loaded": false
+    }
+  },
+  "2": {
+    "class_type": "SaveAudio",
+    "inputs": {
+      "audio": [
+        "1",
+        0
+      ],
+      "filename_prefix": "slopperly_chatterbox_turbo"
+    }
+  }
+}
