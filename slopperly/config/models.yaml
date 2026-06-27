@@ -708,6 +708,9 @@ models:
       shift: 5.0
     minimum_vram_gb: 16
     validation_command: pytest tests/gpu/test_wan22_ti2v_5b.py --device cuda
+    required_certifications:
+      - wan22_ti2v_5b_720p24_gguf_t2v
+      - wan22_ti2v_5b_720p24_gguf_i2v
     workflows:
       - wan22_ti2v_5b_720p24_gguf
       - video/wan_ti2v_5b.py

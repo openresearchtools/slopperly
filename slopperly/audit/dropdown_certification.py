@@ -31,21 +31,35 @@ def audit(profile: str, root: Path) -> tuple[list[str], list[str]]:
         if not validation_command:
             failures.append(f"{name}: missing validation_command")
             continue
-        cert = certs.get(name)
-        if not cert:
-            failures.append(f"{name}: no certification record for profile {profile!r}")
-            continue
-        failure = validate_certification_entry(
-            root=root,
-            profile=profile,
-            logical_name=name,
-            cert=cert,
-        )
-        if failure:
-            failures.append(f"{name}: {failure}")
+        entry_failures: list[str] = []
+        for cert_name in required_certifications(entry):
+            cert = certs.get(cert_name)
+            if not cert:
+                entry_failures.append(
+                    f"required certification {cert_name}: no certification record "
+                    f"for profile {profile!r}"
+                )
+                continue
+            failure = validate_certification_entry(
+                root=root,
+                profile=profile,
+                logical_name=cert_name,
+                cert=cert,
+            )
+            if failure:
+                entry_failures.append(f"required certification {cert_name}: {failure}")
+        if entry_failures:
+            failures.extend(f"{name}: {failure}" for failure in entry_failures)
             continue
         passes.append(name)
     return passes, failures
+
+
+def required_certifications(entry: dict) -> list[str]:
+    required = entry.get("required_certifications")
+    if isinstance(required, list) and required:
+        return [str(name) for name in required]
+    return [str(entry.get("logical_name", "<unnamed>"))]
 
 
 def main(argv: list[str] | None = None) -> int:

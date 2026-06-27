@@ -5,22 +5,24 @@ from slopperly.runtime.errors import RuntimeUnavailableError, WorkflowValidation
 from slopperly.validation.artifacts import ArtifactValidationError, validate_video
 
 
-LOGICAL_NAME = "wan22_ti2v_5b_720p24_gguf"
+MODEL_LOGICAL_NAME = "wan22_ti2v_5b_720p24_gguf"
+T2V_LOGICAL_NAME = "wan22_ti2v_5b_720p24_gguf_t2v"
+I2V_LOGICAL_NAME = "wan22_ti2v_5b_720p24_gguf_i2v"
 WORKFLOW_ID = "wan22_ti2v_5b_720p24_gguf"
 
 
 def test_wan22_ti2v_5b_t2v_720p24(gpu_cert, plugin_loader, base_models, repo_root):
-    gpu_cert.require_cuda(LOGICAL_NAME)
-    runtime_url = gpu_cert.require_runtime(LOGICAL_NAME, "comfyui", paths=("/object_info",))
+    gpu_cert.require_cuda(T2V_LOGICAL_NAME)
+    runtime_url = gpu_cert.require_runtime(T2V_LOGICAL_NAME, "comfyui", paths=("/object_info",))
     workflow_pack = gpu_cert.require_file(
-        LOGICAL_NAME,
+        T2V_LOGICAL_NAME,
         repo_root / "slopperly" / "workflows" / "comfy" / WORKFLOW_ID / "workflow.api.json",
         "Wan2.2 TI2V-5B Q5 GGUF Comfy workflow API graph",
     )
 
     module = plugin_loader("video", "wan_ti2v_5b")
     plugin = module.WanTI2V5BPlugin()
-    output_path = gpu_cert.artifact_path(LOGICAL_NAME, "wan22_ti2v_5b_t2v.mp4")
+    output_path = gpu_cert.artifact_path(T2V_LOGICAL_NAME, "wan22_ti2v_5b_t2v.mp4")
     module.solve_path = lambda filename: str(output_path)
 
     inputs = base_models.ModelInputs(
@@ -50,15 +52,16 @@ def test_wan22_ti2v_5b_t2v_720p24(gpu_cert, plugin_loader, base_models, repo_roo
             require_audio=False,
         )
     except (RuntimeUnavailableError, WorkflowValidationError) as exc:
-        gpu_cert.block(LOGICAL_NAME, f"Wan2.2 TI2V-5B T2V Comfy plugin path runtime error: {exc}")
+        gpu_cert.block(T2V_LOGICAL_NAME, f"Wan2.2 TI2V-5B T2V Comfy plugin path runtime error: {exc}")
     except ArtifactValidationError as exc:
-        gpu_cert.fail(LOGICAL_NAME, f"Wan2.2 TI2V-5B T2V MP4 validation failed: {exc}")
+        gpu_cert.fail(T2V_LOGICAL_NAME, f"Wan2.2 TI2V-5B T2V MP4 validation failed: {exc}")
 
     gpu_cert.pass_artifact(
-        LOGICAL_NAME,
+        T2V_LOGICAL_NAME,
         output_path,
         validation,
         metadata={
+            "dropdown_logical_name": MODEL_LOGICAL_NAME,
             "runtime_url": runtime_url,
             "workflow_pack": str(workflow_pack),
             "mode": "t2v",
@@ -68,22 +71,22 @@ def test_wan22_ti2v_5b_t2v_720p24(gpu_cert, plugin_loader, base_models, repo_roo
 
 
 def test_wan22_ti2v_5b_i2v_720p24(gpu_cert, plugin_loader, base_models, repo_root):
-    gpu_cert.require_cuda(LOGICAL_NAME)
-    runtime_url = gpu_cert.require_runtime(LOGICAL_NAME, "comfyui", paths=("/object_info",))
+    gpu_cert.require_cuda(I2V_LOGICAL_NAME)
+    runtime_url = gpu_cert.require_runtime(I2V_LOGICAL_NAME, "comfyui", paths=("/object_info",))
     workflow_pack = gpu_cert.require_file(
-        LOGICAL_NAME,
+        I2V_LOGICAL_NAME,
         repo_root / "slopperly" / "workflows" / "comfy" / WORKFLOW_ID / "workflow.api.json",
         "Wan2.2 TI2V-5B Q5 GGUF Comfy workflow API graph",
     )
     source = gpu_cert.require_file(
-        LOGICAL_NAME,
+        I2V_LOGICAL_NAME,
         repo_root / "tests" / "fixtures" / "vsr_source.ppm",
         "Wan2.2 TI2V-5B source image fixture",
     )
 
     module = plugin_loader("video", "wan_ti2v_5b")
     plugin = module.WanTI2V5BPlugin()
-    output_path = gpu_cert.artifact_path(LOGICAL_NAME, "wan22_ti2v_5b_i2v.mp4")
+    output_path = gpu_cert.artifact_path(I2V_LOGICAL_NAME, "wan22_ti2v_5b_i2v.mp4")
     module.solve_path = lambda filename: str(output_path)
 
     inputs = base_models.ModelInputs(
@@ -113,15 +116,16 @@ def test_wan22_ti2v_5b_i2v_720p24(gpu_cert, plugin_loader, base_models, repo_roo
             require_audio=False,
         )
     except (RuntimeUnavailableError, WorkflowValidationError) as exc:
-        gpu_cert.block(LOGICAL_NAME, f"Wan2.2 TI2V-5B I2V Comfy plugin path runtime error: {exc}")
+        gpu_cert.block(I2V_LOGICAL_NAME, f"Wan2.2 TI2V-5B I2V Comfy plugin path runtime error: {exc}")
     except ArtifactValidationError as exc:
-        gpu_cert.fail(LOGICAL_NAME, f"Wan2.2 TI2V-5B I2V MP4 validation failed: {exc}")
+        gpu_cert.fail(I2V_LOGICAL_NAME, f"Wan2.2 TI2V-5B I2V MP4 validation failed: {exc}")
 
     gpu_cert.pass_artifact(
-        LOGICAL_NAME,
+        I2V_LOGICAL_NAME,
         output_path,
         validation,
         metadata={
+            "dropdown_logical_name": MODEL_LOGICAL_NAME,
             "runtime_url": runtime_url,
             "workflow_pack": str(workflow_pack),
             "source": str(source),

@@ -71,6 +71,14 @@ def validate_model_registry(root: Path) -> list[str]:
         validation = str(entry.get("validation_command") or "")
         if not validation.startswith("pytest tests/gpu/"):
             errors.append(f"{name}: validation_command must call a GPU plugin-path pytest")
+        required_certifications = entry.get("required_certifications")
+        if required_certifications is not None:
+            if (
+                not isinstance(required_certifications, list)
+                or not required_certifications
+                or not all(isinstance(item, str) and item.strip() for item in required_certifications)
+            ):
+                errors.append(f"{name}: required_certifications must be a non-empty list of names")
         try:
             if float(entry.get("minimum_vram_gb", 0)) <= 0:
                 errors.append(f"{name}: minimum_vram_gb must be positive")

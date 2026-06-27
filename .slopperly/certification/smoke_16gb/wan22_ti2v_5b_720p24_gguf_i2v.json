@@ -1,9 +1,10 @@
 {
-  "artifact": null,
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/wan22_ti2v_5b_720p24_gguf_i2v/wan22_ti2v_5b_i2v.mp4",
   "command": "pytest tests/gpu/test_wan22_ti2v_5b.py::test_wan22_ti2v_5b_i2v_720p24 --device cuda --profile smoke_16gb",
-  "generated_at_utc": "2026-06-27T11:29:23+00:00",
-  "logical_name": "wan22_ti2v_5b_720p24_gguf",
+  "generated_at_utc": "2026-06-27T14:46:00+00:00",
+  "logical_name": "wan22_ti2v_5b_720p24_gguf_i2v",
   "metadata": {
+    "dropdown_logical_name": "wan22_ti2v_5b_720p24_gguf",
     "mode": "i2v",
     "plugin": "video/wan_ti2v_5b.py",
     "runtime_url": "http://127.0.0.1:8190",
@@ -11,8 +12,16 @@
     "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/wan22_ti2v_5b_720p24_gguf/workflow.api.json"
   },
   "profile": "smoke_16gb",
-  "reason": "Previous PASS artifact was generated through a deleted cloud-provider compatibility path and is not valid production evidence. Direct I2V must be rerun through video/wan_ti2v_5b.py against owned ComfyUI.",
+  "reason": "",
   "schema_version": 1,
-  "status": "BLOCKED",
-  "validation": {}
+  "status": "PASS",
+  "validation": {
+    "duration": 2.041667,
+    "fps": 24.0,
+    "frame_count": 49,
+    "has_audio": false,
+    "height": 704,
+    "kind": "video",
+    "width": 1280
+  }
 }
