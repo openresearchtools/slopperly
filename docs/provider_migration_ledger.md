@@ -201,3 +201,19 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - No model files were downloaded in this block.
 - The selected llama.cpp GGUF and snapshot models still require real download, runtime launch, and plugin-path artifact tests before certification.
+
+## 2026-06-27 Model registry audit block
+
+### Audit Added
+
+- Added `python -m slopperly.audit.model_registry`.
+- The audit fails on missing required registry fields, unsupported runtimes/download modes, non-Hugging Face artifact sources for managed downloads, generic required-file placeholders, unsafe snapshot evidence paths, non-relative cache paths, missing GPU validation commands, or invalid VRAM declarations.
+- `slopperly.doctor` now includes the model registry audit in its default local readiness checks.
+
+### Verification
+
+- Unit tests cover the current registry audit and doctor integration.
+
+### Blocked / Not Yet Certified
+
+- Registry validity does not certify model availability or runtime execution. Real downloads, server starts, and plugin-path GPU artifacts are still required.

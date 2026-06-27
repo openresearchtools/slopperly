@@ -8,6 +8,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from slopperly.doctor import run_checks, selected_runtimes
+from slopperly.audit.model_registry import validate_model_registry
 from slopperly.models.download import (
     download_models,
     huggingface_repo_id,
@@ -58,7 +59,11 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         by_name = {check.name: check.status for check in checks}
         self.assertEqual(by_name["local_only_surface"], "PASS")
         self.assertEqual(by_name["no_cloud"], "PASS")
+        self.assertEqual(by_name["model_registry"], "PASS")
         self.assertEqual(by_name["workflow_packs"], "PASS")
+
+    def test_model_registry_audit_passes_current_registry(self):
+        self.assertEqual(validate_model_registry(ROOT), [])
 
     def test_selected_runtimes(self):
         self.assertEqual(selected_runtimes("none"), [])

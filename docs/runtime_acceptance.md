@@ -18,6 +18,7 @@
 - `python -m slopperly.doctor --local-only --runtimes none --report-only` passes local-only/no-cloud/workflow-pack checks.
 - Runtime install commands now have dry-run/report modes that emit `PASS`/`PLAN`/`BLOCKED` evidence before cloning, downloading, or installing packages.
 - Runtime supervisors now build local-only launch commands from the owned install layout and preflight required executables/files before starting a server.
+- `python -m slopperly.audit.model_registry` validates registry fields, download modes, Hugging Face artifact sources, required files, and GPU validation command declarations.
 
 ## Current Blocks
 

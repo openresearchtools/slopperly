@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from slopperly.audit.local_only_surface import audit as local_only_surface_audit
+from slopperly.audit.model_registry import validate_model_registry
 from slopperly.audit.no_cloud import scan as no_cloud_scan
 from slopperly.audit.workflow_packs import validate_workflow_pack
 from slopperly.config.registry import load_runtimes_config
@@ -102,6 +103,13 @@ def check_workflow_packs(root: Path) -> list[DoctorCheck]:
     return checks
 
 
+def check_model_registry(root: Path) -> list[DoctorCheck]:
+    failures = validate_model_registry(root)
+    if failures:
+        return [DoctorCheck("FAIL", "model_registry", "; ".join(failures[:5]))]
+    return [DoctorCheck("PASS", "model_registry", "model registry entries are explicit")]
+
+
 def check_runtime(root: Path, runtime_id: str, timeout: float) -> DoctorCheck:
     config = load_runtimes_config(root)
     url = _runtime_url(config, runtime_id)
@@ -153,6 +161,7 @@ def run_checks(
     checks: list[DoctorCheck] = []
     if local_only:
         checks.extend(check_local_only(root))
+    checks.extend(check_model_registry(root))
     checks.extend(check_workflow_packs(root))
     if cuda:
         checks.append(check_cuda())

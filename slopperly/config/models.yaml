@@ -5,6 +5,7 @@ models:
     task: image_edit
     runtime: comfy
     model_source: https://huggingface.co/unsloth/Qwen-Image-Edit-2511-GGUF
+    download_mode: hf_file
     local_cache_path: models/diffusion_models/qwen-image-edit-2511-Q5_K_M.gguf
     required_files:
       - qwen-image-edit-2511-Q5_K_M.gguf
@@ -26,6 +27,7 @@ models:
     task: video_t2v_i2v
     runtime: comfy
     model_source: https://huggingface.co/QuantStack/Wan2.2-TI2V-5B-GGUF
+    download_mode: hf_file
     local_cache_path: models/diffusion_models/Wan2.2-TI2V-5B-Q5_K_M.gguf
     required_files:
       - Wan2.2-TI2V-5B-Q5_K_M.gguf
