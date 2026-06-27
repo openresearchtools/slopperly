@@ -316,6 +316,27 @@ class ComfyHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
+                node.get("class_type") == "UNETLoader"
+                and (node.get("inputs") or {}).get("unet_name")
+                == "flux1-dev-kontext_fp8_scaled.safetensors"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "136": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_flux_kontext_edit_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
                 node.get("class_type") == "TextEncodeQwenImageEditPlus"
                 for node in ComfyHandler.last_prompt.values()
             ):
@@ -679,6 +700,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "flux2_klein" in parsed.query
                 or "flux1_canny" in parsed.query
                 or "flux1_depth" in parsed.query
+                or "flux_kontext" in parsed.query
                 or "flux_redux" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
@@ -865,6 +887,15 @@ def _flux1_control_object_info(workflow_id: str) -> dict:
 def _flux_redux_object_info() -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy/flux_redux_restyle/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _flux_kontext_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/flux_kontext_edit/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -2525,6 +2556,69 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["30"]["inputs"]["max_shift"], 1.15)
         self.assertEqual(prompt["30"]["inputs"]["base_shift"], 0.5)
         self.assertEqual(prompt["41"]["class_type"], "StyleModelApply")
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+
+    def test_flux_kontext_pack_uploads_reference_and_patches_edit_graph(self):
+        ComfyHandler.reset(_flux_kontext_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            destination = Path(tmp) / "flux_kontext.png"
+            source.write_bytes(b"local kontext source image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="turn the cup red while preserving the table layout",
+                image=str(source),
+                width=1024,
+                height=768,
+                seed=6301,
+                steps=28,
+                flux_kontext_cfg=1.0,
+                flux_kontext_sampler="euler",
+                flux_kontext_scheduler="simple",
+                flux_kontext_denoise=1.0,
+                flux_kontext_flux_guidance=3.5,
+                flux_kontext_model="flux1-dev-kontext_fp8_scaled.safetensors",
+                flux_kontext_weight_dtype="default",
+                flux_kontext_clip_l="clip_l.safetensors",
+                flux_kontext_t5="t5xxl_fp8_e4m3fn_scaled.safetensors",
+                flux_kontext_clip_type="flux",
+                flux_kontext_vae="ae.safetensors",
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/flux_kontext_edit",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 1)
+        self.assertEqual(prompt["142"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["188"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["188"]["inputs"]["height"], 768)
+        self.assertEqual(prompt["37"]["inputs"]["unet_name"], "flux1-dev-kontext_fp8_scaled.safetensors")
+        self.assertEqual(prompt["37"]["inputs"]["weight_dtype"], "default")
+        self.assertEqual(prompt["38"]["inputs"]["clip_name1"], "clip_l.safetensors")
+        self.assertEqual(prompt["38"]["inputs"]["clip_name2"], "t5xxl_fp8_e4m3fn_scaled.safetensors")
+        self.assertEqual(prompt["38"]["inputs"]["type"], "flux")
+        self.assertEqual(prompt["39"]["inputs"]["vae_name"], "ae.safetensors")
+        self.assertEqual(prompt["6"]["inputs"]["text"], "turn the cup red while preserving the table layout")
+        self.assertEqual(prompt["35"]["inputs"]["guidance"], 3.5)
+        self.assertEqual(prompt["31"]["inputs"]["seed"], 6301)
+        self.assertEqual(prompt["31"]["inputs"]["steps"], 28)
+        self.assertEqual(prompt["31"]["inputs"]["cfg"], 1.0)
+        self.assertEqual(prompt["31"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["31"]["inputs"]["scheduler"], "simple")
+        self.assertEqual(prompt["31"]["inputs"]["denoise"], 1.0)
+        self.assertEqual(prompt["42"]["class_type"], "FluxKontextImageScale")
+        self.assertEqual(prompt["177"]["class_type"], "ReferenceLatent")
+        self.assertEqual(prompt["135"]["class_type"], "ConditioningZeroOut")
         self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
 
     def test_lumina2_pack_patches_t2i_graph(self):

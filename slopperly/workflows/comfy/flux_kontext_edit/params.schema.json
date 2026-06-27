@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "workflow_id": "flux_kontext_edit",
+  "description": "Patch schema for FLUX.1 Kontext reference-latent image editing through local ComfyUI.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "6",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "188",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "188",
+        "input": "height"
+      }
+    ],
+    "steps": [
+      {
+        "node": "31",
+        "input": "steps"
+      }
+    ],
+    "seed": [
+      {
+        "node": "31",
+        "input": "seed"
+      }
+    ],
+    "flux_kontext_cfg": [
+      {
+        "node": "31",
+        "input": "cfg"
+      }
+    ],
+    "flux_kontext_sampler": [
+      {
+        "node": "31",
+        "input": "sampler_name"
+      }
+    ],
+    "flux_kontext_scheduler": [
+      {
+        "node": "31",
+        "input": "scheduler"
+      }
+    ],
+    "flux_kontext_denoise": [
+      {
+        "node": "31",
+        "input": "denoise"
+      }
+    ],
+    "flux_kontext_flux_guidance": [
+      {
+        "node": "35",
+        "input": "guidance"
+      }
+    ],
+    "flux_kontext_model": [
+      {
+        "node": "37",
+        "input": "unet_name"
+      }
+    ],
+    "flux_kontext_weight_dtype": [
+      {
+        "node": "37",
+        "input": "weight_dtype"
+      }
+    ],
+    "flux_kontext_clip_l": [
+      {
+        "node": "38",
+        "input": "clip_name1"
+      }
+    ],
+    "flux_kontext_t5": [
+      {
+        "node": "38",
+        "input": "clip_name2"
+      }
+    ],
+    "flux_kontext_clip_type": [
+      {
+        "node": "38",
+        "input": "type"
+      }
+    ],
+    "flux_kontext_vae": [
+      {
+        "node": "39",
+        "input": "vae_name"
+      }
+    ]
+  },
+  "uploads": {
+    "image": [
+      {
+        "node": "142",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "guidance": "Mapped to FluxGuidance.guidance, matching the official Comfy FLUX Kontext graph.",
+    "strength": "The official reference-latent graph keeps KSampler denoise fixed. The image strength slider is preserved in UI and recorded by the plugin as unmapped until a certified strength-aware graph is available.",
+    "negative_prompt": "FLUX Kontext's official reference graph derives negative conditioning by zeroing the positive prompt conditioning with ConditioningZeroOut.",
+    "inpaint_mask": "The old plugin accepted an inpaint mask. Production exposure of masked inpaint is blocked until a separate local Comfy mask workflow is certified.",
+    "lora": "Dynamic project LoRA injection remains visible in the Blender UI, but this certified graph does not load arbitrary LoRA files."
+  },
+  "outputs": [
+    {
+      "node": "136",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ]
+}

@@ -1075,3 +1075,15 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: integration coverage calls `FluxReduxPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed Redux pack directly, and `tests/gpu/test_flux_redux.py` now performs a plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with Redux-capable core node classes and `flux1-dev.safetensors`, `flux1-redux-dev.safetensors`, `sigclip_vision_patch14_384.safetensors`, `clip_l.safetensors`, `t5xxl_fp16.safetensors`, and `ae.safetensors` installed locally.
+
+### 2026-06-27 FLUX Kontext Comfy workflow block
+
+- Completed: `image/flux_kontext.py` now routes `yuvraj108c/FLUX.1-Kontext-dev` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution in the add-on process.
+- Completed: the existing prompt, image strip, resolution, frames, steps, guidance, image strength, seed, LoRA, and inpaint-capable UI contract remains present. Direct `inputs.image`, `scene.kontext_strip_1`, and `scene.kontext_strip_1_path` still resolve to a local file upload.
+- Completed: `flux_kontext_edit` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Completed: the workflow uses Comfy core `LoadImage`, `UNETLoader`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `FluxKontextImageScale`, `VAEEncode`, `ReferenceLatent`, `ConditioningZeroOut`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `flux1-dev-kontext_fp8_scaled.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors`.
+- Evidence: integration coverage calls `FluxKontextPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus PNG artifact collection.
+- Evidence: workflow-runner integration coverage verifies the committed Kontext pack directly, and `tests/gpu/test_flux_kontext.py` now performs a plugin-path certification attempt.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with FLUX Kontext-capable core node classes and `flux1-dev-kontext_fp8_scaled.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors` installed locally.
+- Still blocked: the committed workflow is the official reference-latent edit path; the old inpaint mask and image strength controls remain non-breaking UI inputs and are recorded as unmapped until separate local Comfy graphs are certified for those controls.

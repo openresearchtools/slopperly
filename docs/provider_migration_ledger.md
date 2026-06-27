@@ -1083,3 +1083,29 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with Redux-capable Comfy core node classes, `flux1-dev.safetensors`, `flux1-redux-dev.safetensors`, `sigclip_vision_patch14_384.safetensors`, `clip_l.safetensors`, `t5xxl_fp16.safetensors`, and `ae.safetensors` installed locally.
+
+## 2026-06-27 FLUX Kontext Comfy workflow block
+
+### Production Paths Migrated
+
+- `models_plugins/image/flux_kontext.py` now routes `yuvraj108c/FLUX.1-Kontext-dev` through the local Comfy gateway instead of importing Torch/Diffusers and running Kontext inference in the add-on process.
+- The existing prompt, image strip, resolution, frames, steps, guidance, image strength, seed, LoRA, and inpaint-capable UI contract remains present. Direct `inputs.image`, `scene.kontext_strip_1`, and `scene.kontext_strip_1_path` still resolve to a local file upload for Comfy.
+- The wrapper preserves the existing `ModelPlugin.generate()` result shape and writes a local PNG artifact path for existing Blender output insertion.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/flux_kontext_edit/` with editable/API workflow JSON, schema, model manifest, smoke payload, and README.
+- The workflow uses Comfy core `LoadImage`, `UNETLoader`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `FluxKontextImageScale`, `VAEEncode`, `ReferenceLatent`, `ConditioningZeroOut`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
+- Registered `flux_kontext_edit` in `slopperly/config/models.yaml` with legacy aliases `yuvraj108c/FLUX.1-Kontext-dev` and `black-forest-labs/FLUX.1-Kontext-dev`, the Comfy-Org FLUX.1 Kontext FP8 diffusion file, FLUX text encoders, and VAE local artifact mappings.
+
+### Verification
+
+- Integration coverage calls `FluxKontextPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies source image upload, model/text encoder/VAE filenames, prompt, guidance, steps, seed, sampler parameters, Kontext reference-latent nodes, and PNG artifact collection.
+- Workflow-runner integration coverage verifies the committed `flux_kontext_edit` pack directly and collects a single PNG artifact from Comfy history outputs.
+- GPU certification coverage is registered in `tests/gpu/test_flux_kontext.py` and validates a 1024x1024 PNG artifact when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with FLUX Kontext-capable core node classes, `flux1-dev-kontext_fp8_scaled.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors` installed locally.
+- The committed workflow is the official reference-latent edit path. The old inpaint mask and image strength controls remain non-breaking UI inputs and are recorded as unmapped until separate local Comfy graphs are certified for those controls.

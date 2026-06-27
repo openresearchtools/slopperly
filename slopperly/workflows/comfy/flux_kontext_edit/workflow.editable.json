@@ -1,0 +1,6 @@
+{
+  "workflow_id": "flux_kontext_edit",
+  "source": "https://raw.githubusercontent.com/Comfy-Org/example_workflows/main/flux/kontext/dev/flux_1_kontext_dev_basic.png",
+  "reference_docs": "https://docs.comfy.org/tutorials/flux/flux-1-kontext-dev",
+  "note": "Editable Comfy workflow metadata is embedded in the official example PNG. The committed API graph is simplified to the single-reference edit path and adds EmptySD3LatentImage so Slopperly resolution controls patch directly."
+}

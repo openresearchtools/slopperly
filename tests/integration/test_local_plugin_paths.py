@@ -506,6 +506,28 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
+                node.get("class_type") == "UNETLoader"
+                and (node.get("inputs") or {}).get("unet_name")
+                == "flux1-dev-kontext_fp8_scaled.safetensors"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "136": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_flux_kontext_edit_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
                 node.get("class_type") == "TextEncodeQwenImageEditPlus"
                 for node in RuntimeHandler.comfy_prompt.values()
                 if isinstance(node, dict)
@@ -1961,6 +1983,87 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["25"]["inputs"]["noise_seed"], 6201)
         self.assertEqual(prompt["41"]["class_type"], "StyleModelApply")
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_flux_kontext_uses_comfy_edit_plugin_path(self):
+        module = load_plugin_module("image", "flux_kontext")
+        plugin = module.FluxKontextPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local kontext source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="turn the cup red while preserving the table layout",
+                image=str(source),
+                width=1024,
+                height=768,
+                steps=28,
+                guidance=3.5,
+                strength=0.65,
+                seed=6301,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["142"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["188"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["188"]["inputs"]["height"], 768)
+        self.assertEqual(prompt["37"]["inputs"]["unet_name"], "flux1-dev-kontext_fp8_scaled.safetensors")
+        self.assertEqual(prompt["37"]["inputs"]["weight_dtype"], "default")
+        self.assertEqual(prompt["38"]["inputs"]["clip_name1"], "clip_l.safetensors")
+        self.assertEqual(prompt["38"]["inputs"]["clip_name2"], "t5xxl_fp8_e4m3fn_scaled.safetensors")
+        self.assertEqual(prompt["38"]["inputs"]["type"], "flux")
+        self.assertEqual(prompt["39"]["inputs"]["vae_name"], "ae.safetensors")
+        self.assertEqual(prompt["6"]["inputs"]["text"], "turn the cup red while preserving the table layout")
+        self.assertEqual(prompt["35"]["inputs"]["guidance"], 3.5)
+        self.assertEqual(prompt["31"]["inputs"]["seed"], 6301)
+        self.assertEqual(prompt["31"]["inputs"]["steps"], 28)
+        self.assertEqual(prompt["31"]["inputs"]["cfg"], 1.0)
+        self.assertEqual(prompt["31"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["31"]["inputs"]["scheduler"], "simple")
+        self.assertEqual(prompt["31"]["inputs"]["denoise"], 1.0)
+        self.assertEqual(prompt["42"]["class_type"], "FluxKontextImageScale")
+        self.assertEqual(prompt["177"]["class_type"], "ReferenceLatent")
+        self.assertEqual(prompt["135"]["class_type"], "ConditioningZeroOut")
+        self.assertIn("image strength slider is preserved", inputs.usage_note)
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_flux_kontext_accepts_collected_image_object(self):
+        class FakeImage:
+            def save(self, path):
+                Path(path).write_bytes(b"temporary kontext image object")
+
+        module = load_plugin_module("image", "flux_kontext")
+        plugin = module.FluxKontextPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="make the collected image look like red ceramic",
+                image=FakeImage(),
+                width=1024,
+                height=1024,
+                steps=28,
+                guidance=3.5,
+                seed=6302,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["142"]["inputs"]["image"], "uploaded_source.png")
+        self.assertIn(b'filename="slopperly_image_', RuntimeHandler.comfy_uploads[-1])
 
     def test_flux2_klein_4b_uses_comfy_t2i_and_edit_plugin_paths(self):
         module = load_plugin_module("image", "flux2_klein_4b")
