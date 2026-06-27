@@ -87,6 +87,8 @@ def install_comfy(
         if not skip_pip:
             steps.extend(install_python_requirements(node_path, node, pip, dry_run=dry_run))
 
+    steps.extend(apply_slopperly_post_install_patches(comfy_path, dry_run=dry_run))
+
     steps.append(
         write_manifest(
             runtime_root / "install-manifest.json",
@@ -103,6 +105,69 @@ def install_comfy(
         )
     )
     return steps
+
+
+def apply_slopperly_post_install_patches(comfy_path: Path, *, dry_run: bool) -> list[InstallStep]:
+    """Patch third-party nodes that perform network work during object_info."""
+
+    return [
+        disable_foundation1_object_info_autodownload(
+            comfy_path / "custom_nodes" / "foundation_1" / "nodes" / "loader_node.py",
+            dry_run=dry_run,
+        )
+    ]
+
+
+def disable_foundation1_object_info_autodownload(path: Path, *, dry_run: bool) -> InstallStep:
+    marker = "Slopperly disables upstream auto-download"
+    if dry_run:
+        return InstallStep(
+            "PLAN",
+            "foundation_1",
+            f"patch {path} to keep /object_info local-only",
+        )
+    if not path.is_file():
+        return InstallStep(
+            "PASS",
+            "foundation_1",
+            f"Foundation-1 loader not present at {path}; no local-only patch needed",
+        )
+    text = path.read_text(encoding="utf-8")
+    if marker in text:
+        return InstallStep(
+            "PASS",
+            "foundation_1",
+            f"Foundation-1 object_info auto-download patch already present in {path}",
+        )
+    old = """        else:
+            logger.info(
+                "No Foundation-1 models found in models/stable_audio/. "
+                "Attempting auto-download from HuggingFace..."
+            )
+            _download_foundation1()
+            results = _do_scan()
+"""
+    new = """        else:
+            logger.warning(
+                "No Foundation-1 models found in models/stable_audio/. "
+                "Slopperly disables upstream auto-download during /object_info "
+                "and generation. Run python -m slopperly.models.download "
+                "--model foundation1_music_loop --accept-licenses before "
+                "certifying this workflow."
+            )
+"""
+    if old not in text:
+        return InstallStep(
+            "BLOCKED",
+            "foundation_1",
+            f"could not find Foundation-1 auto-download block to patch in {path}",
+        )
+    path.write_text(text.replace(old, new), encoding="utf-8")
+    return InstallStep(
+        "PASS",
+        "foundation_1",
+        f"patched {path} to keep /object_info local-only",
+    )
 
 
 def install_local_custom_node(

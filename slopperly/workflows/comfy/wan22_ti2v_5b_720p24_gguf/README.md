@@ -51,5 +51,4 @@ pytest tests/gpu/test_wan22_ti2v_5b.py --device cuda
 - Comfy `/object_info` includes `UnetLoaderGGUF`, `Wan22ImageToVideoLatent`, `VAEDecodeTiled`, `VHS_VideoCombine`, and the required core text/sampling nodes.
 - `workflow.api.json` validates as Comfy API format and contains no external inference URLs.
 - The local dropdown path calls `WanTI2V5BPlugin.load()` and `WanTI2V5BPlugin.generate()`.
-- The saved-project alias path calls `MiniMaxImg2VidPlugin.load()` and `MiniMaxImg2VidPlugin.generate()`.
 - The smoke payload returns a readable 24fps MP4 file at the certified 720P-family dimensions.

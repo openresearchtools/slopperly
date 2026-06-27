@@ -1423,13 +1423,6 @@ def input_strips_updated(self, context):
             pass
         if _p and getattr(_p, "requires_input_strip", False) and scene.input_strips != "input_strips":
             scene.input_strips = "input_strips"
-        elif (
-            movie_model in {
-                "Hailuo/MiniMax/img2vid",
-                "Hailuo/MiniMax/subject2vid"
-            }
-        ) and scene.input_strips != "input_strips":
-            scene.input_strips = "input_strips"
 
     elif scene_type == "audio":
         if audio_model == "StemSplitter" and scene.input_strips != "input_strips":
@@ -1526,10 +1519,7 @@ def output_strips_updated(self, context):
                 movie_guidance = _p.PARAMS.guidance
         except Exception:
             pass
-        if movie_model in [
-            "Hailuo/MiniMax/img2vid",
-            "Hailuo/MiniMax/subject2vid"
-        ]:
+        if _p and getattr(_p, "requires_input_strip", False):
             scene.input_strips = "input_strips"
 
     # === AUDIO TYPE === #
@@ -2710,7 +2700,7 @@ class NoWatermark:
     def apply_watermark(self, img):
         return img
 
-def minimax_validate_image(file_path):
+def local_video_reference_validate_image(file_path):
     """
     Validate an image based on the following criteria:
     - Format: JPG, JPEG, PNG
@@ -2735,7 +2725,7 @@ def minimax_validate_image(file_path):
         # Check file size
         file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
         if file_size_mb > MAX_FILE_SIZE_MB:
-            print("MiniMax Image Input Failure Reason: File size exceeds 20MB.")
+            print("Image Input Failure Reason: File size exceeds 20MB.")
             return False
 
         # Load image using PIL
@@ -3432,23 +3422,6 @@ class SEQUENCER_OT_redo_from_metadata(bpy.types.Operator):
                 scene.maxine_quality = str(_v)
             except Exception:
                 pass
-
-        # Google Nano Banana / Veo cloud settings (enum string props) plus the
-        # reference-strip names — restoring the names lets the queue re-render
-        # the reference images from the source strips on Redo.
-        for _attr in [
-            "nano_banana_model", "nano_banana_aspect", "nano_banana_resolution",
-            "veo_model", "veo_aspect", "veo_resolution", "veo_duration",
-            "veo_person_generation", "veo_image_mode",
-            "nano_banana_ref_strip_1", "nano_banana_ref_strip_2", "nano_banana_ref_strip_3",
-            "veo_ref_strip_1", "veo_ref_strip_2", "veo_ref_strip_3",
-        ]:
-            _v = _get(_attr)
-            if _v is not None and hasattr(scene, _attr):
-                try:
-                    setattr(scene, _attr, str(_v))
-                except Exception:
-                    pass
 
         # MOSS-TTS params (audio strips)
         for _attr, _cast in [

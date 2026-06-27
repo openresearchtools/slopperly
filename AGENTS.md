@@ -37,13 +37,111 @@ The allowed UI changes are only these:
 
 1. Remove external/cloud provider settings, API key prompts, and remote cloud backend discovery from production Slopperly.
 2. Replace provider/runtime settings with local runtime settings for owned ComfyUI, vLLM, vLLM-Omni, and llama.cpp.
-3. Replace cloud-only model dropdown entries with local model entries or saved-project compatibility aliases.
+3. Replace cloud-only model dropdown entries with direct local model entries only after those direct local entries have passing artifact tests. Do not keep cloud-branded saved-project aliases in production Slopperly.
 4. Remove or hide a dropdown model entry when there is no committed local workflow and no passing artifact test.
 5. Rename Palladium to Slopperly.
 
 The migration path is not “replace every old model with some newer model.” Existing local models already present in the add-on must be migrated to the permitted execution backends. For image/video/audio diffusion models, that means ComfyUI workflows or Slopperly-owned Comfy custom nodes. For STT/VLM, that means vLLM. For TTS/voice clone, existing models with real Comfy node support stay on Comfy, while Qwen/Fish/OmniVoice/MOSS profiles use vLLM-Omni. For text rewrite/chat/planning, that means llama.cpp.
 
 Hugging Face is allowed only as a model artifact source. Hugging Face hosted inference is not allowed.
+
+
+## Current code-derived parity report (2026-06-27)
+
+This section is the live progress report. The historical implementation log below is evidence of scaffold work only and does not mark a function complete. A function is **DONE ON SPEC** only when the existing Blender UI flow calls the real `ModelPlugin.generate()` path, patches every relevant UI control into the local runtime workflow, produces a real local artifact on the RTX 4090, validates that artifact, and leaves the production dropdown certified for that exact profile.
+
+Current hard truth:
+
+- **DONE ON SPEC:** no original Palladium model/function from baseline commit `50cf377bf11349685010acb726a5e2b2e3cb9962` is fully done on spec yet.
+- **PARTIAL REAL EVIDENCE:** new `video/wan_ti2v_5b.py` produced one real direct T2V MP4 through owned ComfyUI using the Wan2.2 TI2V-5B GGUF pack. This is not original Palladium parity, and direct I2V must be rerun after cloud-alias removal before it can count.
+- **SCAFFOLD ONLY:** Comfy workflow packs, schemas, model registries, integration tests against fake loopback servers, and GPU test files exist for many functions. Those are not completion evidence.
+- **NOT VALID COMPLETION:** any report that says a function is done because a fake Comfy/vLLM server accepted a payload is wrong. It must say scaffold only.
+- **CLOUD REMOVAL:** Google Nano Banana, Google Veo, and MiniMax production plugins are deleted and must not return as aliases or dropdown entries. Their replacement local workflows must stand on their own direct certified entries.
+- **DIRECT TORCH/DIFFUSERS VIDEO GAP:** `video/ltx2.py`, `video/ltx23_extend.py`, `video/ltx23_lipsync.py`, `video/ltx23_multi.py`, `video/ltx23_multi_ic_lora.py`, `video/skyreels.py`, `video/wan_t2v.py`, and `video/wan_i2v.py` still contain direct Torch/Diffusers/Transformers generation paths. These are not migrated to the required Comfy gateway.
+
+Runtime and model-cache facts found on disk:
+
+- Owned Slopperly Comfy runtime path: `.slopperly/runtimes/ComfyUI`.
+- Owned Slopperly Comfy model cache currently has only the Wan TI2V-5B smoke set: `Wan2.2-TI2V-5B-Q5_K_M.gguf`, `umt5_xxl_fp8_e4m3fn_scaled.safetensors`, `wan2.2_vae.safetensors`, and `wan_2.1_vae.safetensors`.
+- Existing user Comfy cache to reuse before any download: `/home/user/Documents/Comfy/ComfyUI/models` (`191G` found). Do not redownload LTX/Wan assets that exist there; copy or symlink them into `.slopperly/runtimes/ComfyUI/models` and record the copy in the model registry.
+- Existing LTX workflow source to port before making a new graph: `/home/user/Documents/Comfy/workflows/*.json`, including many LTX 2.3 Q5/NVFP4/FP8 API workflows and known-good I2V variants.
+- Existing LTX model assets found and reusable: `ltx-2.3-22b-dev-fp8.safetensors`, `ltx-2.3-22b-dev-nvfp4.safetensors`, `ltx-2.3-22b-dev-UD-Q5_K_M.gguf`, `ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf`, `ltx-2.3-22b-distilled-1.1-Q6_K.gguf`, LTX text projection/connector files, LTX video/audio VAEs, LTX IC-LoRA files, and LTX latent upscaler files under `/home/user/Documents/Comfy/ComfyUI/models`.
+- Existing Wan A14B I2V Q5 high/low noise files found and reusable: `/home/user/Documents/Comfy/ComfyUI/models/unet/HighNoise/Wan2.2-I2V-A14B-HighNoise-Q5_K_M.gguf` and `/home/user/Documents/Comfy/ComfyUI/models/unet/LowNoise/Wan2.2-I2V-A14B-LowNoise-Q5_K_M.gguf`.
+- Existing user Comfy custom nodes include `ComfyUI-GGUF`, `ComfyUI-MultiGPU`, `WhatDreamsCost-ComfyUI`, and `ComfyUI-KJNodes`; owned Slopperly Comfy currently only shows `comfyui_gguf` and `video_helper_suite` among the checked important node packs. Missing owned node packs must be installed into `.slopperly/runtimes/ComfyUI/custom_nodes`, not relied on from the user Comfy tree.
+- vLLM functions require installing/starting `.slopperly/vllm-venv` with `vllm[audio]` or multimodal support and running a local server on the configured localhost URL.
+- vLLM-Omni functions require installing/starting `.slopperly/vllm-omni-venv` with `vllm-omni` and one local speech model per server instance.
+- llama.cpp functions require installing/starting the configured Ubuntu x64 CUDA artifact and serving the local GGUF model through the local llama.cpp endpoint.
+
+Historical progress-block truth:
+
+| Progress block | Code-derived truth | What is not done | Required proof |
+|---|---|---|---|
+| Indexed Comfy media schema | Schema helper scaffold exists for indexed fields and media uploads. | It proves no model parity by itself. | At least Qwen edit, OmniGen, and LTX staged workflows must pass real multi-reference artifact tests. |
+| GPU certification harness | Test harness and certification JSON writer exist. | Harness does not mean a function passed; most GPU tests have not been run against real runtimes. | Each plugin test must run with real local runtime and validated artifact. |
+| Comfy upload endpoint schema | Upload route declarations exist and reject absolute endpoints. | It does not prove video/audio/image workflows run. | Real `/upload/image`, `/upload/video`, and `/upload/audio` workflows must generate artifacts. |
+| No-cloud audit | Audit script exists and cloud files are being removed. | Audit alone does not prove local replacement parity. | No-cloud audit plus local artifact certification per dropdown entry. |
+
+Per-function parity table:
+
+| Function / model | Current code truth | Not done / not on spec | Runtime, models, and UI mapping required before completion | Required real test |
+|---|---|---|---|---|
+| `audio/ace_step.py` ACE-Step | Comfy wrapper and `ace_step_15_music` workflow pack exist. | Scaffold only; no real music artifact certification. | Owned Comfy plus ACE-Step nodes/files; map prompt, lyrics/music params, duration, steps, guidance, seed. | WAV/FLAC duration/non-silent test through `AceStepPlugin.generate()`. |
+| `audio/_stable_audio_3.py` Stable Audio 3 | Comfy wrapper and workflow pack exist. | Scaffold only; no real audio artifact. | Owned Comfy Stable Audio nodes/files; map prompt, negative, duration, steps, guidance, seed. | Real WAV/FLAC duration/non-silent test. |
+| `audio/foundation_music.py` Foundation-1 | Comfy wrapper exists and installer patch avoids import-time download. | Scaffold only; no real loop artifact. | Owned Comfy with Foundation-1 nodes/files; map prompt, negative, BPM/key/bar/time controls, duration, seed. | Real loop WAV test with BPM/bar duration validation. |
+| `audio/mmaudio.py` MMAudio | Comfy wrapper and workflow pack exist. | Scaffold only; no real video-to-audio artifact. | Owned Comfy with VideoHelperSuite and MMAudio nodes/models; map video strip, prompt, negative, duration, steps, cfg/guidance, seed. | Real video input to audio output, duration/sample-rate/non-silent validation. |
+| `audio/stem_split.py` Stem Splitter | Comfy Demucs wrapper exists. | Scaffold only; old six-stem behavior is blocked; no real stem artifact. | Owned Comfy audio-separation nodes and Demucs model; map selected audio/video strip. | Real four-stem output with durations matching source. |
+| `audio/chatterbox.py` Chatterbox | Comfy wrapper/workflows exist for TTS/VC modes. | Scaffold only; no real speech/voice-clone artifact. | Owned Comfy Chatterbox node pack; map prompt, audio ref, voice-conversion mode, seed/available speech controls. | Real WAV TTS and VC tests. |
+| `audio/chatterbox_turbo.py` Chatterbox Turbo | Comfy wrapper/workflows exist. | Scaffold only; no real Turbo artifact. | Owned Comfy Chatterbox Turbo nodes; map prompt, optional audio ref, seed/voice controls. | Real WAV prompt-only and ref-audio tests. |
+| `audio/chatterbox_multilingual.py` Chatterbox Multilingual | Comfy wrapper/workflows exist. | Scaffold only; no real multilingual artifact. | Owned Comfy multilingual Chatterbox nodes; map prompt, language/ref-audio controls. | Real multilingual WAV and ref-audio tests. |
+| `audio/omnivoice.py` OmniVoice | vLLM-Omni client wrapper exists. | Scaffold only; vLLM-Omni server/model not proven installed or running. | Install/start `.slopperly/vllm-omni-venv`; local OmniVoice model; map prompt, ref audio, ref text, speed/seed where exposed. | Real WAV TTS/voice-clone through local vLLM-Omni. |
+| `audio/moss_tts.py` MOSS-TTS | vLLM-Omni client wrapper exists. | Scaffold only; no local speech artifact. | Install/start `.slopperly/vllm-omni-venv`; local MOSS-TTS-Nano model; map prompt and clone controls that exist in UI. | Real WAV voice-clone/TTS artifact. |
+| `text/faster_whisper_transcribe.py` STT | vLLM STT client path exists. | Scaffold only; no local vLLM transcription proof. | Install/start `.slopperly/vllm-venv` with `vllm[audio]`; map selected audio/video strip and output text insertion. | Known WAV transcript test through plugin. |
+| `text/marlin_video_captions.py` video captions | vLLM VLM client wrapper exists. | Scaffold only; fake server test only. | Install/start vLLM multimodal server; map selected video strip, caption/find mode, marker output. | Real MP4 caption/marker artifact. |
+| `text/moviigen_rewriter.py` prompt rewriter | llama.cpp wrapper/registry exists. | Scaffold only; llama.cpp local server/model not proven. | Install/start llama.cpp CUDA artifact; local GGUF model; map prompt and output text. | Real rewritten text through plugin. |
+| `text/florence2.py` Florence2 | Comfy wrapper/workflow exists. | Scaffold only; no real caption/OCR artifact. | Owned Comfy Florence2 nodes/model; map image strip and task mode. | Real image caption/OCR JSON/text output. |
+| `image/_krea2_base.py` Krea 2 Base | Comfy wrapper/workflow pack exists. | Scaffold only; not GGUF-certified; no real image artifact. | Owned Comfy Krea files; map prompt, negative, resolution, frames, steps, guidance, seed, LoRA if UI exposes it. | Real PNG at requested size/aspect. |
+| `image/krea2_turbo.py` Krea 2 Turbo | Comfy wrapper/workflow pack exists. | Scaffold only; default-step parity not proven. | Owned Comfy Krea Turbo files; map prompt, resolution, frames, steps, guidance, seed, any negative/LoRA UI gaps. | Real PNG with Turbo defaults validated. |
+| `image/anima.py` Anima | Comfy wrapper and T2I/I2I packs exist. | Scaffold only; no real T2I/I2I artifact. | Owned Comfy Anima files; map prompt, negative, image strip, resolution, frames, steps, guidance, strength, seed, LoRA. | Real PNG T2I and I2I tests. |
+| `image/birefnet.py` BiRefNet | Comfy RMBG wrapper exists. | Scaffold only; no real alpha PNG. | Owned Comfy RMBG/BiRefNet nodes/model; map selected image strip and preserve dimensions. | Real PNG with alpha channel. |
+| `image/ernie.py` ERNIE Image | Comfy wrapper/workflow exists. | Scaffold only; no real image artifact. | Owned Comfy ERNIE files; map prompt, negative, resolution, frames, steps, guidance, seed. | Real PNG generation. |
+| `image/ernie_turbo.py` ERNIE Turbo | Comfy wrapper/workflow exists. | Scaffold only; 8-step default not proven. | Owned Comfy ERNIE Turbo files; map prompt, negative, resolution, frames, steps default 8, guidance, seed. | Real PNG Turbo test. |
+| `image/flux2_dev.py` FLUX.2 Dev | Comfy GGUF-quality workflow packs exist. | Scaffold only; FLUX.2 Dev Q5 is not 16GB default and no real artifact. | Owned Comfy GGUF + FLUX.2 nodes; install/copy `flux2-dev-Q5_K_M.gguf`, Mistral FLUX.2 text encoder, VAE; map prompt, multi-image refs, resolution, frames, steps, guidance, seed, strength/LoRA gaps. | Real T2I and multi-ref PNG on certified profile only. |
+| `image/flux2_klein_4b.py` FLUX.2 Klein 4B | Comfy wrapper/workflow packs exist. | Scaffold only; not GGUF; no real RTX artifact; dropdown not certifiable. | Owned Comfy FLUX.2 Klein 4B files/text encoder/VAE; map prompt, image strip/edit mode, resolution, frames, steps, guidance, strength, seed, LoRA. | Real T2I and image-edit PNG tests. |
+| `image/flux2_klein_9b.py` FLUX.2 Klein 9B | Comfy wrapper/workflow packs exist. | Scaffold only; not GGUF; device-profile certification missing. | Owned Comfy 9B model/text encoder/VAE; map same controls as 4B. | Real T2I/edit PNG on certified hardware profile. |
+| `image/flux2_klein_9b_schematic.py` schematic LoRA | Comfy workflow pack exists. | Scaffold only; LoRA stack not proven installed or wired by UI. | Owned Comfy 9B base plus six schematic LoRA files; map prompt, image strip, frames, steps, guidance, seed, LoRA selection. | Real schematic-style PNG test. |
+| `image/flux_canny.py` FLUX Canny | Comfy control workflow exists. | Scaffold only; control strength/LoRA mapping not proven. | Owned Comfy controlnet aux/FLUX files; map control image strip, prompt, resolution, frames, steps, guidance, strength, seed, LoRA. | Real edge-preservation PNG. |
+| `image/flux_depth.py` FLUX Depth | Comfy control workflow exists. | Scaffold only; depth preprocessor/model not proven. | Owned Comfy DepthAnything/FLUX files; map control image, prompt, resolution, frames, steps, guidance, strength, seed, LoRA. | Real layout-preservation PNG. |
+| `image/flux_kontext.py` Kontext | Comfy edit workflow exists. | Scaffold only; inpaint/mask and strength parity not proven. | Owned Comfy Kontext files; map prompt, image strip, resolution, frames, steps, guidance, strength, seed, LoRA, mask if exposed. | Real semantic edit PNG. |
+| `image/flux_redux.py` Redux | Comfy restyle workflow exists. | Scaffold only; no real style transfer artifact. | Owned Comfy Redux/style/vision files; map image strip, resolution, frames, steps, guidance, seed. | Real Redux PNG. |
+| `image/kontext_relight.py` Relight | Comfy relight workflow exists. | Scaffold only; illumination controls not proven in artifact. | Owned Comfy Kontext + relight LoRA files; map prompt, image strip, resolution, frames, steps, guidance, illumination style, direction, seed. | Real relight PNG with direction check. |
+| `image/ideogram4.py` Ideogram 4 | Comfy wrapper/workflow exists. | Scaffold only; prompt upsampling/text rendering parity not proven. | Owned Comfy Ideogram files; map prompt/structured prompt, resolution, frames, steps, guidance, seed, LoRA if exposed. | Real PNG including text-rendering smoke. |
+| `image/lumina2.py` Lumina 2 | Comfy wrapper/workflow exists. | Scaffold only; no real artifact. | Owned Comfy Lumina checkpoint/text/VAE files; map prompt, negative, resolution, frames, steps, guidance, seed. | Real PNG. |
+| `image/maxine_vsr.py` local image VSR | Comfy VSR wrapper exists and display should be local, not Maxine. | Scaffold only; no real upscale artifact. | Owned Comfy upscale nodes and RealESRGAN model; map selected image, target resolution, frames/seed if UI exposes. | Real input image to requested resolution PNG. |
+| `image/nucleus_moe.py` Nucleus | Slopperly-owned Comfy diffusers node scaffold exists. | Scaffold only; not native Comfy; not a Qwen/FLUX substitute; no real artifact. | Owned Comfy local `slopperly_nodes` plus Nucleus diffusers snapshot/FP8 patch; map prompt, negative, resolution, frames, steps, guidance, seed. | Real PNG through Slopperly node. |
+| `image/omnigen.py` OmniGen | Comfy multi-image workflow exists. | Scaffold only; multi-image prompt parity not proven. | Owned Comfy OmniGen nodes/model; map up to three image refs, per-image prompts/placeholders, resolution, frames, steps, guidance, seed. | Real triple-reference PNG. |
+| `image/qwen_image.py` Qwen Image 2512 | Comfy GGUF/native packs exist. | Scaffold only; no real Q5/native artifact; dynamic LoRA gaps remain. | Owned Comfy GGUF/Qwen files; map prompt, optional image strip, resolution, frames, steps, strength, seed, LoRA. | Real T2I and I2I PNG, including aspect presets. |
+| `image/qwen_image_edit.py` Qwen Image Edit 2511 | Comfy GGUF multi-ref pack exists. | Scaffold only; no one-ref/three-ref real artifacts. | Owned Comfy Qwen edit files; map prompt, negative, 1-3 images, resolution, frames, steps, seed, LoRA. | Real one-ref and three-ref edit PNGs. |
+| `image/zimage.py` Z-Image | Comfy T2I/I2I packs exist. | Scaffold only; negative prompt gap exists for Turbo; no artifact. | Owned Comfy Z-Image files; map prompt, negative where supported, image strip, resolution, frames, steps, guidance, strength, seed. | Real T2I and I2I PNG for base and Turbo. |
+| `image/google_nano_banana.py` Google Nano Banana | Production plugin file deleted. | Cloud removal is correct, but no replacement parity is done. | Do not alias old cloud ID. Qwen Image Edit must be a direct local entry with its own certified UI mapping. | Registry rejects cloud ID; Qwen edit real artifacts pass. |
+| `video/google_veo.py` Google Veo | Production plugin file deleted. | Cloud removal is correct, but local video parity is not done. | Do not alias old cloud ID. Wan/LTX entries must be direct certified local entries. | Registry rejects cloud ID; direct local video tests pass. |
+| `video/minimax.py` MiniMax txt/img/subject | Production plugin file deleted. | Cloud removal is correct, but saved-project alias path is not acceptable and not parity. | Do not alias old cloud IDs. Direct Wan/LTX/reference-video workflows must be certified independently. | Registry rejects cloud IDs; direct T2V/I2V/subject tests pass. |
+| `video/wan_ti2v_5b.py` Wan TI2V-5B | New local Comfy default wrapper exists; owned cache has required Wan TI2V model files. | Partial only: direct T2V artifact exists; direct I2V must be rerun cleanly; UI insertion/certification still not fully proven. | Owned Comfy with GGUF, UMT5 FP8, Wan VAE, VideoHelperSuite; map prompt, negative, optional image strip, resolution mapped to 720P family, frames, steps, guidance, seed, fps=24. | Direct T2V and direct I2V MP4, 24fps, dimensions/duration/frame count validated. |
+| `video/wan_t2v.py` Wan A14B T2V | Current production file still direct Torch/Diffusers/Transformers. | Not migrated; not GGUF workflow; not spec. | Copy/symlink high/low-noise T2V Q5 files if available or download; owned Comfy two-stage workflow; map prompt, negative, resolution, frames, seed, steps/guidance/LoRA. | Real 16fps native to 24fps final MP4. |
+| `video/wan_i2v.py` Wan A14B I2V | Current production file still direct Torch/Diffusers/Transformers. | Not migrated; I2V high/low Q5 files exist in user Comfy but not owned cache. | Copy/symlink `/home/user/Documents/Comfy/ComfyUI/models/unet/HighNoise/Wan2.2-I2V-A14B-HighNoise-Q5_K_M.gguf` and LowNoise pair into owned Comfy; map image strip, prompt, negative, resolution, frames, seed, LoRA. | Real I2V 16fps native to 24fps final MP4. |
+| `video/ltx2.py` LTX2 19B | Current file still direct Diffusers. | Not migrated; no Comfy gateway; no owned cache import; no real Slopperly artifact. | Reuse `/home/user/Documents/Comfy` LTX 2.3 workflows/models before download; port to owned Comfy workflow pack; map prompt, negative, image/video strip, resolution, frames, seed, LoRA. | Real MP4 through `LTX2Plugin.generate()`. |
+| `video/ltx23_extend.py` LTX 2.3 Extend | Current file still direct Torch/Diffusers/Transformers. | Not migrated; not using existing working Comfy workflow. | Port existing `/home/user/Documents/Comfy/workflows` extend-capable graph or build from it; copy LTX cache; map selected video, prompt, negative, extension duration/frames, seed. | Real extended MP4 with duration greater than source. |
+| `video/ltx23_lipsync.py` LTX 2.3 Lipsync | Current file still direct Torch/Diffusers/Transformers. | Not migrated; audio-duration/frame mapping not proven. | Owned Comfy LTX lipsync/dialogue workflow; copy LTX audio/video VAE, LoRAs; map audio ref, source image/video, prompt, negative, target fps/frame count. | Real MP4 duration matching audio within tolerance. |
+| `video/ltx23_multi.py` LTX 2.3 Multi | Current file still direct Torch/Diffusers/Transformers. | Not migrated; middle anchor UI not proven. | Port existing LTX multi-anchor workflow; copy LTX cache; map image/video refs, middle anchors, prompt, negative, seed, LoRA. | Real staged MP4 with anchor timing smoke. |
+| `video/ltx23_multi_ic_lora.py` LTX IC-LoRA | Current file still direct Torch/Diffusers/Transformers. | Not migrated; IC-LoRA files not in owned cache. | Copy LTX IC-LoRA files from user Comfy; owned Comfy workflow; map image refs, prompt, seed, LoRA choice/strength. | Real reference-consistency MP4. |
+| `video/skyreels.py` SkyReels | Current file still direct Diffusers/Torch. | Not migrated to Comfy; no real artifact. | Owned Comfy SkyReels/Hunyuan nodes/models; map prompt, negative, image/video strip, resolution, frames, steps, guidance, seed. | Real T2V/I2V MP4. |
+| `video/maxine_vsr_video.py` local video VSR | Comfy wrapper exists and display should be local, not Maxine. | Scaffold only; no real upscale MP4. | Owned Comfy VideoHelperSuite/upscale model; map selected video strip, target resolution, seed; preserve fps/duration/audio. | Real MP4 target size with fps/duration/audio validation. |
+| `video/cogvideox.py` CogVideoX | Present in original baseline but absent from current production plugins. | Not done; not hidden with explicit certified block in this report before now. | Either restore as local Comfy workflow or keep removed/hidden with documented reason. | If restored, real MP4 through plugin. |
+| `image/cosmos3_nano.py` Cosmos3 image | Present in original baseline but absent now. | Not done; no local workflow. | Restore local Comfy/vLLM workflow or hide with explicit block. | Real image artifact if restored. |
+| `video/cosmos3_nano.py` Cosmos3 video | Present in original baseline but absent now. | Not done; no local workflow. | Restore local Comfy workflow or hide with explicit block. | Real video artifact if restored. |
+| old FLUX2 Klein KV/old files | Present in original baseline variants, absent now. | Not done as original model parity. | Either explicitly supersede with certified direct Klein entries or restore exact local workflow. | Real artifacts for any exposed entry. |
+
+The next implementation block must update this table in place after each function is fixed and tested. Do not create separate progress docs.
+
 
 ## 1. Current repository facts
 
@@ -79,9 +177,9 @@ The migration must not bypass `ModelPlugin.generate()`. The tests must exercise 
 |---|---|---|
 | `remote_backends/fal_adapter.py` | Forwards to `https://queue.fal.run` for Seedance, Seed Audio, and cloud FLUX. | Remove from production discovery. Keep only in `/reference/palladium` or docs archive. |
 | `remote_backends/fal_adapter.manifest.json` | Makes fal visible as a backend. | Remove from production manifests. |
-| `models_plugins/image/google_nano_banana.py` | Uses Google Gemini/Nano Banana image API and `GEMINI_API_KEY`. | Remove cloud backend logic. Old model ID becomes saved-project alias to local Qwen Image Edit workflow. Do not show “Google Nano Banana” in production dropdown. |
-| `models_plugins/video/google_veo.py` | Uses Google Veo cloud video. | Remove cloud backend logic. Old model ID becomes saved-project alias to local Wan/LTX workflow. Do not show “Google Veo” in production dropdown. |
-| `models_plugins/video/minimax.py` | MiniMax/Hailuo cloud video model family. | Remove cloud backend logic. Old model IDs become saved-project aliases to Wan/LTX local workflows. |
+| `models_plugins/image/google_nano_banana.py` | Uses Google Gemini/Nano Banana image API and `GEMINI_API_KEY`. | Remove from production. Do not register old cloud model IDs as production aliases. |
+| `models_plugins/video/google_veo.py` | Uses Google Veo cloud video. | Remove from production. Do not register old cloud model IDs as production aliases. |
+| `models_plugins/video/minimax.py` | MiniMax/Hailuo cloud video model family. | Remove from production. Do not register old cloud model IDs as production aliases. |
 | `MiniMax_API.txt` | Local file for MiniMax API key. | Delete from production tree. |
 | `utils/helpers.py` MiniMax functions | `invoke_video_generation`, `query_video_generation`, `fetch_video_result` call `api.minimaxi.chat`. | Delete or move to reference-only. Production grep must fail if these URLs remain reachable. |
 | `properties/preferences.py` remote key fields | `gemini_api_key`, `remote_backend_key`, remote URL/key UI. | Replace with local runtime paths/ports/model-cache settings. No cloud keys. |
@@ -229,14 +327,13 @@ slopperly/
     unit/
     integration/
     gpu/
-  docs/
-    provider_migration_ledger.md
-    runtime_acceptance.md
 reference/
   palladium/
 ```
 
 The original Palladium/Pallaidium reference code remains separate. Production Slopperly code must not import from `/reference`.
+
+Progress and parity status lives in this `AGENTS.md` file only.
 
 ## 6. ComfyUI runtime requirements
 
@@ -295,7 +392,7 @@ Legend:
 - `MIGRATE_NATIVE_COMFY`: use official/native Comfy workflow or established Comfy node pack.
 - `MIGRATE_GGUF_COMFY`: use ComfyUI-GGUF and named Q5 GGUF assets recorded in `models.yaml`.
 - `MIGRATE_SLOPPERLY_NODE`: move current direct local code into Slopperly-owned Comfy custom node; do not replace model.
-- `LOCAL_ALIAS`: keep saved-project compatibility for old model ID but show the local replacement dropdown entry, not the cloud name.
+- `REMOVED_CLOUD`: delete the old cloud provider plugin from production. Equivalent local functionality must be a direct local model entry with its own workflow and passing artifact test, not a cloud-branded alias.
 - `REMOVE_CLOUD`: remove external/cloud backend logic from production.
 
 ### 8.1 Image functions
@@ -316,7 +413,7 @@ Legend:
 | `image/flux_depth.py` | `romanfratric234/FLUX.1-Depth-dev-lora` | `MIGRATE_NATIVE_COMFY` | `flux1_depth_control` | `LoadImage`; `DepthAnythingV2Preprocessor` or supplied depth; FLUX Depth LoRA; `DualCLIPLoader`; `Load VAE`; sampler; `SaveImage`. | Same UI fields as current. |
 | `image/flux_kontext.py` | `yuvraj108c/FLUX.1-Kontext-dev` | `MIGRATE_NATIVE_COMFY` | `flux_kontext_edit` | FLUX Kontext Comfy workflow; image edit path. | Keep prompt, image strip, resolution, frames, steps, guidance, strength, seed, LoRA. |
 | `image/flux_redux.py` | `Runware/FLUX.1-Redux-dev` | `MIGRATE_NATIVE_COMFY` | `flux_redux_restyle` | FLUX Redux Comfy workflow/reference-image path. | Keep image strip, resolution, frames, steps, guidance, seed. |
-| `image/google_nano_banana.py` | `google/nano-banana` | `REMOVE_CLOUD` + `LOCAL_ALIAS` | Alias to `qwen_image_edit_2511_multi_gguf` | No Google API. Saved old ID resolves to local Qwen edit workflow with warning. | Remove API-key UI. Production dropdown does not show Google/Nano Banana. |
+| `image/google_nano_banana.py` | `google/nano-banana` | `REMOVED_CLOUD` | None | No Google API and no production alias. | Remove from production. Local Qwen edit must stand on its own direct entry after certification. |
 | `image/ideogram4.py` | `ideogram-ai/ideogram-4-nf4-diffusers` | `MIGRATE_NATIVE_COMFY` using Ideogram 4 Comfy workflow/template | `ideogram4_t2i` | Ideogram 4 workflow/template; prompt/structured-prompt controls, model loader, sampler, VAE decode, `SaveImage`. | Keep prompt, resolution, frames, steps, guidance, seed, LoRA. Remove HF token from main UI; gated auth goes to model manager. |
 | `image/kontext_relight.py` | `kontext-community/relighting-kontext-dev-lora-v3` | `MIGRATE_NATIVE_COMFY` | `kontext_relight` | FLUX Kontext/Relight LoRA workflow; illumination controls patched into workflow params. | Keep prompt, image strip, resolution, frames, steps, guidance, illumination, seed. |
 | `image/lumina2.py` | `Alpha-VLLM/Lumina-Image-2.0` | `MIGRATE_NATIVE_COMFY` | `lumina2_t2i` | Lumina-Image 2.0 Comfy support/workflow; checkpoint in `models/checkpoints`. | Keep prompt, negative, resolution, frames, steps, guidance, seed. |
@@ -332,10 +429,10 @@ Legend:
 
 | Current plugin | Current model ID | Action | Local workflow ID | Required backend/nodes | UI contract |
 |---|---|---|---|---|---|
-| `video/google_veo.py` | `google/veo` | `REMOVE_CLOUD` + `LOCAL_ALIAS` | Alias T2V to `wan22_ti2v_5b_720p24_gguf`; alias I2V to `ltx23_i2v` or `wan22_i2v_a14b_720p16_to24_gguf` according to selected mode. | No Google API. | Remove API key. Do not show Google/Veo in production dropdown. |
-| `video/minimax.py` txt2vid | `Hailuo/MiniMax/txt2vid` | `REMOVE_CLOUD` + `LOCAL_ALIAS` | `wan22_ti2v_5b_720p24_gguf` | Wan2.2 TI2V-5B Q5 GGUF; `VHS_VideoCombine`. | Keep prompt, frames, seed. No MiniMax key. |
-| `video/minimax.py` img2vid | `Hailuo/MiniMax/img2vid` | `REMOVE_CLOUD` + `LOCAL_ALIAS` | `wan22_ti2v_5b_720p24_gguf` or `wan22_i2v_a14b_720p16_to24_gguf` | Image loader + Wan I2V/TI2V workflow. | Keep prompt, image strip, frames, seed. |
-| `video/minimax.py` subject2vid | `Hailuo/MiniMax/subject2vid` | `REMOVE_CLOUD` + `LOCAL_ALIAS` to local reference-video pipeline | `ltx23_ic_lora_subject_i2v` | LTX-2.3 IC-LoRA/reference workflow; for subject sheet preprocessing use Qwen Image Edit locally, then LTX/Wan I2V. | Keep prompt and image strip. Production dropdown label must be local, not MiniMax. |
+| `video/google_veo.py` | `google/veo` | `REMOVED_CLOUD` | None | No Google API and no production alias. | Remove from production. Direct local video entries must be certified independently. |
+| `video/minimax.py` txt2vid | `Hailuo/MiniMax/txt2vid` | `REMOVED_CLOUD` | None | No MiniMax API and no production alias. | Remove from production. Direct local T2V entries must be certified independently. |
+| `video/minimax.py` img2vid | `Hailuo/MiniMax/img2vid` | `REMOVED_CLOUD` | None | No MiniMax API and no production alias. | Remove from production. Direct local I2V entries must be certified independently. |
+| `video/minimax.py` subject2vid | `Hailuo/MiniMax/subject2vid` | `REMOVED_CLOUD` | None | No MiniMax API and no production alias. | Remove from production. Subject/reference video must be a direct local workflow after certification. |
 | `video/ltx2.py` | `rootonchair/LTX-2-19b-distilled` | `MIGRATE_NATIVE_COMFY` | `ltx2_19b_distilled_t2v_i2v` | LTX workflow using same 19B distilled family; model loader, text encoder, VAE, video sampler, `VHS_VideoCombine`. | Keep prompt, negative, video/image strip, resolution, frames, seed, LoRA. |
 | `video/ltx23_extend.py` | `LTX-2.3 Extend Staged` | `MIGRATE_NATIVE_COMFY` | `ltx23_extend_staged` | LTX-2.3 extend template; input video strip path patched; SaveVideo/VHS output. | Keep current extend UI. Duration/frame count must derive from input clip and requested extension. |
 | `video/ltx23_lipsync.py` | `LTX-2.3 Lip Sync` | `MIGRATE_NATIVE_COMFY` | `ltx23_lipsync_dialogue` | LTX-2.3 lipsync/reference workflow; audio ref path; target frame count from audio. | Keep prompt, negative, video strip, image strip/audio ref behavior, resolution, frames, seed, LoRA. |
@@ -556,7 +653,7 @@ Production dropdown policy:
 | Entry type | Dropdown behavior |
 |---|---|
 | Current local model migrated to Comfy/vLLM/llama | Keep or rename only to clarify local runtime; no UI function removed. |
-| Current cloud-only model | Remove cloud-branded entry. Keep saved-project alias that maps to local replacement and logs the alias decision. |
+| Current cloud-only model | Remove cloud-branded entry. Do not keep a production saved-project alias. |
 | Local model without a passing workflow artifact test | Do not show in production dropdown. Keep code under development profile only. |
 | Q5/GGUF quality model too large for current device profile | Hide until `slopperly doctor --certify-profile` passes artifact tests. |
 
@@ -623,7 +720,7 @@ Do not test only `ComfyClient.run()` directly. Direct runtime tests are necessar
 | `test_qwen_image_edit_2511_one_ref` | `QwenImageEditPlugin` | one reference image + edit prompt | PNG. |
 | `test_qwen_image_edit_2511_three_ref` | `QwenImageEditPlugin` | three references + edit prompt | PNG. |
 | `test_flux2_klein_4b_edit` | `Flux2Klein4BPlugin` | image strip + prompt | PNG. |
-| `test_flux_cloud_alias_removed` | old fal/cloud flux ID | saved-project alias | Local Comfy artifact; no fal calls. |
+| `test_cloud_provider_removed` | old cloud provider ID | direct removal check | Production plugin/model registry rejects the cloud ID; no alias path. |
 | `test_birefnet_rmbg` | `BiRefNetPlugin` | image strip | PNG with alpha. |
 | `test_wan22_ti2v_5b_t2v_720p24` | Wan TI2V workflow/default video dropdown | prompt, 24fps, short duration | MP4, 24fps. |
 | `test_wan22_ti2v_5b_i2v_720p24` | Wan TI2V workflow | image + prompt | MP4, 24fps. |
@@ -751,72 +848,74 @@ The following upstream sources are the factual basis for this spec:
 
 ## 18. Implementation work log
 
+This work log is historical scaffold evidence only. It does not override the current code-derived parity report at the top of this file. Every block below remains **not done on spec** until the matching function row above is updated with real `ModelPlugin.generate()` artifact proof from the required local runtime.
+
 ### 2026-06-27 indexed Comfy media schema block
 
-- Completed: Comfy workflow-pack schemas can now patch indexed scalar fields such as `image_prompts[1]`.
-- Completed: Comfy workflow-pack schemas can now upload indexed media fields such as `images[0]`, `images[1]`, and `middle_images_paths[0].path`.
+- Scaffold only: Comfy workflow-pack schemas can now patch indexed scalar fields such as `image_prompts[1]`.
+- Scaffold only: Comfy workflow-pack schemas can now upload indexed media fields such as `images[0]`, `images[1]`, and `middle_images_paths[0].path`.
 - Evidence: `tests/integration/test_comfy_workflow_runner.py` covers the indexed field path against a local fake Comfy server under the runtime network guard.
 - Still blocked: real Qwen/OmniGen/LTX multi-reference workflow packs, owned Comfy runtime execution, model downloads, and GPU artifact certification.
 
 ### 2026-06-27 GPU certification harness block
 
-- Completed: `tests/gpu/` now contains pytest GPU artifact tests for the currently registered validation commands.
-- Completed: GPU tests write JSON certification records with PASS/BLOCKED/FAIL status under `.slopperly/certification/<profile>/`.
-- Completed: Dropdown certification now requires a PASS record for the exact logical model/profile and a real artifact file.
+- Scaffold only: `tests/gpu/` now contains pytest GPU artifact tests for the currently registered validation commands.
+- Scaffold only: GPU tests write JSON certification records with PASS/BLOCKED/FAIL status under `.slopperly/certification/<profile>/`.
+- Scaffold only: Dropdown certification now requires a PASS record for the exact logical model/profile and a real artifact file.
 - Evidence: unit coverage validates discovered PASS records and rejected BLOCKED records.
 - Still blocked: tests have not been run against live RTX 4090 runtimes in this block; Qwen/Wan workflow packs and plugin-path migrations remain incomplete.
 
 ### 2026-06-27 Comfy upload endpoint schema block
 
-- Completed: Comfy workflow upload schema targets can declare `endpoint`, `form_field`, and `type_field` for image/audio/video-style upload routes.
-- Completed: Workflow validation rejects absolute upload endpoint URLs; endpoints must be relative Comfy paths.
+- Scaffold only: Comfy workflow upload schema targets can declare `endpoint`, `form_field`, and `type_field` for image/audio/video-style upload routes.
+- Scaffold only: Workflow validation rejects absolute upload endpoint URLs; endpoints must be relative Comfy paths.
 - Evidence: `tests/integration/test_comfy_workflow_runner.py` covers `/upload/video` with multipart field `video`; `tests/unit/test_comfy_workflow_security.py` covers invalid upload endpoints.
 - Still blocked: real audio/video Comfy workflow packs and GPU artifact tests have not run against owned ComfyUI.
 
 ### 2026-06-27 Marlin video caption vLLM block
 
-- Completed: `text/marlin_video_captions.py` now routes caption/find inference through the local vLLM VLM client instead of direct Transformers/SDNQ model loading.
-- Completed: The existing caption strip and find marker output paths are preserved; the local vLLM response is normalized to the existing `scene/events` and `format_ok/span` shapes.
-- Completed: vLLM supervisor launch commands include `--allowed-local-media-path` for local `file://` video inputs.
-- Completed: `vllm_video_caption_vlm` is registered in `slopperly/config/models.yaml` with legacy alias `tintwotin/Marlin-2B-SDNQ-int8`.
+- Scaffold only: `text/marlin_video_captions.py` now routes caption/find inference through the local vLLM VLM client instead of direct Transformers/SDNQ model loading.
+- Scaffold only: The existing caption strip and find marker output paths are preserved; the local vLLM response is normalized to the existing `scene/events` and `format_ok/span` shapes.
+- Scaffold only: vLLM supervisor launch commands include `--allowed-local-media-path` for local `file://` video inputs.
+- Scaffold only: `vllm_video_caption_vlm` is registered in `slopperly/config/models.yaml` with legacy alias `tintwotin/Marlin-2B-SDNQ-int8`.
 - Evidence: unit coverage verifies VLM chat payload normalization; integration coverage calls `MarlinVideoCaptionsPlugin.load()` and `generate()` against a loopback fake vLLM server under the local-network guard.
 - Still blocked: real RTX 4090 VLM artifact certification requires a running local vLLM multimodal server and `tests/fixtures/video_caption_smoke.mp4`.
 
 ### 2026-06-27 Florence2 Comfy workflow block
 
-- Completed: `text/florence2.py` now routes Florence task inference through the local Comfy workflow pack instead of direct Transformers/PyTorch loading.
-- Completed: `florence2_caption_ocr` workflow pack is committed with API/editable workflow JSON, schema, model manifest, test payload, and README.
-- Completed: Comfy workflow output collection now supports text/JSON history outputs in addition to image/video/audio files.
-- Completed: `florence2_caption_ocr` is registered in `slopperly/config/models.yaml` with legacy alias `florence-community/Florence-2-large`.
+- Scaffold only: `text/florence2.py` now routes Florence task inference through the local Comfy workflow pack instead of direct Transformers/PyTorch loading.
+- Scaffold only: `florence2_caption_ocr` workflow pack is committed with API/editable workflow JSON, schema, model manifest, test payload, and README.
+- Scaffold only: Comfy workflow output collection now supports text/JSON history outputs in addition to image/video/audio files.
+- Scaffold only: `florence2_caption_ocr` is registered in `slopperly/config/models.yaml` with legacy alias `florence-community/Florence-2-large`.
 - Evidence: integration coverage verifies Comfy text/JSON history collection and calls `Florence2Plugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard.
 - Still blocked: real RTX 4090 Florence2 artifact certification requires owned ComfyUI, downloaded Florence-2 artifacts, and `tests/fixtures/florence2_caption.png`.
 
 ### 2026-06-27 BiRefNet Comfy workflow block
 
-- Completed: `image/birefnet.py` now routes background removal through the local Comfy workflow gateway instead of direct Torch/Transformers inference in the add-on process.
-- Completed: `birefnet_rmbg` workflow pack is committed with API/editable workflow JSON, schema, model manifest, test payload, and README.
-- Completed: `comfyui_rmbg` is pinned in `slopperly/runtime/comfy/nodes.lock.yaml` with exact `BiRefNetRMBG`/`RMBG` node classes from `1038lab/ComfyUI-RMBG`.
-- Completed: `birefnet_rmbg` is registered in `slopperly/config/models.yaml` with legacy alias `ZhengPeng7/BiRefNet_HR`.
+- Scaffold only: `image/birefnet.py` now routes background removal through the local Comfy workflow gateway instead of direct Torch/Transformers inference in the add-on process.
+- Scaffold only: `birefnet_rmbg` workflow pack is committed with API/editable workflow JSON, schema, model manifest, test payload, and README.
+- Scaffold only: `comfyui_rmbg` is pinned in `slopperly/runtime/comfy/nodes.lock.yaml` with exact `BiRefNetRMBG`/`RMBG` node classes from `1038lab/ComfyUI-RMBG`.
+- Scaffold only: `birefnet_rmbg` is registered in `slopperly/config/models.yaml` with legacy alias `ZhengPeng7/BiRefNet_HR`.
 - Evidence: integration coverage calls `BiRefNetPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies the patched `LoadImage -> BiRefNetRMBG -> SaveImage` graph.
 - Still blocked: real RTX 4090 BiRefNet artifact certification requires owned ComfyUI, downloaded `BiRefNet-HR` artifacts, and the pinned RMBG node pack installed.
 
 ### 2026-06-27 Local image VSR Comfy workflow block
 
-- Completed: `image/maxine_vsr.py` now routes the legacy image super-resolution plugin through the local Comfy workflow gateway instead of NVIDIA Maxine/nvvfx in the add-on process.
-- Completed: `local_image_vsr_upscale` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, README, and an 8x6 PPM input fixture.
-- Completed: Comfy core upscale node classes `UpscaleModelLoader`, `ImageUpscaleWithModel`, and `ImageScale` are asserted in `slopperly/runtime/comfy/nodes.lock.yaml`.
-- Completed: `local_image_vsr_upscale` is registered in `slopperly/config/models.yaml` with legacy alias `nvidia/maxine-vsr` and artifact source `ai-forever/Real-ESRGAN`, file `RealESRGAN_x4.pth`.
+- Scaffold only: `image/maxine_vsr.py` now routes the legacy image super-resolution plugin through the local Comfy workflow gateway instead of NVIDIA Maxine/nvvfx in the add-on process.
+- Scaffold only: `local_image_vsr_upscale` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, README, and an 8x6 PPM input fixture.
+- Scaffold only: Comfy core upscale node classes `UpscaleModelLoader`, `ImageUpscaleWithModel`, and `ImageScale` are asserted in `slopperly/runtime/comfy/nodes.lock.yaml`.
+- Scaffold only: `local_image_vsr_upscale` is registered in `slopperly/config/models.yaml` with legacy alias `nvidia/maxine-vsr` and artifact source `ai-forever/Real-ESRGAN`, file `RealESRGAN_x4.pth`.
 - Evidence: integration coverage calls `MaxineVSRPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies the patched `LoadImage -> UpscaleModelLoader -> ImageUpscaleWithModel -> ImageScale -> SaveImage` graph.
 - Evidence: `python -m slopperly.models.download --profile smoke_16gb --dry-run --report-only` plans 10 local artifact entries with 0 blocked, including `ai-forever/Real-ESRGAN/RealESRGAN_x4.pth`.
 - Still blocked: real RTX 4090 local image VSR artifact certification requires owned ComfyUI running with core upscale nodes and `RealESRGAN_x4.pth` installed in `models/upscale_models/`.
 
 ### 2026-06-27 Local video VSR Comfy workflow block
 
-- Completed: `video/maxine_vsr_video.py` now routes the legacy video super-resolution plugin through the local Comfy workflow gateway instead of NVIDIA Maxine/nvvfx in the add-on process.
-- Completed: `local_video_vsr_upscale` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, README, and a 1-second MP4 fixture with audio.
-- Completed: Comfy workflow artifact collection now recognizes VideoHelperSuite `gifs` outputs, which are used for MP4 results from `VHS_VideoCombine`.
-- Completed: `local_video_vsr_upscale` is registered in `slopperly/config/models.yaml` with legacy alias `nvidia/maxine-vsr-video` and artifact source `ai-forever/Real-ESRGAN`, file `RealESRGAN_x4.pth`.
-- Completed: `pytest.ini` now keeps pytest collection rooted at `tests`, allowing the acceptance command `python -m pytest tests/unit` to run outside Blender without importing `bpy`.
+- Scaffold only: `video/maxine_vsr_video.py` now routes the legacy video super-resolution plugin through the local Comfy workflow gateway instead of NVIDIA Maxine/nvvfx in the add-on process.
+- Scaffold only: `local_video_vsr_upscale` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, README, and a 1-second MP4 fixture with audio.
+- Scaffold only: Comfy workflow artifact collection now recognizes VideoHelperSuite `gifs` outputs, which are used for MP4 results from `VHS_VideoCombine`.
+- Scaffold only: `local_video_vsr_upscale` is registered in `slopperly/config/models.yaml` with legacy alias `nvidia/maxine-vsr-video` and artifact source `ai-forever/Real-ESRGAN`, file `RealESRGAN_x4.pth`.
+- Scaffold only: `pytest.ini` now keeps pytest collection rooted at `tests`, allowing the acceptance command `python -m pytest tests/unit` to run outside Blender without importing `bpy`.
 - Evidence: integration coverage calls `MaxineVSRVideoPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies `/upload/video`, source-fps patching, `VHS_LoadVideo -> UpscaleModelLoader -> ImageUpscaleWithModel -> ImageScale -> VHS_VideoCombine`, H.264 MP4 format, and source-audio wiring.
 - Evidence: `python -m pytest tests/unit` passes 40 tests.
 - Evidence: `python -m slopperly.audit.workflow_packs` validates 5 committed Comfy workflow packs including `local_video_vsr_upscale`.
@@ -824,67 +923,67 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 Stem Splitter Comfy workflow block
 
-- Completed: `audio/stem_split.py` now routes the legacy `StemSplitter` plugin through the local Comfy workflow gateway instead of direct `demucs_onnx` execution in the add-on process.
-- Completed: The dedicated `sequencer.stem_split` operator now renders the selected strip to WAV and calls `StemSplitterPlugin.generate()`, preserving the existing stem insertion behavior while using the same local runtime path.
-- Completed: `audio_stem_split_demucs` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, README, and a 1-second 44.1 kHz stereo WAV fixture.
-- Completed: Comfy core audio nodes `LoadAudio` and `SaveAudio` are asserted in `slopperly/runtime/comfy/nodes.lock.yaml`, and the audio-separation node pack lock now records exact Comfy class keys such as `AudioSeparation`.
-- Completed: `audio_stem_split_demucs` is registered in `slopperly/config/models.yaml` with legacy alias `StemSplitter` and artifact source `paobukaidecha/hdemucs_high_trained`, file `hdemucs_high_trained.pt`.
+- Scaffold only: `audio/stem_split.py` now routes the legacy `StemSplitter` plugin through the local Comfy workflow gateway instead of direct `demucs_onnx` execution in the add-on process.
+- Scaffold only: The dedicated `sequencer.stem_split` operator now renders the selected strip to WAV and calls `StemSplitterPlugin.generate()`, preserving the existing stem insertion behavior while using the same local runtime path.
+- Scaffold only: `audio_stem_split_demucs` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, README, and a 1-second 44.1 kHz stereo WAV fixture.
+- Scaffold only: Comfy core audio nodes `LoadAudio` and `SaveAudio` are asserted in `slopperly/runtime/comfy/nodes.lock.yaml`, and the audio-separation node pack lock now records exact Comfy class keys such as `AudioSeparation`.
+- Scaffold only: `audio_stem_split_demucs` is registered in `slopperly/config/models.yaml` with legacy alias `StemSplitter` and artifact source `paobukaidecha/hdemucs_high_trained`, file `hdemucs_high_trained.pt`.
 - Evidence: integration coverage calls `StemSplitterPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies `LoadAudio -> AudioSeparation -> SaveAudio`, four audio outputs, and the existing `MULTI_STEM` result shape.
 - Evidence: workflow-runner integration coverage verifies the committed audio pack uploads the WAV fixture and collects four Comfy audio artifacts.
 - Still blocked: real RTX 4090 stem split artifact certification requires owned ComfyUI running with core audio nodes, the pinned audio-separation node pack, and the Hybrid Demucs checkpoint pre-cached locally for Torchaudio.
 
 ### 2026-06-27 MMAudio Comfy workflow block
 
-- Completed: `audio/mmaudio.py` now routes the legacy `MMAudio` plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/Librosa/MMAudio execution in the add-on process.
-- Completed: `mmaudio_video_to_audio` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: The workflow uses `VHS_LoadVideo -> MMAudioModelLoader -> MMAudioFeatureUtilsLoader -> MMAudioSampler -> SaveAudio`, preserving prompt, negative prompt, selected video strip, duration, steps, guidance, and seed.
-- Completed: `mmaudio_video_to_audio` is registered in `slopperly/config/models.yaml` with legacy alias `MMAudio`, the four required `Kijai/MMAudio_safetensors` files, and an auxiliary source for the NVIDIA BigVGAN 44k snapshot.
-- Completed: `slopperly.models.download` and `slopperly.audit.model_registry` now support `auxiliary_sources` so workflow-required local artifacts from a second Hugging Face repo can be planned without adding a fake dropdown entry.
+- Scaffold only: `audio/mmaudio.py` now routes the legacy `MMAudio` plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/Librosa/MMAudio execution in the add-on process.
+- Scaffold only: `mmaudio_video_to_audio` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: The workflow uses `VHS_LoadVideo -> MMAudioModelLoader -> MMAudioFeatureUtilsLoader -> MMAudioSampler -> SaveAudio`, preserving prompt, negative prompt, selected video strip, duration, steps, guidance, and seed.
+- Scaffold only: `mmaudio_video_to_audio` is registered in `slopperly/config/models.yaml` with legacy alias `MMAudio`, the four required `Kijai/MMAudio_safetensors` files, and an auxiliary source for the NVIDIA BigVGAN 44k snapshot.
+- Scaffold only: `slopperly.models.download` and `slopperly.audit.model_registry` now support `auxiliary_sources` so workflow-required local artifacts from a second Hugging Face repo can be planned without adding a fake dropdown entry.
 - Evidence: integration coverage calls `MMAudioPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies `/upload/video`, exact node/input patching, and FLAC artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed `mmaudio_video_to_audio` pack uploads the MP4 fixture and collects one Comfy audio artifact.
 - Still blocked: real RTX 4090 MMAudio artifact certification requires owned ComfyUI running with VideoHelperSuite, ComfyUI-MMAudio, core `SaveAudio`, the MMAudio safetensors in `models/mmaudio`, and the NVIDIA BigVGAN 44k snapshot pre-cached locally.
 
 ### 2026-06-27 Stable Audio 3 Comfy workflow block
 
-- Completed: `audio/_stable_audio_3.py` now routes the legacy Stable Audio 3 plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/stable-audio-tools execution and generation-time Hugging Face downloads in the add-on process.
-- Completed: `stable_audio_3_medium_base` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: The workflow uses `CheckpointLoaderSimple -> CLIPLoader -> CLIPTextEncode -> ConditioningStableAudio -> EmptyLatentAudio -> KSampler -> VAEDecodeAudio -> SaveAudio`, preserving prompt, negative prompt, duration, steps, guidance, and seed.
-- Completed: `stable_audio_3_medium_base` is registered in `slopperly/config/models.yaml` with legacy alias `cocktailpeanut/stable-audio-3-medium-base` and artifact source `Comfy-Org/stable-audio-3`.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts core Stable Audio node classes including `ConditioningStableAudio`, `EmptyLatentAudio`, and `VAEDecodeAudio`.
+- Scaffold only: `audio/_stable_audio_3.py` now routes the legacy Stable Audio 3 plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/stable-audio-tools execution and generation-time Hugging Face downloads in the add-on process.
+- Scaffold only: `stable_audio_3_medium_base` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: The workflow uses `CheckpointLoaderSimple -> CLIPLoader -> CLIPTextEncode -> ConditioningStableAudio -> EmptyLatentAudio -> KSampler -> VAEDecodeAudio -> SaveAudio`, preserving prompt, negative prompt, duration, steps, guidance, and seed.
+- Scaffold only: `stable_audio_3_medium_base` is registered in `slopperly/config/models.yaml` with legacy alias `cocktailpeanut/stable-audio-3-medium-base` and artifact source `Comfy-Org/stable-audio-3`.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts core Stable Audio node classes including `ConditioningStableAudio`, `EmptyLatentAudio`, and `VAEDecodeAudio`.
 - Evidence: integration coverage calls `StableAudio3Plugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies exact node/input patching plus FLAC artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed `stable_audio_3_medium_base` pack patches the graph and collects one Comfy audio artifact.
 - Still blocked: real RTX 4090 Stable Audio 3 artifact certification requires owned ComfyUI running with core Stable Audio nodes, `stable_audio_3_medium_base.safetensors` in `models/checkpoints`, and `t5gemma_b_b_ul2.safetensors` in `models/text_encoders`.
 
 ### 2026-06-27 ACE-Step 1.5 Comfy workflow block
 
-- Completed: `audio/ace_step.py` now routes the legacy ACE-Step plugin through the local Comfy workflow gateway instead of direct Torch/Diffusers/Accelerate execution and generation-time Hugging Face model loading in the add-on process.
-- Completed: `ace_step_15_music` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: The workflow uses `UNETLoader -> ModelSamplingAuraFlow -> KSampler -> VAEDecodeAudio -> SaveAudio` plus `DualCLIPLoader -> TextEncodeAceStepAudio1.5`, preserving prompt/tags, lyrics, duration, steps, guidance, BPM, key, time signature, and seed.
-- Completed: `ace_step_15_music` is registered in `slopperly/config/models.yaml` with legacy alias `ACE-Step/acestep-v15-xl-turbo-diffusers` and artifact source `Comfy-Org/ace_step_1.5_ComfyUI_files`.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts core ACE-Step 1.5 node classes including `TextEncodeAceStepAudio1.5`, `EmptyAceStep1.5LatentAudio`, and `ModelSamplingAuraFlow`.
+- Scaffold only: `audio/ace_step.py` now routes the legacy ACE-Step plugin through the local Comfy workflow gateway instead of direct Torch/Diffusers/Accelerate execution and generation-time Hugging Face model loading in the add-on process.
+- Scaffold only: `ace_step_15_music` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: The workflow uses `UNETLoader -> ModelSamplingAuraFlow -> KSampler -> VAEDecodeAudio -> SaveAudio` plus `DualCLIPLoader -> TextEncodeAceStepAudio1.5`, preserving prompt/tags, lyrics, duration, steps, guidance, BPM, key, time signature, and seed.
+- Scaffold only: `ace_step_15_music` is registered in `slopperly/config/models.yaml` with legacy alias `ACE-Step/acestep-v15-xl-turbo-diffusers` and artifact source `Comfy-Org/ace_step_1.5_ComfyUI_files`.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts core ACE-Step 1.5 node classes including `TextEncodeAceStepAudio1.5`, `EmptyAceStep1.5LatentAudio`, and `ModelSamplingAuraFlow`.
 - Evidence: integration coverage calls `AceStepPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies exact node/input patching plus FLAC artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed `ace_step_15_music` pack patches the graph and collects one Comfy audio artifact.
 - Still blocked: real RTX 4090 ACE-Step artifact certification requires owned ComfyUI running with core ACE-Step nodes and the ACE-Step 1.5 split model files installed in `models/diffusion_models`, `models/vae`, and `models/text_encoders`.
 
 ### 2026-06-27 Foundation-1 Comfy workflow block
 
-- Completed: `audio/foundation_music.py` now routes the legacy Foundation-1 plugin through the local Comfy workflow gateway instead of direct Torch/SciPy/Diffusers execution and generation-time Hugging Face model loading in the add-on process.
-- Completed: `foundation1_music_loop` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: The workflow uses `Foundation1ModelLoader -> Foundation1Generate -> SaveAudio`, preserving prompt, negative prompt as an avoidance tag, requested duration through BPM/bar mapping, steps, seed, and returned artifact path.
-- Completed: `foundation1_music_loop` is registered in `slopperly/config/models.yaml` with legacy alias `tintwotin/Foundation-1-Diffusers` and artifact source `RoyalCities/Foundation-1`.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `Foundation1ModelLoader` and `Foundation1Generate` from pinned `Saganaki22/ComfyUI-Foundation-1`.
+- Scaffold only: `audio/foundation_music.py` now routes the legacy Foundation-1 plugin through the local Comfy workflow gateway instead of direct Torch/SciPy/Diffusers execution and generation-time Hugging Face model loading in the add-on process.
+- Scaffold only: `foundation1_music_loop` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: The workflow uses `Foundation1ModelLoader -> Foundation1Generate -> SaveAudio`, preserving prompt, negative prompt as an avoidance tag, requested duration through BPM/bar mapping, steps, seed, and returned artifact path.
+- Scaffold only: `foundation1_music_loop` is registered in `slopperly/config/models.yaml` with legacy alias `tintwotin/Foundation-1-Diffusers` and artifact source `RoyalCities/Foundation-1`.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `Foundation1ModelLoader` and `Foundation1Generate` from pinned `Saganaki22/ComfyUI-Foundation-1`.
 - Evidence: integration coverage calls `FoundationMusicPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies exact node/input patching plus FLAC artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed `foundation1_music_loop` pack patches the graph and collects one Comfy audio artifact.
 - Still blocked: real RTX 4090 Foundation-1 artifact certification requires owned ComfyUI running with ComfyUI-Foundation-1, core `SaveAudio`, `Foundation_1.safetensors`, and `model_config.json` installed in `models/stable_audio/Foundation-1/`.
 
 ### 2026-06-27 Chatterbox Comfy workflow block
 
-- Completed: `audio/chatterbox.py` now routes the legacy Chatterbox plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/Chatterbox package execution in the add-on process.
-- Completed: `chatterbox_tts_comfy`, `chatterbox_tts_vc_comfy`, and `chatterbox_vc_comfy` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
-- Completed: The TTS workflows use `FL_ChatterboxTTS -> SaveAudio`, with optional `LoadAudio` feeding `audio_prompt` for reference voice generation, preserving prompt, reference audio, chat params, seed, and returned artifact path.
-- Completed: The VC compatibility workflow uses `LoadAudio -> FL_ChatterboxVC -> SaveAudio` and wires the current one audio path to both VC audio inputs, with the true two-audio target-voice limitation recorded in schema and `usage_note`.
-- Completed: `chatterbox_tts_vc_comfy` is registered in `slopperly/config/models.yaml` with legacy alias `Chatterbox`, artifact source `ResembleAI/chatterbox`, and an auxiliary VC source for `s3gen.pt`/`conds.pt`.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts exact Chatterbox `/object_info` class keys from pinned `filliptm/ComfyUI_Fill-ChatterBox`.
+- Scaffold only: `audio/chatterbox.py` now routes the legacy Chatterbox plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/Chatterbox package execution in the add-on process.
+- Scaffold only: `chatterbox_tts_comfy`, `chatterbox_tts_vc_comfy`, and `chatterbox_vc_comfy` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Scaffold only: The TTS workflows use `FL_ChatterboxTTS -> SaveAudio`, with optional `LoadAudio` feeding `audio_prompt` for reference voice generation, preserving prompt, reference audio, chat params, seed, and returned artifact path.
+- Scaffold only: The VC compatibility workflow uses `LoadAudio -> FL_ChatterboxVC -> SaveAudio` and wires the current one audio path to both VC audio inputs, with the true two-audio target-voice limitation recorded in schema and `usage_note`.
+- Scaffold only: `chatterbox_tts_vc_comfy` is registered in `slopperly/config/models.yaml` with legacy alias `Chatterbox`, artifact source `ResembleAI/chatterbox`, and an auxiliary VC source for `s3gen.pt`/`conds.pt`.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts exact Chatterbox `/object_info` class keys from pinned `filliptm/ComfyUI_Fill-ChatterBox`.
 - Evidence: integration coverage calls `ChatterboxPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies plain TTS, reference TTS, and VC compatibility graph patching plus FLAC artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed Chatterbox packs upload audio, patch exact node inputs, and collect one Comfy audio artifact.
 - Still blocked: real RTX 4090 Chatterbox artifact certification requires owned ComfyUI running with ComfyUI_Fill-ChatterBox, core audio nodes, and the `ResembleAI/chatterbox` TTS/VC artifacts installed under `models/chatterbox/`.
@@ -892,12 +991,12 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 Chatterbox Turbo and Multilingual Comfy workflow block
 
-- Completed: `audio/chatterbox_turbo.py` now routes the legacy Chatterbox Turbo plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/Chatterbox package execution and runtime conditional patching in the add-on process.
-- Completed: `audio/chatterbox_multilingual.py` now routes the legacy Chatterbox Multilingual plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/Chatterbox package execution in the add-on process.
-- Completed: `chatterbox_turbo_tts_comfy`, `chatterbox_turbo_ref_tts_comfy`, `chatterbox_multilingual_tts_comfy`, and `chatterbox_multilingual_ref_tts_comfy` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
-- Completed: Turbo workflows use `FL_ChatterboxTurboTTS -> SaveAudio`, with optional `LoadAudio` feeding `audio_prompt`, preserving prompt, reference audio, temperature, seed, and returned artifact path; unsupported old chat params are recorded as unmapped.
-- Completed: Multilingual workflows use `FL_ChatterboxMultilingualTTS -> SaveAudio`, with optional `LoadAudio` feeding `audio_prompt`, preserving prompt, reference audio, language, chat params, seed, and returned artifact path.
-- Completed: `chatterbox_turbo_tts_comfy` and `chatterbox_multilingual_tts_comfy` are registered in `slopperly/config/models.yaml` with legacy aliases `ChatterboxTurbo` and `ChatterboxMultilingual`.
+- Scaffold only: `audio/chatterbox_turbo.py` now routes the legacy Chatterbox Turbo plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/Chatterbox package execution and runtime conditional patching in the add-on process.
+- Scaffold only: `audio/chatterbox_multilingual.py` now routes the legacy Chatterbox Multilingual plugin through the local Comfy workflow gateway instead of direct Torch/Torchaudio/Chatterbox package execution in the add-on process.
+- Scaffold only: `chatterbox_turbo_tts_comfy`, `chatterbox_turbo_ref_tts_comfy`, `chatterbox_multilingual_tts_comfy`, and `chatterbox_multilingual_ref_tts_comfy` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Scaffold only: Turbo workflows use `FL_ChatterboxTurboTTS -> SaveAudio`, with optional `LoadAudio` feeding `audio_prompt`, preserving prompt, reference audio, temperature, seed, and returned artifact path; unsupported old chat params are recorded as unmapped.
+- Scaffold only: Multilingual workflows use `FL_ChatterboxMultilingualTTS -> SaveAudio`, with optional `LoadAudio` feeding `audio_prompt`, preserving prompt, reference audio, language, chat params, seed, and returned artifact path.
+- Scaffold only: `chatterbox_turbo_tts_comfy` and `chatterbox_multilingual_tts_comfy` are registered in `slopperly/config/models.yaml` with legacy aliases `ChatterboxTurbo` and `ChatterboxMultilingual`.
 - Evidence: integration coverage calls both plugin `load()`/`generate()` paths against a loopback fake Comfy server under the local-network guard and verifies plain/ref graph patching plus FLAC artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed Turbo and Multilingual reference packs upload audio, patch exact node inputs, and collect one Comfy audio artifact.
 - Still blocked: real RTX 4090 Turbo/Multilingual artifact certification requires owned ComfyUI running with ComfyUI_Fill-ChatterBox, core audio nodes, and Turbo/multilingual model artifacts installed under `models/chatterbox/`.
@@ -905,23 +1004,23 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 OmniGen Comfy workflow block
 
-- Completed: `image/omnigen.py` now routes the legacy `Shitao/OmniGen-v1-diffusers` plugin through the local Comfy workflow gateway instead of direct Torch/Diffusers `OmniGenPipeline` execution in the add-on process.
-- Completed: the existing triple prompt/image UI is preserved; the wrapper resolves the same scene strip pickers to local paths, composes the prompt placeholders, preserves the old `img_guidance_scale` default, and returns the existing PNG artifact path shape.
-- Completed: `omnigen_v1_multi_image` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: Comfy workflow upload schemas can now mark media slots optional and declare disconnect/prune targets, so empty OmniGen reference slots are removed before `/object_info` and queueing.
-- Completed: `omnigen_v1_multi_image` is registered in `slopperly/config/models.yaml` with legacy alias `Shitao/OmniGen-v1-diffusers` and artifact source `Shitao/OmniGen-v1`.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `ailab_OmniGen` from pinned `1038lab/ComfyUI-OmniGen`.
+- Scaffold only: `image/omnigen.py` now routes the legacy `Shitao/OmniGen-v1-diffusers` plugin through the local Comfy workflow gateway instead of direct Torch/Diffusers `OmniGenPipeline` execution in the add-on process.
+- Scaffold only: the existing triple prompt/image UI is preserved; the wrapper resolves the same scene strip pickers to local paths, composes the prompt placeholders, preserves the old `img_guidance_scale` default, and returns the existing PNG artifact path shape.
+- Scaffold only: `omnigen_v1_multi_image` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: Comfy workflow upload schemas can now mark media slots optional and declare disconnect/prune targets, so empty OmniGen reference slots are removed before `/object_info` and queueing.
+- Scaffold only: `omnigen_v1_multi_image` is registered in `slopperly/config/models.yaml` with legacy alias `Shitao/OmniGen-v1-diffusers` and artifact source `Shitao/OmniGen-v1`.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `ailab_OmniGen` from pinned `1038lab/ComfyUI-OmniGen`.
 - Evidence: integration coverage calls `OmniGenPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies selected strip uploads, prompt placeholders, optional slot pruning, and PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies `omnigen_v1_multi_image` indexed image uploads, exact node/input patching, optional third-slot pruning, and single image-output collection.
 - Still blocked: real RTX 4090 OmniGen artifact certification requires owned ComfyUI running with `ailab_OmniGen`, core image nodes, `Shitao/OmniGen-v1` files installed under `models/LLM/OmniGen-v1/`, and the OmniGen node's code dependency available before generation so the node does not use its first-run downloader.
 
 ### 2026-06-27 Qwen Image Edit Comfy workflow block
 
-- Completed: `image/qwen_image_edit.py` now routes `Qwen/Qwen-Image-Edit-2511` through the local Comfy workflow gateway instead of direct Torch/Transformers/Diffusers/SDNQ execution and Hugging Face runtime downloads in the add-on process.
-- Completed: the existing input-strip selector, three Qwen reference pickers, prompt, negative prompt, resolution, frames, steps, seed, and LoRA UI sections remain present; the wrapper resolves local reference strips, uses the first three references, and returns the existing PNG artifact path shape.
-- Completed: `qwen_image_edit_2511_multi_gguf` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: the workflow uses Comfy core Qwen/Kontext edit nodes plus ComfyUI-GGUF `UnetLoaderGGUF` for `qwen-image-edit-2511-Q5_K_M.gguf`, and applies the local Lightning 4-step LoRA profile.
-- Completed: `slopperly/config/models.yaml` now records the Qwen GGUF plus auxiliary Comfy text encoder, Qwen VAE, and Lightning LoRA artifacts; the downloader/registry audit now supports exact Hugging Face source-path-to-target mappings for `split_files/...` assets.
+- Scaffold only: `image/qwen_image_edit.py` now routes `Qwen/Qwen-Image-Edit-2511` through the local Comfy workflow gateway instead of direct Torch/Transformers/Diffusers/SDNQ execution and Hugging Face runtime downloads in the add-on process.
+- Scaffold only: the existing input-strip selector, three Qwen reference pickers, prompt, negative prompt, resolution, frames, steps, seed, and LoRA UI sections remain present; the wrapper resolves local reference strips, uses the first three references, and returns the existing PNG artifact path shape.
+- Scaffold only: `qwen_image_edit_2511_multi_gguf` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: the workflow uses Comfy core Qwen/Kontext edit nodes plus ComfyUI-GGUF `UnetLoaderGGUF` for `qwen-image-edit-2511-Q5_K_M.gguf`, and applies the local Lightning 4-step LoRA profile.
+- Scaffold only: `slopperly/config/models.yaml` now records the Qwen GGUF plus auxiliary Comfy text encoder, Qwen VAE, and Lightning LoRA artifacts; the downloader/registry audit now supports exact Hugging Face source-path-to-target mappings for `split_files/...` assets.
 - Evidence: integration coverage calls `QwenImageEditPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies image uploads, prompt/negative patching, optional reference-slot pruning, and PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed Qwen pack directly, and `tests/gpu/test_qwen_image_edit_2511.py` now performs one-reference and three-reference plugin-path certification attempts instead of reporting an unwired-test block.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with ComfyUI-GGUF, Comfy core Qwen/Kontext edit nodes, and the Qwen GGUF/text encoder/VAE/Lightning LoRA files installed locally.
@@ -929,11 +1028,11 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 Qwen Image 2512 Comfy workflow block
 
-- Completed: `image/qwen_image.py` now routes `Qwen/Qwen-Image-2512` through the local Comfy workflow gateway instead of direct Torch/Transformers/Diffusers execution and generation-time Hugging Face downloads in the add-on process.
-- Completed: the existing prompt, negative prompt, image strip, resolution, frames, steps, image strength, seed, and LoRA UI sections remain present; the wrapper selects text-to-image or img2img workflow packs from the existing `ModelInputs.mode` and `ModelInputs.image` values.
-- Completed: `qwen_image_2512_t2i_gguf` and `qwen_image_2512_i2i_gguf` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
-- Completed: the workflows use ComfyUI-GGUF `UnetLoaderGGUF` for `qwen-image-2512-Q5_K_M.gguf`, Comfy core Qwen image nodes, and the local Lightning 4-step LoRA profile.
-- Completed: `slopperly/config/models.yaml` now records the Qwen Image 2512 GGUF plus auxiliary Comfy text encoder, Qwen VAE, and Lightning LoRA artifacts; `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `EmptySD3LatentImage`.
+- Scaffold only: `image/qwen_image.py` now routes `Qwen/Qwen-Image-2512` through the local Comfy workflow gateway instead of direct Torch/Transformers/Diffusers execution and generation-time Hugging Face downloads in the add-on process.
+- Scaffold only: the existing prompt, negative prompt, image strip, resolution, frames, steps, image strength, seed, and LoRA UI sections remain present; the wrapper selects text-to-image or img2img workflow packs from the existing `ModelInputs.mode` and `ModelInputs.image` values.
+- Scaffold only: `qwen_image_2512_t2i_gguf` and `qwen_image_2512_i2i_gguf` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Scaffold only: the workflows use ComfyUI-GGUF `UnetLoaderGGUF` for `qwen-image-2512-Q5_K_M.gguf`, Comfy core Qwen image nodes, and the local Lightning 4-step LoRA profile.
+- Scaffold only: `slopperly/config/models.yaml` now records the Qwen Image 2512 GGUF plus auxiliary Comfy text encoder, Qwen VAE, and Lightning LoRA artifacts; `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `EmptySD3LatentImage`.
 - Evidence: integration coverage calls `QwenImagePlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching, img2img image upload, and the preserved `denoise = 1.0 - strength` mapping.
 - Evidence: workflow-runner integration coverage verifies both committed Qwen Image 2512 packs directly, and `tests/gpu/test_qwen_image_2512.py` now performs text-to-image and img2img plugin-path certification attempts instead of reporting an unwired-test block.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with ComfyUI-GGUF, Comfy core Qwen image nodes, and the Qwen GGUF/text encoder/VAE/Lightning LoRA files installed locally.
@@ -941,11 +1040,11 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 Z-Image Comfy workflow block
 
-- Completed: `image/zimage.py` now routes `Tongyi-MAI/Z-Image` and `Tongyi-MAI/Z-Image-Turbo` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution and generation-time Hugging Face downloads in the add-on process.
-- Completed: the existing prompt, negative prompt, image strip, resolution, frames, steps, guidance, image strength, and seed UI sections remain present; the wrapper selects text-to-image or img2img workflow packs from the existing `ModelInputs.mode` and `ModelInputs.image` values.
-- Completed: `zimage_t2i_i2i`, `zimage_t2i_i2i_img2img`, `zimage_turbo_t2i_i2i`, and `zimage_turbo_t2i_i2i_img2img` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
-- Completed: the workflows use official Comfy core Z-Image template nodes: `UNETLoader`, `ModelSamplingAuraFlow`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `KSampler`, `VAEDecode`, and `SaveImage`; img2img adds `LoadImage`, `ImageScale`, and `VAEEncode`; Turbo uses `ConditioningZeroOut` for the official no-CFG negative path.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `z_image_bf16.safetensors`, `z_image_turbo_bf16.safetensors`, `qwen_3_4b.safetensors`, and `ae.safetensors`.
+- Scaffold only: `image/zimage.py` now routes `Tongyi-MAI/Z-Image` and `Tongyi-MAI/Z-Image-Turbo` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution and generation-time Hugging Face downloads in the add-on process.
+- Scaffold only: the existing prompt, negative prompt, image strip, resolution, frames, steps, guidance, image strength, and seed UI sections remain present; the wrapper selects text-to-image or img2img workflow packs from the existing `ModelInputs.mode` and `ModelInputs.image` values.
+- Scaffold only: `zimage_t2i_i2i`, `zimage_t2i_i2i_img2img`, `zimage_turbo_t2i_i2i`, and `zimage_turbo_t2i_i2i_img2img` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Scaffold only: the workflows use official Comfy core Z-Image template nodes: `UNETLoader`, `ModelSamplingAuraFlow`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `KSampler`, `VAEDecode`, and `SaveImage`; img2img adds `LoadImage`, `ImageScale`, and `VAEEncode`; Turbo uses `ConditioningZeroOut` for the official no-CFG negative path.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources for `z_image_bf16.safetensors`, `z_image_turbo_bf16.safetensors`, `qwen_3_4b.safetensors`, and `ae.safetensors`.
 - Evidence: integration coverage calls `ZImagePlugin.load()`/`generate()` and `ZImageTurboPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching, img2img image upload, Turbo negative-prompt usage note, and preserved `denoise = 1.0 - strength` mapping.
 - Evidence: workflow-runner integration coverage verifies all four committed Z-Image packs directly, and `tests/gpu/test_zimage.py` now performs base/Turbo text-to-image and img2img plugin-path certification attempts instead of reporting an unwired-test block.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core Z-Image node classes and the Z-Image diffusion/text encoder/VAE files installed locally.
@@ -953,12 +1052,12 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 Anima Comfy workflow block
 
-- Completed: `image/anima.py` now routes `mrfatso/anima-preview3-diffusers` through the local Comfy workflow gateway instead of direct Torch/Diffusers `AnimaAutoBlocks` execution and generation-time Hugging Face downloads in the add-on process.
-- Completed: the existing prompt, negative prompt, image strip, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present; the wrapper selects text-to-image or img2img workflow packs from the existing `ModelInputs.mode` and `ModelInputs.image` values.
-- Completed: `anima_t2i_i2i` and `anima_t2i_i2i_img2img` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
-- Completed: the workflows use official Comfy core Anima Preview template nodes: `UNETLoader`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `KSampler`, `VAEDecode`, and `SaveImage`; text-to-image uses `EmptyLatentImage`; img2img adds `LoadImage`, `ImageScale`, and `VAEEncode`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `anima-preview3-base.safetensors`, `qwen_3_06b_base.safetensors`, and `qwen_image_vae.safetensors`.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the core `EmptyLatentImage` node used by the Anima text-to-image workflow.
+- Scaffold only: `image/anima.py` now routes `mrfatso/anima-preview3-diffusers` through the local Comfy workflow gateway instead of direct Torch/Diffusers `AnimaAutoBlocks` execution and generation-time Hugging Face downloads in the add-on process.
+- Scaffold only: the existing prompt, negative prompt, image strip, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present; the wrapper selects text-to-image or img2img workflow packs from the existing `ModelInputs.mode` and `ModelInputs.image` values.
+- Scaffold only: `anima_t2i_i2i` and `anima_t2i_i2i_img2img` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Scaffold only: the workflows use official Comfy core Anima Preview template nodes: `UNETLoader`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `KSampler`, `VAEDecode`, and `SaveImage`; text-to-image uses `EmptyLatentImage`; img2img adds `LoadImage`, `ImageScale`, and `VAEEncode`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources for `anima-preview3-base.safetensors`, `qwen_3_06b_base.safetensors`, and `qwen_image_vae.safetensors`.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the core `EmptyLatentImage` node used by the Anima text-to-image workflow.
 - Evidence: integration coverage calls `AnimaPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching, img2img image upload, and preserved `denoise = 1.0 - strength` mapping.
 - Evidence: workflow-runner integration coverage verifies both committed Anima packs directly, and `tests/gpu/test_anima.py` now performs text-to-image and img2img plugin-path certification attempts instead of reporting an unwired-test block.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core Anima node classes and the Anima diffusion/text encoder/VAE files installed locally.
@@ -966,23 +1065,23 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 ERNIE-Image Comfy workflow block
 
-- Completed: `image/ernie.py` and `image/ernie_turbo.py` now route `baidu/ERNIE-Image` and `baidu/ERNIE-Image-Turbo` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers/SDNQ execution and generation-time Hugging Face loading in the add-on process.
-- Completed: the existing prompt, negative prompt, resolution, frames, steps, guidance, and seed UI sections remain present. Turbo preserves the negative prompt field in the UI and records it as deliberately unmapped because the official Turbo Comfy graph uses `ConditioningZeroOut`.
-- Completed: `ernie_image_t2i` and `ernie_image_turbo_t2i` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
-- Completed: the workflows use official Comfy core ERNIE template nodes: `UNETLoader`, `CLIPLoader`, `VAELoader`, `TextGenerate`, `CLIPTextEncode`, `EmptyFlux2LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`; Turbo adds `ConditioningZeroOut`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources from `Comfy-Org/ERNIE-Image` for `ernie-image.safetensors`, `ernie-image-turbo.safetensors`, `ministral-3-3b.safetensors`, `ernie-image-prompt-enhancer.safetensors`, and `flux2-vae.safetensors`.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the core `EmptyFlux2LatentImage` and `TextGenerate` nodes used by the ERNIE workflows.
+- Scaffold only: `image/ernie.py` and `image/ernie_turbo.py` now route `baidu/ERNIE-Image` and `baidu/ERNIE-Image-Turbo` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers/SDNQ execution and generation-time Hugging Face loading in the add-on process.
+- Scaffold only: the existing prompt, negative prompt, resolution, frames, steps, guidance, and seed UI sections remain present. Turbo preserves the negative prompt field in the UI and records it as deliberately unmapped because the official Turbo Comfy graph uses `ConditioningZeroOut`.
+- Scaffold only: `ernie_image_t2i` and `ernie_image_turbo_t2i` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Scaffold only: the workflows use official Comfy core ERNIE template nodes: `UNETLoader`, `CLIPLoader`, `VAELoader`, `TextGenerate`, `CLIPTextEncode`, `EmptyFlux2LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`; Turbo adds `ConditioningZeroOut`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources from `Comfy-Org/ERNIE-Image` for `ernie-image.safetensors`, `ernie-image-turbo.safetensors`, `ministral-3-3b.safetensors`, `ernie-image-prompt-enhancer.safetensors`, and `flux2-vae.safetensors`.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the core `EmptyFlux2LatentImage` and `TextGenerate` nodes used by the ERNIE workflows.
 - Evidence: integration coverage calls `ErniePlugin.load()`/`generate()` and `ErnieTurboPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching and local `TextGenerate` prompt-enhancer wiring.
 - Evidence: workflow-runner integration coverage verifies both committed ERNIE packs directly, and `tests/gpu/test_ernie.py` now performs base/Turbo text-to-image plugin-path certification attempts.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core ERNIE node classes and the ERNIE diffusion/text encoder/prompt enhancer/VAE files installed locally.
 
 ### 2026-06-27 Krea 2 Comfy workflow block
 
-- Completed: `image/_krea2_base.py` and `image/krea2_turbo.py` now route `ethanfel/Krea-2-Base-Diffusers` and `OzzyGT/Krea_2_Turbo_sdnq_dynamic_8bit` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers/BitsAndBytes/SDNQ execution in the add-on process.
-- Completed: the existing prompt, negative prompt, resolution, frames, steps, guidance, seed, and LoRA UI sections remain present. Turbo records the negative prompt field as deliberately unmapped because the official Comfy Turbo graph uses `ConditioningZeroOut`.
-- Completed: `krea2_base_t2i` and `krea2_turbo_t2i` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
-- Completed: the workflows use official Comfy core Krea template node classes: `UNETLoader`, `CLIPLoader`, `VAELoader`, `TextGenerate`, `CLIPTextEncode`, `EmptyLatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`; Turbo adds `ConditioningZeroOut`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources from `Comfy-Org/Krea-2` for `krea2_raw_fp8_scaled.safetensors`, `krea2_turbo_fp8_scaled.safetensors`, `qwen3vl_4b_fp8_scaled.safetensors`, and `qwen_image_vae.safetensors`.
+- Scaffold only: `image/_krea2_base.py` and `image/krea2_turbo.py` now route `ethanfel/Krea-2-Base-Diffusers` and `OzzyGT/Krea_2_Turbo_sdnq_dynamic_8bit` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers/BitsAndBytes/SDNQ execution in the add-on process.
+- Scaffold only: the existing prompt, negative prompt, resolution, frames, steps, guidance, seed, and LoRA UI sections remain present. Turbo records the negative prompt field as deliberately unmapped because the official Comfy Turbo graph uses `ConditioningZeroOut`.
+- Scaffold only: `krea2_base_t2i` and `krea2_turbo_t2i` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Scaffold only: the workflows use official Comfy core Krea template node classes: `UNETLoader`, `CLIPLoader`, `VAELoader`, `TextGenerate`, `CLIPTextEncode`, `EmptyLatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`; Turbo adds `ConditioningZeroOut`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources from `Comfy-Org/Krea-2` for `krea2_raw_fp8_scaled.safetensors`, `krea2_turbo_fp8_scaled.safetensors`, `qwen3vl_4b_fp8_scaled.safetensors`, and `qwen_image_vae.safetensors`.
 - Evidence: integration coverage calls `Krea2BasePlugin.load()`/`generate()` and `Krea2TurboPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching and local `TextGenerate` prompt-enhancer wiring.
 - Evidence: workflow-runner integration coverage verifies both committed Krea packs directly, and `tests/gpu/test_krea2.py` now performs base/Turbo text-to-image plugin-path certification attempts.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core Krea node classes and the Krea diffusion/text encoder/VAE files installed locally.
@@ -990,36 +1089,36 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 Lumina Image 2.0 Comfy workflow block
 
-- Completed: `image/lumina2.py` now routes `Alpha-VLLM/Lumina-Image-2.0` through the local Comfy workflow gateway instead of direct Torch/Diffusers `Lumina2Pipeline` execution and generation-time Hugging Face loading in the add-on process.
-- Completed: the existing prompt, negative prompt, resolution, frames, steps, guidance, and seed UI sections remain present.
-- Completed: `lumina2_t2i` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: the workflow uses official Comfy core Lumina nodes/classes: `CheckpointLoaderSimple`, `ModelSamplingAuraFlow`, `CLIPTextEncodeLumina2`, `CLIPTextEncode`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact source `Comfy-Org/Lumina_Image_2.0_Repackaged` with `all_in_one/lumina_2.safetensors` installed as `models/checkpoints/lumina_2.safetensors`.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the pinned core `CLIPTextEncodeLumina2` node used by the Lumina workflow.
+- Scaffold only: `image/lumina2.py` now routes `Alpha-VLLM/Lumina-Image-2.0` through the local Comfy workflow gateway instead of direct Torch/Diffusers `Lumina2Pipeline` execution and generation-time Hugging Face loading in the add-on process.
+- Scaffold only: the existing prompt, negative prompt, resolution, frames, steps, guidance, and seed UI sections remain present.
+- Scaffold only: `lumina2_t2i` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: the workflow uses official Comfy core Lumina nodes/classes: `CheckpointLoaderSimple`, `ModelSamplingAuraFlow`, `CLIPTextEncodeLumina2`, `CLIPTextEncode`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact source `Comfy-Org/Lumina_Image_2.0_Repackaged` with `all_in_one/lumina_2.safetensors` installed as `models/checkpoints/lumina_2.safetensors`.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the pinned core `CLIPTextEncodeLumina2` node used by the Lumina workflow.
 - Evidence: integration coverage calls `Lumina2Plugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching.
 - Evidence: workflow-runner integration coverage verifies the committed Lumina pack directly, and `tests/gpu/test_lumina2.py` now performs a text-to-image plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core Lumina node classes and `lumina_2.safetensors` installed locally in `models/checkpoints/`.
 
 ### 2026-06-27 Ideogram 4 Comfy workflow block
 
-- Completed: `image/ideogram4.py` now routes `ideogram-ai/ideogram-4-nf4-diffusers` through the local Comfy workflow gateway instead of direct Torch/Diffusers `Ideogram4Pipeline` execution and generation-time Hugging Face loading in the add-on process.
-- Completed: the existing prompt, resolution, frames, steps, guidance, seed, LoRA UI sections, and prompt-upsampling post-enhance toggle remain present; active LoRA or prompt-upsampling use records a usage note because those paths are not in the certified Comfy graph yet.
-- Completed: `ideogram4_t2i` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: the workflow uses official Comfy core Ideogram/custom sampling nodes: `UNETLoader`, `CLIPLoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `CFGOverride`, `DualModelGuider`, `EmptyFlux2LatentImage`, `RandomNoise`, `KSamplerSelect`, `Ideogram4Scheduler`, `SamplerCustomAdvanced`, `VAELoader`, `VAEDecode`, and `SaveImage`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact source `Comfy-Org/Ideogram-4` with the conditional/unconditional diffusion files, Qwen3-VL text encoder, and `flux2-vae.safetensors`.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the pinned core Ideogram/custom-sampler node classes used by the workflow.
+- Scaffold only: `image/ideogram4.py` now routes `ideogram-ai/ideogram-4-nf4-diffusers` through the local Comfy workflow gateway instead of direct Torch/Diffusers `Ideogram4Pipeline` execution and generation-time Hugging Face loading in the add-on process.
+- Scaffold only: the existing prompt, resolution, frames, steps, guidance, seed, LoRA UI sections, and prompt-upsampling post-enhance toggle remain present; active LoRA or prompt-upsampling use records a usage note because those paths are not in the certified Comfy graph yet.
+- Scaffold only: `ideogram4_t2i` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: the workflow uses official Comfy core Ideogram/custom sampling nodes: `UNETLoader`, `CLIPLoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `CFGOverride`, `DualModelGuider`, `EmptyFlux2LatentImage`, `RandomNoise`, `KSamplerSelect`, `Ideogram4Scheduler`, `SamplerCustomAdvanced`, `VAELoader`, `VAEDecode`, and `SaveImage`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact source `Comfy-Org/Ideogram-4` with the conditional/unconditional diffusion files, Qwen3-VL text encoder, and `flux2-vae.safetensors`.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the pinned core Ideogram/custom-sampler node classes used by the workflow.
 - Evidence: integration coverage calls `Ideogram4Plugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus LoRA/prompt-upsampling usage notes.
 - Evidence: workflow-runner integration coverage verifies the committed Ideogram pack directly, and `tests/gpu/test_ideogram4.py` now performs a text-to-image plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core Ideogram node classes and `ideogram4_fp8_scaled.safetensors`, `ideogram4_unconditional_fp8_scaled.safetensors`, `qwen3vl_8b_fp8_scaled.safetensors`, and `flux2-vae.safetensors` installed locally.
 
 ### 2026-06-27 FLUX.2 Klein 4B Comfy workflow block
 
-- Completed: `image/flux2_klein_4b.py` now routes `black-forest-labs/FLUX.2-klein-4B` through the local Comfy workflow gateway instead of direct Torch/Diffusers `Flux2KleinPipeline` execution and generation-time Hugging Face loading in the add-on process.
-- Completed: the existing prompt, image strip, three Klein reference selectors, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present; the wrapper selects text-to-image or reference-edit workflow packs from `ModelInputs.mode` and `ModelInputs.image`.
-- Completed: `flux2_klein_4b_t2i_edit` and `flux2_klein_4b_t2i_edit_img2img` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
-- Completed: the workflows use official Comfy core FLUX.2 Klein nodes and graph structure: `UNETLoader`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`; edit adds `LoadImage`, `ImageScale`, `VAEEncode`, and `ReferenceLatent`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `flux-2-klein-4b-fp8.safetensors`, `qwen_3_4b.safetensors`, and `flux2-vae.safetensors`.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `CFGGuider`, `Flux2Scheduler`, and `ReferenceLatent` from pinned Comfy core.
+- Scaffold only: `image/flux2_klein_4b.py` now routes `black-forest-labs/FLUX.2-klein-4B` through the local Comfy workflow gateway instead of direct Torch/Diffusers `Flux2KleinPipeline` execution and generation-time Hugging Face loading in the add-on process.
+- Scaffold only: the existing prompt, image strip, three Klein reference selectors, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present; the wrapper selects text-to-image or reference-edit workflow packs from `ModelInputs.mode` and `ModelInputs.image`.
+- Scaffold only: `flux2_klein_4b_t2i_edit` and `flux2_klein_4b_t2i_edit_img2img` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Scaffold only: the workflows use official Comfy core FLUX.2 Klein nodes and graph structure: `UNETLoader`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`; edit adds `LoadImage`, `ImageScale`, `VAEEncode`, and `ReferenceLatent`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources for `flux-2-klein-4b-fp8.safetensors`, `qwen_3_4b.safetensors`, and `flux2-vae.safetensors`.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `CFGGuider`, `Flux2Scheduler`, and `ReferenceLatent` from pinned Comfy core.
 - Evidence: integration coverage calls `Flux2Klein4BPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching, reference image uploads, optional reference-slot disconnects, and PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies both committed FLUX.2 Klein packs directly, and `tests/gpu/test_flux2_klein_4b.py` now performs text-to-image and image-edit plugin-path certification attempts.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core FLUX.2 Klein node classes and `flux-2-klein-4b-fp8.safetensors`, `qwen_3_4b.safetensors`, and `flux2-vae.safetensors` installed locally.
@@ -1027,11 +1126,11 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 FLUX.2 Klein 9B Comfy workflow block
 
-- Completed: `image/flux2_klein_9b.py` now routes `ModelsLab/FLUX.2-klein-9B` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers `Flux2KleinPipeline` execution and generation-time Hugging Face loading in the add-on process.
-- Completed: the existing prompt, image strip, three Klein reference selectors, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present; the wrapper selects text-to-image or reference-edit workflow packs from `ModelInputs.mode` and `ModelInputs.image`.
-- Completed: `flux2_klein_9b_t2i_edit` and `flux2_klein_9b_t2i_edit_img2img` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
-- Completed: the workflows use Comfy core FLUX.2 Klein nodes and graph structure: `UNETLoader`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`; edit adds `LoadImage`, `ImageScale`, `VAEEncode`, and `ReferenceLatent`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `flux-2-klein-9b-fp8.safetensors`, `qwen_3_8b_fp8mixed.safetensors`, and `full_encoder_small_decoder.safetensors`.
+- Scaffold only: `image/flux2_klein_9b.py` now routes `ModelsLab/FLUX.2-klein-9B` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers `Flux2KleinPipeline` execution and generation-time Hugging Face loading in the add-on process.
+- Scaffold only: the existing prompt, image strip, three Klein reference selectors, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present; the wrapper selects text-to-image or reference-edit workflow packs from `ModelInputs.mode` and `ModelInputs.image`.
+- Scaffold only: `flux2_klein_9b_t2i_edit` and `flux2_klein_9b_t2i_edit_img2img` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Scaffold only: the workflows use Comfy core FLUX.2 Klein nodes and graph structure: `UNETLoader`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`; edit adds `LoadImage`, `ImageScale`, `VAEEncode`, and `ReferenceLatent`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources for `flux-2-klein-9b-fp8.safetensors`, `qwen_3_8b_fp8mixed.safetensors`, and `full_encoder_small_decoder.safetensors`.
 - Evidence: integration coverage calls `Flux2Klein9BPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching, reference image uploads, optional reference-slot disconnects, and PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies both committed FLUX.2 Klein 9B packs directly, and `tests/gpu/test_flux2_klein_9b.py` now performs text-to-image and image-edit plugin-path certification attempts.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core FLUX.2 Klein node classes and `flux-2-klein-9b-fp8.safetensors`, `qwen_3_8b_fp8mixed.safetensors`, and `full_encoder_small_decoder.safetensors` installed locally.
@@ -1039,11 +1138,11 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 FLUX.2 Klein 9B Schematic LoRA Comfy workflow block
 
-- Completed: `image/flux2_klein_9b_schematic.py` now routes `nomadoor/flux-2-klein-9B-schematic-lora` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers `Flux2KleinPipeline` execution and generation-time Hugging Face LoRA downloads in the add-on process.
-- Completed: the existing prompt, required image strip, schematic mode selector, segmentation target field, frames, steps, guidance, and seed UI sections remain present; the wrapper maps the selected schematic mode to one of six committed local LoRA filenames.
-- Completed: `flux2_klein_9b_schematic_lora` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: the workflow uses FLUX.2 Klein 9B base, matching the upstream schematic LoRA README, with Comfy core `LoadImage`, `ImageScale`, `UNETLoader`, `LoraLoaderModelOnly`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `VAEEncode`, `ReferenceLatent`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `flux-2-klein-base-9b-fp8.safetensors`, `qwen_3_8b.safetensors`, `flux2-vae.safetensors`, and all six `flux2-klein-schematic-*.safetensors` LoRA files.
+- Scaffold only: `image/flux2_klein_9b_schematic.py` now routes `nomadoor/flux-2-klein-9B-schematic-lora` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers `Flux2KleinPipeline` execution and generation-time Hugging Face LoRA downloads in the add-on process.
+- Scaffold only: the existing prompt, required image strip, schematic mode selector, segmentation target field, frames, steps, guidance, and seed UI sections remain present; the wrapper maps the selected schematic mode to one of six committed local LoRA filenames.
+- Scaffold only: `flux2_klein_9b_schematic_lora` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: the workflow uses FLUX.2 Klein 9B base, matching the upstream schematic LoRA README, with Comfy core `LoadImage`, `ImageScale`, `UNETLoader`, `LoraLoaderModelOnly`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `VAEEncode`, `ReferenceLatent`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources for `flux-2-klein-base-9b-fp8.safetensors`, `qwen_3_8b.safetensors`, `flux2-vae.safetensors`, and all six `flux2-klein-schematic-*.safetensors` LoRA files.
 - Evidence: integration coverage calls `Flux2Klein9BSchematicPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies selected LoRA patching, source image upload, fixed upstream negative prompt, source-dimension patching, and PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed schematic pack directly, and `tests/gpu/test_flux2_klein_schematic.py` now performs a plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core FLUX.2 Klein/LoRA node classes and the base 9B diffusion, Qwen 3 8B text encoder, FLUX.2 VAE, and schematic LoRA files installed locally.
@@ -1051,14 +1150,14 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 FLUX.1 Canny and Depth Comfy workflow block
 
-- Completed: `image/flux_canny.py` now routes `fuliucansheng/FLUX.1-Canny-dev-diffusers-lora` through the local Comfy workflow gateway instead of direct Torch/Diffusers/OpenCV execution in the add-on process.
-- Completed: `image/flux_depth.py` now routes `romanfratric234/FLUX.1-Depth-dev-lora` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers execution in the add-on process.
-- Completed: the existing prompt, image strip, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present for both control plugins.
-- Completed: `flux1_canny_control` and `flux1_depth_control` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
-- Completed: the Canny workflow uses Comfy core `LoadImage`, `ImageScale`, `UNETLoader`, `VAELoader`, `DualCLIPLoader`, `CLIPTextEncode`, `FluxGuidance`, `InstructPixToPixConditioning`, `KSampler`, `VAEDecode`, and `SaveImage`, plus `CannyEdgePreprocessor` from pinned `Fannovel16/comfyui_controlnet_aux`.
-- Completed: the Depth workflow uses the same FLUX control graph plus `LoraLoaderModelOnly` for `flux1-depth-dev-lora.safetensors` and `DepthAnythingV2Preprocessor` from pinned `Fannovel16/comfyui_controlnet_aux`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for FLUX.1 Canny, FLUX.1 Depth, text encoders, VAE, depth LoRA, and the DepthAnything V2 Large checkpoint.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `FluxGuidance` and `InstructPixToPixConditioning`.
+- Scaffold only: `image/flux_canny.py` now routes `fuliucansheng/FLUX.1-Canny-dev-diffusers-lora` through the local Comfy workflow gateway instead of direct Torch/Diffusers/OpenCV execution in the add-on process.
+- Scaffold only: `image/flux_depth.py` now routes `romanfratric234/FLUX.1-Depth-dev-lora` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers execution in the add-on process.
+- Scaffold only: the existing prompt, image strip, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present for both control plugins.
+- Scaffold only: `flux1_canny_control` and `flux1_depth_control` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Scaffold only: the Canny workflow uses Comfy core `LoadImage`, `ImageScale`, `UNETLoader`, `VAELoader`, `DualCLIPLoader`, `CLIPTextEncode`, `FluxGuidance`, `InstructPixToPixConditioning`, `KSampler`, `VAEDecode`, and `SaveImage`, plus `CannyEdgePreprocessor` from pinned `Fannovel16/comfyui_controlnet_aux`.
+- Scaffold only: the Depth workflow uses the same FLUX control graph plus `LoraLoaderModelOnly` for `flux1-depth-dev-lora.safetensors` and `DepthAnythingV2Preprocessor` from pinned `Fannovel16/comfyui_controlnet_aux`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources for FLUX.1 Canny, FLUX.1 Depth, text encoders, VAE, depth LoRA, and the DepthAnything V2 Large checkpoint.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `FluxGuidance` and `InstructPixToPixConditioning`.
 - Evidence: integration coverage calls `FluxCannyPlugin.load()`/`generate()` and `FluxDepthPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies both committed FLUX.1 control packs directly, and `tests/gpu/test_flux1_control.py` now performs plugin-path certification attempts.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core FLUX control node classes, `comfyui_controlnet_aux`, `flux1-canny-dev.safetensors`, `flux1-dev.safetensors`, `flux1-depth-dev-lora.safetensors`, `clip_l.safetensors`, `t5xxl_fp16.safetensors`, `ae.safetensors`, and `depth_anything_v2_vitl.pth` installed locally.
@@ -1066,23 +1165,23 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 FLUX Redux Comfy workflow block
 
-- Completed: `image/flux_redux.py` now routes `Runware/FLUX.1-Redux-dev` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution in the add-on process.
-- Completed: the existing image-strip, resolution, frames, steps, guidance, and seed UI sections remain present; the wrapper patches empty text conditioning because the current Redux UI intentionally has no prompt field.
-- Completed: `flux_redux_restyle` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: the workflow uses Comfy core FLUX Redux graph nodes: `LoadImage`, `UNETLoader`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `CLIPVisionLoader`, `CLIPVisionEncode`, `StyleModelLoader`, `StyleModelApply`, `BasicGuider`, `BasicScheduler`, `ModelSamplingFlux`, `EmptySD3LatentImage`, `RandomNoise`, `KSamplerSelect`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for FLUX.1 Dev diffusion, the Redux style model, SigCLIP vision model, FLUX text encoders, and VAE.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the Redux-related core classes.
+- Scaffold only: `image/flux_redux.py` now routes `Runware/FLUX.1-Redux-dev` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution in the add-on process.
+- Scaffold only: the existing image-strip, resolution, frames, steps, guidance, and seed UI sections remain present; the wrapper patches empty text conditioning because the current Redux UI intentionally has no prompt field.
+- Scaffold only: `flux_redux_restyle` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: the workflow uses Comfy core FLUX Redux graph nodes: `LoadImage`, `UNETLoader`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `CLIPVisionLoader`, `CLIPVisionEncode`, `StyleModelLoader`, `StyleModelApply`, `BasicGuider`, `BasicScheduler`, `ModelSamplingFlux`, `EmptySD3LatentImage`, `RandomNoise`, `KSamplerSelect`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources for FLUX.1 Dev diffusion, the Redux style model, SigCLIP vision model, FLUX text encoders, and VAE.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the Redux-related core classes.
 - Evidence: integration coverage calls `FluxReduxPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed Redux pack directly, and `tests/gpu/test_flux_redux.py` now performs a plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with Redux-capable core node classes and `flux1-dev.safetensors`, `flux1-redux-dev.safetensors`, `sigclip_vision_patch14_384.safetensors`, `clip_l.safetensors`, `t5xxl_fp16.safetensors`, and `ae.safetensors` installed locally.
 
 ### 2026-06-27 FLUX Kontext Comfy workflow block
 
-- Completed: `image/flux_kontext.py` now routes `yuvraj108c/FLUX.1-Kontext-dev` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution in the add-on process.
-- Completed: the existing prompt, image strip, resolution, frames, steps, guidance, image strength, seed, LoRA, and inpaint-capable UI contract remains present. Direct `inputs.image`, `scene.kontext_strip_1`, and `scene.kontext_strip_1_path` still resolve to a local file upload.
-- Completed: `flux_kontext_edit` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: the workflow uses Comfy core `LoadImage`, `UNETLoader`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `FluxKontextImageScale`, `VAEEncode`, `ReferenceLatent`, `ConditioningZeroOut`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `flux1-dev-kontext_fp8_scaled.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors`.
+- Scaffold only: `image/flux_kontext.py` now routes `yuvraj108c/FLUX.1-Kontext-dev` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution in the add-on process.
+- Scaffold only: the existing prompt, image strip, resolution, frames, steps, guidance, image strength, seed, LoRA, and inpaint-capable UI contract remains present. Direct `inputs.image`, `scene.kontext_strip_1`, and `scene.kontext_strip_1_path` still resolve to a local file upload.
+- Scaffold only: `flux_kontext_edit` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: the workflow uses Comfy core `LoadImage`, `UNETLoader`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `FluxKontextImageScale`, `VAEEncode`, `ReferenceLatent`, `ConditioningZeroOut`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources for `flux1-dev-kontext_fp8_scaled.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors`.
 - Evidence: integration coverage calls `FluxKontextPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed Kontext pack directly, and `tests/gpu/test_flux_kontext.py` now performs a plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with FLUX Kontext-capable core node classes and `flux1-dev-kontext_fp8_scaled.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors` installed locally.
@@ -1090,34 +1189,34 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 Kontext Relight Comfy workflow block
 
-- Completed: `image/kontext_relight.py` now routes `kontext-community/relighting-kontext-dev-lora-v3` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution in the add-on process.
-- Completed: the existing prompt, image strip, resolution, frames, steps, guidance, illumination style, light direction, and seed UI sections remain present; the wrapper preserves the legacy relight prompt builder using `ILLUMINATION_OPTIONS`.
-- Completed: `kontext_relight` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: the workflow uses Comfy core `LoadImage`, `UNETLoader`, `LoraLoaderModelOnly`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `FluxKontextImageScale`, `VAEEncode`, `ReferenceLatent`, `ConditioningZeroOut`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `flux1-dev-kontext_fp8_scaled.safetensors`, `relighting-kontext-dev-lora-v3.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors`.
+- Scaffold only: `image/kontext_relight.py` now routes `kontext-community/relighting-kontext-dev-lora-v3` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution in the add-on process.
+- Scaffold only: the existing prompt, image strip, resolution, frames, steps, guidance, illumination style, light direction, and seed UI sections remain present; the wrapper preserves the legacy relight prompt builder using `ILLUMINATION_OPTIONS`.
+- Scaffold only: `kontext_relight` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: the workflow uses Comfy core `LoadImage`, `UNETLoader`, `LoraLoaderModelOnly`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `FluxKontextImageScale`, `VAEEncode`, `ReferenceLatent`, `ConditioningZeroOut`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources for `flux1-dev-kontext_fp8_scaled.safetensors`, `relighting-kontext-dev-lora-v3.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors`.
 - Evidence: integration coverage calls `KontextRelightPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies exact graph patching plus PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed Relight pack directly, and `tests/gpu/test_kontext_relight.py` now performs a plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with FLUX Kontext-capable core node classes and `flux1-dev-kontext_fp8_scaled.safetensors`, `relighting-kontext-dev-lora-v3.safetensors`, `clip_l.safetensors`, `t5xxl_fp8_e4m3fn_scaled.safetensors`, and `ae.safetensors` installed locally.
 
 ### 2026-06-27 Nucleus Image Slopperly node block
 
-- Completed: `image/nucleus_moe.py` now routes `NucleusAI/Nucleus-Image` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution in the add-on process.
-- Completed: the existing prompt, negative prompt, resolution, frames, steps, guidance, and seed UI sections remain present.
-- Completed: the repo-local `slopperly_nodes` Comfy custom node package now exposes `SlopperlyDiffusersImageGenerate`, which wraps the existing Nucleus diffusers pipeline and pinned FP8 patch/weights inside owned ComfyUI.
-- Completed: the Comfy installer and `slopperly/runtime/comfy/nodes.lock.yaml` now support a `source: local` custom-node entry so owned ComfyUI can install the in-repo node package.
-- Completed: `nucleus_image_t2i` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for the `NucleusAI/Nucleus-Image` snapshot and `D-Squarius-Green-Jr/Nucleus-Image-FP8` patch, config, and weights.
+- Scaffold only: `image/nucleus_moe.py` now routes `NucleusAI/Nucleus-Image` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution in the add-on process.
+- Scaffold only: the existing prompt, negative prompt, resolution, frames, steps, guidance, and seed UI sections remain present.
+- Scaffold only: the repo-local `slopperly_nodes` Comfy custom node package now exposes `SlopperlyDiffusersImageGenerate`, which wraps the existing Nucleus diffusers pipeline and pinned FP8 patch/weights inside owned ComfyUI.
+- Scaffold only: the Comfy installer and `slopperly/runtime/comfy/nodes.lock.yaml` now support a `source: local` custom-node entry so owned ComfyUI can install the in-repo node package.
+- Scaffold only: `nucleus_image_t2i` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources for the `NucleusAI/Nucleus-Image` snapshot and `D-Squarius-Green-Jr/Nucleus-Image-FP8` patch, config, and weights.
 - Evidence: integration coverage calls `NucleusMoEPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies custom-node parameter patching plus PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed Nucleus pack directly, and `tests/gpu/test_nucleus_image.py` now performs a plugin-path certification attempt.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI installed with `slopperly_nodes`, Diffusers dependencies, the local Nucleus snapshot, and the FP8 patch/weights present in the Slopperly model cache.
 
 ### 2026-06-27 FLUX.2 Dev GGUF quality workflow block
 
-- Completed: `image/flux2_dev.py` now routes `diffusers/FLUX.2-dev-bnb-4bit` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers execution and the hosted `fal/FLUX.2-dev-Turbo` LoRA load.
-- Completed: the existing prompt, multi-image selectors, resolution, frames, steps, guidance, and seed UI sections remain present.
-- Completed: `flux2_dev_gguf_quality` and `flux2_dev_gguf_quality_refs` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
-- Completed: the workflows use pinned `UnetLoaderGGUF` from `city96/ComfyUI-GGUF` plus Comfy core FLUX.2 nodes; the reference workflow adds `LoadImage`, `ImageScale`, `VAEEncode`, and `ReferenceLatent`.
-- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `flux2-dev-Q5_K_M.gguf`, `mistral_3_small_flux2_fp8.safetensors`, and `flux2-vae.safetensors`.
+- Scaffold only: `image/flux2_dev.py` now routes `diffusers/FLUX.2-dev-bnb-4bit` through the local Comfy workflow gateway instead of direct Torch/Diffusers/Transformers execution and the hosted `fal/FLUX.2-dev-Turbo` LoRA load.
+- Scaffold only: the existing prompt, multi-image selectors, resolution, frames, steps, guidance, and seed UI sections remain present.
+- Scaffold only: `flux2_dev_gguf_quality` and `flux2_dev_gguf_quality_refs` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Scaffold only: the workflows use pinned `UnetLoaderGGUF` from `city96/ComfyUI-GGUF` plus Comfy core FLUX.2 nodes; the reference workflow adds `LoadImage`, `ImageScale`, `VAEEncode`, and `ReferenceLatent`.
+- Scaffold only: `slopperly/config/models.yaml` now records exact local artifact sources for `flux2-dev-Q5_K_M.gguf`, `mistral_3_small_flux2_fp8.safetensors`, and `flux2-vae.safetensors`.
 - Evidence: integration coverage calls `Flux2DevPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies T2I patching, three-reference upload/path mapping, local filenames, and PNG artifact collection.
 - Evidence: workflow-runner integration coverage verifies both committed FLUX.2 Dev packs directly, and `tests/gpu/test_flux2_dev.py` now performs T2I and three-reference plugin-path certification attempts.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with `UnetLoaderGGUF`, core FLUX.2 node classes, `flux2-dev-Q5_K_M.gguf`, `mistral_3_small_flux2_fp8.safetensors`, and `flux2-vae.safetensors` installed locally.
@@ -1125,17 +1224,14 @@ The following upstream sources are the factual basis for this spec:
 
 ### 2026-06-27 Wan2.2 TI2V-5B local default workflow block
 
-- Completed: added `video/wan_ti2v_5b.py` as the production local default for `Wan-AI/Wan2.2-TI2V-5B`, routing T2V/I2V through the local Comfy workflow gateway instead of direct Diffusers or any cloud provider.
-- Completed: the existing video UI contract is preserved: prompt, negative prompt, optional image strip, resolution, frames, steps, guidance, and seed.
-- Completed: the wrapper maps UI dimensions to the supported 720P-family sizes `1280x704` or `704x1280`, fixes output to 24fps, and patches the exact Wan Q5 GGUF, UMT5 FP8 text encoder, Wan VAE, sampler, scheduler, shift, and MP4 output profile into the workflow.
-- Completed: `wan22_ti2v_5b_720p24_gguf` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Completed: the workflow uses pinned `UnetLoaderGGUF`, Comfy core `ModelSamplingSD3`, `CLIPLoader`, `CLIPTextEncode`, `VAELoader`, `Wan22ImageToVideoLatent`, `KSampler`, `VAEDecodeTiled`, and VideoHelperSuite `VHS_VideoCombine`.
-- Completed: optional I2V image upload is implemented through `/upload/image`; T2V mode prunes `LoadImage` and disconnects `Wan22ImageToVideoLatent.start_image` before `/object_info` validation.
-- Completed: `slopperly/config/models.yaml` now records `Wan-AI/Wan2.2-TI2V-5B` plus legacy cloud aliases, the QuantStack `Wan2.2-TI2V-5B-Q5_K_M.gguf`, Comfy-Org UMT5 FP8 text encoder, and Wan VAE files.
-- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `ModelSamplingSD3`, `VAEDecodeTiled`, and `Wan22ImageToVideoLatent`.
-- Evidence: integration coverage calls `WanTI2V5BPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies local filenames, 720P-family mapping, T2V optional-image pruning, sampler settings, 24fps output, and MP4 collection.
-- Evidence: integration coverage calls `MiniMaxImg2VidPlugin.load()`/`generate()` through the hidden saved-project alias and verifies source image upload into the same Wan workflow pack.
-- Evidence: workflow-runner integration coverage verifies both T2V pruning and I2V upload behavior directly, and all 47 committed workflow packs pass `python -m slopperly.audit.workflow_packs --root slopperly/workflows/comfy`.
-- Evidence: live GPU certification was attempted with `python -m pytest tests/gpu/test_wan22_ti2v_5b.py --device cuda -q` and wrote a BLOCKED certification record under `.slopperly/certification/smoke_16gb/wan22_ti2v_5b_720p24_gguf.json`.
-- Still blocked: the active local Comfy `/object_info` does not expose `VHS_VideoCombine`, so RTX 4090 artifact certification cannot proceed until owned ComfyUI is running with VideoHelperSuite.
-- Still blocked: certification also requires `Wan2.2-TI2V-5B-Q5_K_M.gguf`, `umt5_xxl_fp8_e4m3fn_scaled.safetensors`, and `wan2.2_vae.safetensors` installed in the owned Comfy model cache.
+- Scaffold only: added `video/wan_ti2v_5b.py` as the production local default for `Wan-AI/Wan2.2-TI2V-5B`, routing T2V/I2V through the local Comfy workflow gateway instead of direct Diffusers or any cloud provider.
+- Scaffold only: the existing video UI contract is preserved: prompt, negative prompt, optional image strip, resolution, frames, steps, guidance, and seed.
+- Scaffold only: the wrapper maps UI dimensions to the supported 720P-family sizes `1280x704` or `704x1280`, fixes output to 24fps, and patches the exact Wan Q5 GGUF, UMT5 FP8 text encoder, Wan VAE, sampler, scheduler, shift, and MP4 output profile into the workflow.
+- Scaffold only: `wan22_ti2v_5b_720p24_gguf` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Scaffold only: the workflow uses pinned `UnetLoaderGGUF`, Comfy core `ModelSamplingSD3`, `CLIPLoader`, `CLIPTextEncode`, `VAELoader`, `Wan22ImageToVideoLatent`, `KSampler`, `VAEDecodeTiled`, and VideoHelperSuite `VHS_VideoCombine`.
+- Scaffold only: optional I2V image upload is implemented through `/upload/image`; T2V mode prunes `LoadImage` and disconnects `Wan22ImageToVideoLatent.start_image` before `/object_info` validation.
+- Scaffold only: `slopperly/config/models.yaml` now records the direct local `Wan-AI/Wan2.2-TI2V-5B` artifacts, the QuantStack `Wan2.2-TI2V-5B-Q5_K_M.gguf`, Comfy-Org UMT5 FP8 text encoder, and Wan VAE files. Cloud aliases are not valid production evidence.
+- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `ModelSamplingSD3`, `VAEDecodeTiled`, and `Wan22ImageToVideoLatent`.
+- Evidence: loopback fake-server and workflow-runner coverage exists, but this is not production parity and must not be reported as a completed model/function.
+- Evidence: a real RTX 4090 owned-Comfy run produced a direct `WanTI2V5BPlugin` T2V MP4 artifact. Direct I2V must be rerun through `WanTI2V5BPlugin` after cloud-alias removal before it can be certified.
+- Still blocked: certification for the direct local entry requires both T2V and I2V real artifacts with `Wan2.2-TI2V-5B-Q5_K_M.gguf`, `umt5_xxl_fp8_e4m3fn_scaled.safetensors`, and `wan2.2_vae.safetensors` in the owned Comfy model cache.

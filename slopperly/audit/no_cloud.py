@@ -11,7 +11,11 @@ PATTERNS = [
     "fal.ai",
     "FAL_KEY",
     "google.genai",
+    "google/nano-banana",
+    "google/veo",
     "GEMINI_API_KEY",
+    "Hailuo/MiniMax",
+    "MiniMax",
     "MiniMax_API.txt",
     "api.minimaxi.chat",
     "OPENAI_API_KEY",
@@ -34,10 +38,19 @@ ALLOWLIST_PREFIXES = (
     "unsupported_models_plugins/",
 )
 
+SKIP_DIRS = {
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".slopperly",
+    "__pycache__",
+}
+
 
 def iter_files(root: Path):
     for path in root.rglob("*"):
-        if not path.is_file() or ".git" in path.parts:
+        if not path.is_file() or any(part in SKIP_DIRS for part in path.parts):
             continue
         rel = path.relative_to(root).as_posix()
         if rel.startswith(ALLOWLIST_PREFIXES):

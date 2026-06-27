@@ -1,11 +1,17 @@
 {
   "artifact": null,
   "command": "pytest tests/gpu/test_wan22_ti2v_5b.py::test_wan22_ti2v_5b_i2v_720p24 --device cuda --profile smoke_16gb",
-  "generated_at_utc": "2026-06-27T10:22:07+00:00",
+  "generated_at_utc": "2026-06-27T11:29:23+00:00",
   "logical_name": "wan22_ti2v_5b_720p24_gguf",
-  "metadata": {},
+  "metadata": {
+    "mode": "i2v",
+    "plugin": "video/wan_ti2v_5b.py",
+    "runtime_url": "http://127.0.0.1:8190",
+    "source": "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
+    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/wan22_ti2v_5b_720p24_gguf/workflow.api.json"
+  },
   "profile": "smoke_16gb",
-  "reason": "Wan2.2 TI2V-5B I2V alias Comfy plugin path runtime error: ComfyUI is missing required workflow node classes: VHS_VideoCombine",
+  "reason": "Previous PASS artifact was generated through a deleted cloud-provider compatibility path and is not valid production evidence. Direct I2V must be rerun through video/wan_ti2v_5b.py against owned ComfyUI.",
   "schema_version": 1,
   "status": "BLOCKED",
   "validation": {}

@@ -576,10 +576,6 @@ def register():
     )
     bpy.types.Scene.genai_out_path = ""
 
-    bpy.types.Scene.minimax_subject = bpy.props.StringProperty(
-        name="minimax_subject", default=""
-    )
-
     bpy.types.Scene.omnigen_prompt_1 = bpy.props.StringProperty(
         name="omnigen_prompt_1",
         default="",

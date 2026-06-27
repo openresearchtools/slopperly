@@ -2531,37 +2531,6 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["16"]["inputs"]["height"], 480)
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[0])
 
-    def test_google_nano_banana_alias_uses_local_qwen_workflow(self):
-        module = load_plugin_module("image", "google_nano_banana")
-        plugin = module.GoogleNanoBananaPlugin()
-        with tempfile.TemporaryDirectory() as tmp:
-            first = Path(tmp) / "alias.png"
-            first.write_bytes(b"alias local image")
-            module.solve_path = lambda filename: str(Path(tmp) / filename)
-            inputs = self.base.ModelInputs(
-                prompt="legacy project edit",
-                image=str(first),
-                width=1024,
-                height=1024,
-                steps=4,
-                seed=404,
-            )
-            prefs = SimpleNamespace(comfyui_url=self.base_url)
-
-            with local_only_network():
-                pipe = plugin.load(prefs, SimpleNamespace())
-                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
-
-            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
-
-        prompt = RuntimeHandler.comfy_prompts[-1]
-        self.assertEqual(prompt["6"]["inputs"]["image"], "uploaded_source.png")
-        self.assertNotIn("9", prompt)
-        self.assertNotIn("10", prompt)
-        self.assertEqual(prompt["12"]["inputs"]["prompt"], "legacy project edit")
-        self.assertEqual(prompt["16"]["inputs"]["seed"], 404)
-        self.assertIn(b'filename="alias.png"', RuntimeHandler.comfy_uploads[0])
-
     def test_nucleus_image_uses_slopperly_comfy_node_plugin_path(self):
         module = load_plugin_module("image", "nucleus_moe")
         plugin = module.NucleusMoEPlugin()
@@ -2678,39 +2647,6 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["9"]["inputs"]["cfg"], 5.0)
         self.assertEqual(prompt["11"]["inputs"]["frame_rate"], 24.0)
         self.assertEqual(prompt["11"]["inputs"]["format"], "video/h264-mp4")
-
-    def test_minimax_img2vid_alias_routes_image_to_wan22_ti2v_pack(self):
-        module = load_plugin_module("video", "minimax")
-        plugin = module.MiniMaxImg2VidPlugin()
-        with tempfile.TemporaryDirectory() as tmp:
-            source = Path(tmp) / "source.png"
-            source.write_bytes(b"local image fixture bytes")
-            module.solve_path = lambda filename: str(Path(tmp) / filename)
-            inputs = self.base.ModelInputs(
-                prompt="legacy image to local Wan motion",
-                image=str(source),
-                width=704,
-                height=1280,
-                frames=49,
-                steps=25,
-                guidance=5.0,
-                seed=330603,
-            )
-            prefs = SimpleNamespace(comfyui_url=self.base_url)
-
-            with local_only_network():
-                pipe = plugin.load(prefs, SimpleNamespace())
-                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
-
-            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.mp4_bytes)
-
-        prompt = RuntimeHandler.comfy_prompts[-1]
-        self.assertEqual(prompt["7"]["inputs"]["width"], 704)
-        self.assertEqual(prompt["7"]["inputs"]["height"], 1280)
-        self.assertEqual(prompt["7"]["inputs"]["start_image"], ["8", 0])
-        self.assertEqual(prompt["8"]["inputs"]["image"], "uploaded_source.png")
-        self.assertEqual(prompt["11"]["inputs"]["frame_rate"], 24.0)
-        self.assertIn(b'name="image"; filename="source.png"', RuntimeHandler.comfy_uploads[-1])
 
     def test_stem_split_uses_comfy_plugin_path(self):
         module = load_plugin_module("audio", "stem_split")

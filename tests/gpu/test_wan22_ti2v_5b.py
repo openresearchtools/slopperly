@@ -81,9 +81,9 @@ def test_wan22_ti2v_5b_i2v_720p24(gpu_cert, plugin_loader, base_models, repo_roo
         "Wan2.2 TI2V-5B source image fixture",
     )
 
-    module = plugin_loader("video", "minimax")
-    plugin = module.MiniMaxImg2VidPlugin()
-    output_path = gpu_cert.artifact_path(LOGICAL_NAME, "wan22_ti2v_5b_i2v_alias.mp4")
+    module = plugin_loader("video", "wan_ti2v_5b")
+    plugin = module.WanTI2V5BPlugin()
+    output_path = gpu_cert.artifact_path(LOGICAL_NAME, "wan22_ti2v_5b_i2v.mp4")
     module.solve_path = lambda filename: str(output_path)
 
     inputs = base_models.ModelInputs(
@@ -113,9 +113,9 @@ def test_wan22_ti2v_5b_i2v_720p24(gpu_cert, plugin_loader, base_models, repo_roo
             require_audio=False,
         )
     except (RuntimeUnavailableError, WorkflowValidationError) as exc:
-        gpu_cert.block(LOGICAL_NAME, f"Wan2.2 TI2V-5B I2V alias Comfy plugin path runtime error: {exc}")
+        gpu_cert.block(LOGICAL_NAME, f"Wan2.2 TI2V-5B I2V Comfy plugin path runtime error: {exc}")
     except ArtifactValidationError as exc:
-        gpu_cert.fail(LOGICAL_NAME, f"Wan2.2 TI2V-5B I2V alias MP4 validation failed: {exc}")
+        gpu_cert.fail(LOGICAL_NAME, f"Wan2.2 TI2V-5B I2V MP4 validation failed: {exc}")
 
     gpu_cert.pass_artifact(
         LOGICAL_NAME,
@@ -126,7 +126,6 @@ def test_wan22_ti2v_5b_i2v_720p24(gpu_cert, plugin_loader, base_models, repo_roo
             "workflow_pack": str(workflow_pack),
             "source": str(source),
             "mode": "i2v",
-            "plugin": "video/minimax.py",
-            "legacy_alias": "Hailuo/MiniMax/img2vid",
+            "plugin": "video/wan_ti2v_5b.py",
         },
     )

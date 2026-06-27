@@ -47,8 +47,7 @@ models:
       - qwen_image_2512_i2i_gguf
       - image/qwen_image.py
   - logical_name: qwen_image_edit_2511_multi_gguf
-    legacy_aliases:
-      - google/nano-banana
+    legacy_aliases: []
     task: image_edit
     runtime: comfy
     model_source: https://huggingface.co/unsloth/Qwen-Image-Edit-2511-GGUF
@@ -665,9 +664,6 @@ models:
   - logical_name: wan22_ti2v_5b_720p24_gguf
     legacy_aliases:
       - Wan-AI/Wan2.2-TI2V-5B
-      - google/veo
-      - Hailuo/MiniMax/txt2vid
-      - Hailuo/MiniMax/img2vid
     task: video_t2v_i2v
     runtime: comfy
     model_source: https://huggingface.co/QuantStack/Wan2.2-TI2V-5B-GGUF

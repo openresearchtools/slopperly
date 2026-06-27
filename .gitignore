@@ -51,6 +51,10 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# Slopperly local runtime installs and generated media artifacts.
+.slopperly/runtimes/
+.slopperly/gpu-artifacts/
+
 # Translations
 *.mo
 *.pot

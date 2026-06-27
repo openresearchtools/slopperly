@@ -7,7 +7,10 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from slopperly.runtime.comfy.install import install_comfy
+from slopperly.runtime.comfy.install import (
+    disable_foundation1_object_info_autodownload,
+    install_comfy,
+)
 from slopperly.runtime.llamacpp.install import (
     install_llamacpp,
     select_release_asset,
@@ -30,7 +33,35 @@ class RuntimeInstallerTests(unittest.TestCase):
         self.assertIn("ComfyUI", details)
         self.assertIn("custom_nodes", details)
         self.assertIn("slopperly_nodes", details)
+        self.assertIn("object_info local-only", details)
         self.assertIn("install-manifest.json", details)
+
+    def test_foundation1_patch_disables_object_info_autodownload(self):
+        source = '''def _scan_checkpoints() -> list:
+    """Return available checkpoints, auto-downloading if none are found."""
+    results = _do_scan()
+
+    if not results:
+        if _check_foundation1_exists():
+            pass
+        else:
+            logger.info(
+                "No Foundation-1 models found in models/stable_audio/. "
+                "Attempting auto-download from HuggingFace..."
+            )
+            _download_foundation1()
+            results = _do_scan()
+
+    return results
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            loader = Path(tmp) / "loader_node.py"
+            loader.write_text(source, encoding="utf-8")
+            step = disable_foundation1_object_info_autodownload(loader, dry_run=False)
+            patched = loader.read_text(encoding="utf-8")
+        self.assertEqual(step.status, "PASS")
+        self.assertIn("Slopperly disables upstream auto-download", patched)
+        self.assertNotIn("_download_foundation1()", patched)
 
     def test_vllm_install_dry_run_records_audio_extra(self):
         with tempfile.TemporaryDirectory() as tmp:
