@@ -1,0 +1,45 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/chatterbox_tts_vc_comfy/chatterbox_manifest.json",
+  "command": "pytest tests/gpu/test_chatterbox.py::test_chatterbox --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T16:29:50+00:00",
+  "logical_name": "chatterbox_tts_vc_comfy",
+  "metadata": {
+    "plain_tts": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/chatterbox_tts_vc_comfy/9090_A_calm_local_Chatterbox_voice_confirms_the_Slopp_chatterbox.wav",
+    "reference_tts": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/chatterbox_tts_vc_comfy/9091_This_second_local_Chatterbox_line_uses_the_gener_chatterbox.wav",
+    "runtime_url": "http://127.0.0.1:8190",
+    "voice_conversion": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/chatterbox_tts_vc_comfy/9092_chatterbox_voice_clone_chatterbox.wav"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "kind": "manifest",
+    "modes": {
+      "plain_tts": {
+        "channels": 1,
+        "duration": 3.48,
+        "format": "WAV",
+        "kind": "audio",
+        "rms": 3869.5848370664767,
+        "sample_rate": 24000
+      },
+      "reference_tts": {
+        "channels": 1,
+        "duration": 3.2,
+        "format": "WAV",
+        "kind": "audio",
+        "rms": 3495.2486027351297,
+        "sample_rate": 24000
+      },
+      "voice_conversion": {
+        "channels": 1,
+        "duration": 3.48,
+        "format": "WAV",
+        "kind": "audio",
+        "rms": 3997.8879025847064,
+        "sample_rate": 24000
+      }
+    }
+  }
+}
