@@ -179,6 +179,42 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - These tests do not start real runtime servers.
 - GPU artifact generation remains blocked until runtime installs, model downloads, plugin wrappers, and workflow packs are complete.
 
+## 2026-06-27 Local image VSR Comfy workflow block
+
+### Production Path Migrated
+
+- `image/maxine_vsr.py` now routes the legacy `nvidia/maxine-vsr` image super-resolution path through the local Comfy gateway.
+- The production display name is now `Image: Local Super Resolution`; no NVIDIA Maxine runtime, `nvvfx`, or CUDA SDK import remains in the image plugin.
+- The existing image input, resolution, frames, seed, and output-file path behavior are preserved. Maxine-only quality is recorded as deliberately unmapped in the workflow schema.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/local_image_vsr_upscale/` with editable/API workflow JSON, parameter schema, model manifest, smoke payload, and README.
+- The workflow uses core Comfy nodes `LoadImage`, `UpscaleModelLoader`, `ImageUpscaleWithModel`, `ImageScale`, and `SaveImage`.
+- Added the core upscale node classes to `slopperly/runtime/comfy/nodes.lock.yaml`.
+- Registered `local_image_vsr_upscale` in `slopperly/config/models.yaml` with legacy alias `nvidia/maxine-vsr` and Hugging Face artifact source `ai-forever/Real-ESRGAN`, file `RealESRGAN_x4.pth`.
+
+### Verification
+
+- `python -m compileall -q models models_plugins slopperly tests`
+- `for test in tests/unit/test_*.py; do python "$test" || exit $?; done`
+- `python tests/integration/test_local_plugin_paths.py`
+- `python tests/integration/test_comfy_workflow_runner.py`
+- `python -m slopperly.audit.workflow_packs`
+- `python -m slopperly.audit.model_registry --root .`
+- `python -m slopperly.audit.no_cloud --root .`
+- `python -m slopperly.audit.local_only_surface --root .`
+- `python -m slopperly.models.download --profile smoke_16gb --dry-run --report-only`
+- `python -m slopperly.doctor --local-only --runtimes none --report-only`
+- `python -m pytest tests/gpu --collect-only --device cuda --profile smoke_16gb`
+- `python -m slopperly.audit.dropdown_certification --profile smoke_16gb --report-only`
+- `git diff --check`
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- `local_image_vsr_upscale` remains blocked in dropdown certification until owned ComfyUI is running with `RealESRGAN_x4.pth` installed in `models/upscale_models/` and `tests/gpu/test_local_image_vsr_upscale.py --device cuda` produces a validated PNG artifact.
+
 ## 2026-06-27 Comfy workflow runner integration block
 
 ### Runtime Gateway Behavior Added

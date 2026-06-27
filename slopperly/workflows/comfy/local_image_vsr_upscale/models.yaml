@@ -1,0 +1,35 @@
+workflow_id: local_image_vsr_upscale
+task: image_super_resolution
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    classes:
+      - LoadImage
+      - UpscaleModelLoader
+      - ImageUpscaleWithModel
+      - ImageScale
+      - SaveImage
+model_files:
+  upscale_models:
+    - RealESRGAN_x4.pth
+supported_profiles:
+  - input: image
+    output: png
+    width: 1920
+    height: 1080
+  - input: image
+    output: png
+    width: 1280
+    height: 720
+  - input: image
+    output: png
+    width: 32
+    height: 24
+artifact_contract:
+  output_type: png
+  validation:
+    - PIL-readable
+    - width equals requested width
+    - height equals requested height

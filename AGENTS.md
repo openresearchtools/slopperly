@@ -799,3 +799,13 @@ The following upstream sources are the factual basis for this spec:
 - Completed: `birefnet_rmbg` is registered in `slopperly/config/models.yaml` with legacy alias `ZhengPeng7/BiRefNet_HR`.
 - Evidence: integration coverage calls `BiRefNetPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies the patched `LoadImage -> BiRefNetRMBG -> SaveImage` graph.
 - Still blocked: real RTX 4090 BiRefNet artifact certification requires owned ComfyUI, downloaded `BiRefNet-HR` artifacts, and the pinned RMBG node pack installed.
+
+### 2026-06-27 Local image VSR Comfy workflow block
+
+- Completed: `image/maxine_vsr.py` now routes the legacy image super-resolution plugin through the local Comfy workflow gateway instead of NVIDIA Maxine/nvvfx in the add-on process.
+- Completed: `local_image_vsr_upscale` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, README, and an 8x6 PPM input fixture.
+- Completed: Comfy core upscale node classes `UpscaleModelLoader`, `ImageUpscaleWithModel`, and `ImageScale` are asserted in `slopperly/runtime/comfy/nodes.lock.yaml`.
+- Completed: `local_image_vsr_upscale` is registered in `slopperly/config/models.yaml` with legacy alias `nvidia/maxine-vsr` and artifact source `ai-forever/Real-ESRGAN`, file `RealESRGAN_x4.pth`.
+- Evidence: integration coverage calls `MaxineVSRPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies the patched `LoadImage -> UpscaleModelLoader -> ImageUpscaleWithModel -> ImageScale -> SaveImage` graph.
+- Evidence: `python -m slopperly.models.download --profile smoke_16gb --dry-run --report-only` plans 10 local artifact entries with 0 blocked, including `ai-forever/Real-ESRGAN/RealESRGAN_x4.pth`.
+- Still blocked: real RTX 4090 local image VSR artifact certification requires owned ComfyUI running with core upscale nodes and `RealESRGAN_x4.pth` installed in `models/upscale_models/`.

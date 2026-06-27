@@ -7,6 +7,9 @@ comfyui:
     - LoadImage
     - CLIPTextEncode
     - VAEDecode
+    - UpscaleModelLoader
+    - ImageUpscaleWithModel
+    - ImageScale
     - SaveImage
 custom_nodes:
   - id: comfyui_gguf

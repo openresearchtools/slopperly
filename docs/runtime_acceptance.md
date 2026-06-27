@@ -25,6 +25,7 @@
 - The Marlin video-caption plugin path now has fake-server integration coverage through local vLLM multimodal chat completions. The test calls `MarlinVideoCaptionsPlugin.load()` and `generate()` and verifies the existing VSE text-strip output path.
 - The Florence2 plugin path now has fake-server integration coverage through local ComfyUI. The test calls `Florence2Plugin.load()` and `generate()` and verifies the existing caption string output path.
 - The BiRefNet background-removal plugin path now has fake-server integration coverage through local ComfyUI. The test calls `BiRefNetPlugin.load()` and `generate()` and verifies `LoadImage -> BiRefNetRMBG -> SaveImage` patching plus PNG artifact collection.
+- The local image super-resolution plugin path now has fake-server integration coverage through local ComfyUI. The test calls the legacy `MaxineVSRPlugin.load()` and `generate()` path and verifies `LoadImage -> UpscaleModelLoader -> ImageUpscaleWithModel -> ImageScale -> SaveImage` patching plus PNG artifact collection.
 - `python tests/integration/test_comfy_workflow_runner.py` exercises the committed LTX 2.3 Comfy workflow pack against a local fake Comfy server, including `/object_info` node checks, input-image upload, API graph patching, queue submission, history polling, output collection, and existing queue phase/progress callbacks.
 - `python tests/integration/test_comfy_workflow_runner.py` also verifies `florence2_caption_ocr` text/JSON collection from Comfy history outputs.
 - Comfy workflow schemas can now address indexed media/text fields such as `images[0]`, `images[1]`, `image_prompts[1]`, and `middle_images_paths[0].path`; the integration test verifies separate uploads are patched into distinct API graph nodes before queueing.
@@ -37,6 +38,7 @@
 - `tests/gpu/test_video_caption_vlm.py` is registered for `vllm_video_caption_vlm` and will validate non-empty caption text from the Marlin plugin path once a real MP4 fixture and local vLLM VLM server are present.
 - `tests/gpu/test_florence2_caption.py` is registered for `florence2_caption_ocr` and will validate non-empty caption text from the Florence2 plugin path once a real image fixture and local ComfyUI runtime are present.
 - `tests/gpu/test_birefnet_rmbg.py` is registered for `birefnet_rmbg` and will validate a PNG with alpha from the BiRefNet plugin path once owned ComfyUI and the BiRefNet-HR artifacts are present.
+- `tests/gpu/test_local_image_vsr_upscale.py` is registered for `local_image_vsr_upscale` and will validate a PNG matching the requested resolution from the local image super-resolution plugin path once owned ComfyUI and `RealESRGAN_x4.pth` are present.
 - `python -m slopperly.audit.dropdown_certification --profile smoke_16gb` now requires a `PASS` certification JSON record for the exact logical model/profile and a real artifact file; `BLOCKED` records stay blocked and report their reason.
 
 ## Current Blocks
@@ -49,6 +51,7 @@
 - Marlin video captions now use local vLLM VLM in production code and have loopback plugin-path coverage, but real GPU VLM artifact certification is blocked until `tests/fixtures/video_caption_smoke.mp4` exists and the local vLLM multimodal server is running with `--allowed-local-media-path`.
 - Florence2 caption/OCR now uses local ComfyUI in production code and has loopback plugin-path coverage, but real GPU artifact certification is blocked until `tests/fixtures/florence2_caption.png` exists, owned ComfyUI is running, and Florence-2 artifacts are present in the local model cache.
 - BiRefNet background removal now uses local ComfyUI in production code and has loopback plugin-path coverage, but real GPU artifact certification is blocked until owned ComfyUI is running with `BiRefNetRMBG` and the `BiRefNet-HR` files are present in the local model cache.
+- Local image super-resolution now uses local ComfyUI in production code and has loopback plugin-path coverage, but real GPU artifact certification is blocked until owned ComfyUI is running with core upscale nodes and `RealESRGAN_x4.pth` in the local model cache.
 - The LTX 2.3 Comfy workflow runner has local fake-server integration coverage, but it is not yet a plugin-path GPU artifact certification and the returned fake bytes are not claimed as a valid MP4.
 - Shared audio-driven timing planning exists, but LTX lipsync/dialogue and Wan interpolation workflows still need to call it from their local Comfy plugin paths and validate real MP4 duration/fps artifacts.
 - The runtime network guard has unit and fake-server integration coverage, but the required GPU artifact suite still needs to run under this guard after model downloads complete.

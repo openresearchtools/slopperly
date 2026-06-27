@@ -119,6 +119,9 @@ class RuntimeHandler(BaseHTTPRequestHandler):
             return self._json({
                 "LoadImage": {},
                 "SaveImage": {},
+                "UpscaleModelLoader": {},
+                "ImageUpscaleWithModel": {},
+                "ImageScale": {},
                 "BiRefNetRMBG": {},
                 "DownloadAndLoadFlorence2Model": {},
                 "Florence2Run": {},
@@ -138,6 +141,26 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "images": [
                                     {
                                         "filename": "birefnet_rmbg.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "ImageUpscaleWithModel"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "5": {
+                                "images": [
+                                    {
+                                        "filename": "local_image_vsr.png",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -444,6 +467,30 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["2"]["class_type"], "BiRefNetRMBG")
         self.assertEqual(prompt["2"]["inputs"]["model"], "BiRefNet-HR")
         self.assertEqual(prompt["2"]["inputs"]["background"], "Alpha")
+        self.assertIn(b'filename="slopperly_input_image_', RuntimeHandler.comfy_uploads[-1])
+
+    def test_local_image_vsr_uses_comfy_plugin_path(self):
+        module = load_plugin_module("image", "maxine_vsr")
+        plugin = module.MaxineVSRPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace()
+            inputs = self.base.ModelInputs(image=FakeImage(), width=64, height=48, seed=789, frames=1)
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["2"]["inputs"]["model_name"], "RealESRGAN_x4.pth")
+        self.assertEqual(prompt["3"]["class_type"], "ImageUpscaleWithModel")
+        self.assertEqual(prompt["4"]["inputs"]["width"], 64)
+        self.assertEqual(prompt["4"]["inputs"]["height"], 48)
+        self.assertEqual(prompt["4"]["inputs"]["crop"], "center")
         self.assertIn(b'filename="slopperly_input_image_', RuntimeHandler.comfy_uploads[-1])
 
     def test_marlin_video_captions_uses_vllm_vlm_plugin_path(self):

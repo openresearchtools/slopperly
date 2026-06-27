@@ -1,0 +1,10 @@
+{
+  "input_image": "tests/fixtures/vsr_source.ppm",
+  "width": 32,
+  "height": 24,
+  "frames": 1,
+  "seed": 123,
+  "local_vsr_model": "RealESRGAN_x4.pth",
+  "local_vsr_upscale_method": "bicubic",
+  "local_vsr_crop": "center"
+}

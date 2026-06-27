@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "workflow_id": "local_image_vsr_upscale",
+  "description": "Patch schema for local image super-resolution through ComfyUI core upscale nodes.",
+  "inputs": {
+    "width": [
+      {
+        "node": "4",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "4",
+        "input": "height"
+      }
+    ],
+    "local_vsr_model": [
+      {
+        "node": "2",
+        "input": "model_name"
+      }
+    ],
+    "local_vsr_upscale_method": [
+      {
+        "node": "4",
+        "input": "upscale_method"
+      }
+    ],
+    "local_vsr_crop": [
+      {
+        "node": "4",
+        "input": "crop"
+      }
+    ]
+  },
+  "uploads": {
+    "input_image": [
+      {
+        "node": "1",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "frames": "The existing UI section is preserved for image-plugin compatibility, but the workflow emits one upscaled image.",
+    "seed": "Real-ESRGAN image upscaling is deterministic and does not expose a seed.",
+    "maxine_quality": "The old NVIDIA Maxine quality selector is not used by the local Comfy workflow."
+  },
+  "output": {
+    "node": "5",
+    "type": "image/png",
+    "contract": "Return a readable PNG matching the requested width and height."
+  }
+}

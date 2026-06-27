@@ -134,6 +134,31 @@ models:
     workflows:
       - birefnet_rmbg
       - image/birefnet.py
+  - logical_name: local_image_vsr_upscale
+    legacy_aliases:
+      - nvidia/maxine-vsr
+    task: image_super_resolution
+    runtime: comfy
+    model_source: https://huggingface.co/ai-forever/Real-ESRGAN
+    download_mode: hf_file
+    local_cache_path: models/upscale_models/RealESRGAN_x4.pth
+    required_files:
+      - RealESRGAN_x4.pth
+    required_node_pack: comfyui core upscale
+    supported_resolutions:
+      - 1920x1080
+      - 1280x720
+      - 32x24
+    context_limits: {}
+    default_parameters:
+      model: RealESRGAN_x4.pth
+      upscale_method: bicubic
+      crop: center
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_local_image_vsr_upscale.py --device cuda
+    workflows:
+      - local_image_vsr_upscale
+      - image/maxine_vsr.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter
