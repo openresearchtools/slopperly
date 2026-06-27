@@ -20,12 +20,11 @@ Model download sizes (first run only, cached afterwards):
   large-v3-turbo ~809 MB  ·  large-v3 ~3.1 GB
 """
 
-import gc
 import os
 import re
-import time
 
 from ...models.base import ModelPlugin, InputSpec, ParamSpec, ModelInputs
+from ...slopperly.runtime.vllm.stt_client import VllmSttClient
 
 
 # ---------------------------------------------------------------------------
@@ -40,14 +39,10 @@ _MODEL_SIZES = {
     "large-v3":       "~3.1 GB",
 }
 
-# Systran HuggingFace repo names used by faster-whisper for cache lookup
-_HF_REPOS = {
-    "tiny":           "Systran/faster-whisper-tiny",
-    "base":           "Systran/faster-whisper-base",
-    "small":          "Systran/faster-whisper-small",
-    "medium":         "Systran/faster-whisper-medium",
-    "large-v3-turbo": "Systran/faster-whisper-large-v3-turbo",
-    "large-v3":       "Systran/faster-whisper-large-v3",
+# vLLM server model IDs. Production defaults to the required local STT profile.
+_VLLM_MODELS = {
+    "large-v3-turbo": "openai/whisper-large-v3-turbo",
+    "large-v3": "openai/whisper-large-v3",
 }
 
 
@@ -55,7 +50,7 @@ def _is_model_cached(model_size: str, cache_dir: str | None) -> bool:
     """Return True if the model appears to be in the local HF cache."""
     try:
         from huggingface_hub import scan_cache_dir
-        repo_id = _HF_REPOS.get(model_size, "")
+        repo_id = _VLLM_MODELS.get(model_size, "")
         if not repo_id:
             return False
         cache_info = scan_cache_dir(cache_dir or None)
@@ -169,7 +164,7 @@ class FasterWhisperTranscribePlugin(ModelPlugin):
     DISPLAY_NAME = "Transcribe: Faster Whisper"
     MODEL_TYPE   = "text"
     DESCRIPTION  = (
-        "Multilingual speech-to-text via Faster Whisper. "
+        "Multilingual speech-to-text via local vLLM Whisper. "
         "Select a SOUND strip, choose model size and language, then Generate. "
         "Subtitle strips appear on a free VSE channel with proportional timing."
     )
@@ -178,7 +173,7 @@ class FasterWhisperTranscribePlugin(ModelPlugin):
     UI_SECTIONS = []
     PARAMS      = ParamSpec()
 
-    REQUIRED_PACKAGES = ["faster_whisper"]
+    REQUIRED_PACKAGES = []
 
     requires_input_strip = True   # user must select a strip
     requires_main_thread = True   # generate() calls bpy directly
@@ -188,12 +183,6 @@ class FasterWhisperTranscribePlugin(ModelPlugin):
         return {}
 
     def generate(self, pipe, inputs: ModelInputs, scene, prefs):
-        import bpy
-        import torch
-        from faster_whisper import WhisperModel
-
-        _cache_dir = prefs.hf_cache_dir or None
-
         model_size   = getattr(scene, "whisper_model_size", "large-v3-turbo")
         lang_code    = getattr(scene, "whisper_language",   "auto")
         language     = None if lang_code == "auto" else lang_code
@@ -214,6 +203,8 @@ class FasterWhisperTranscribePlugin(ModelPlugin):
             strip_start_frame = inputs.insert_frame_start
             audio_offset      = 0.0
         else:
+            import bpy
+
             _pallaidium_dir = "Pallaidium_Media"
 
             def _is_source_sound(strip):
@@ -264,93 +255,38 @@ class FasterWhisperTranscribePlugin(ModelPlugin):
             print(f"Whisper Transcribe: Audio file not found: {audio_path}")
             return None
 
-        # ── 1. download / load model ────────────────────────────────────────
-        cached = _is_model_cached(model_size, _cache_dir)
-        size_str = _MODEL_SIZES.get(model_size, "")
-
-        if cached:
-            phase_label = f"Step 1: Loading {model_size} from cache"
-            print(f"Whisper Transcribe: Loading {model_size!r} from local cache …")
-        else:
-            if prefs.local_files_only:
-                raise OSError(
-                    f"Whisper model '{model_size}' not found in local cache. "
-                    "Uncheck 'Use Local Files Only' in Add-on Preferences to download it."
-                )
-            phase_label = f"Step 1: Downloading {model_size} ({size_str}) — first run"
-            print(
-                f"Whisper Transcribe: Downloading {model_size!r} ({size_str}) from "
-                f"Systran/faster-whisper-{model_size} — this only happens once."
-            )
-            print("Whisper Transcribe: Download progress is shown in the HuggingFace console output above.")
-
-        self.set_phase(inputs, phase_label)
-
-        device       = "cuda" if torch.cuda.is_available() else "cpu"
-        compute_type = "float16" if device == "cuda" else "int8"
-
-        t_load = time.time()
-        w_model = WhisperModel(
-            model_size,
-            device=device,
-            compute_type=compute_type,
-            download_root=_cache_dir,
-        )
-        print(
-            f"Whisper Transcribe: Model ready on {device} ({compute_type}) "
-            f"in {time.time() - t_load:.1f}s"
-        )
-
-        # ── 2. transcribe ───────────────────────────────────────────────────
+        # ── 1. transcribe through vLLM ─────────────────────────────────────
         lang_label = lang_code if lang_code != "auto" else "auto-detect"
-        self.set_phase(inputs, f"Step 2: Transcribing ({lang_label})")
+        self.set_phase(inputs, f"Step 1: Transcribing with vLLM ({lang_label})")
         print(
-            f"Whisper Transcribe: Transcribing {os.path.basename(audio_path)!r}  "
-            f"language={lang_label!r} …"
+            f"vLLM Whisper: Transcribing {os.path.basename(audio_path)!r} "
+            f"language={lang_label!r} model={model_size!r} ..."
         )
 
-        t0 = time.time()
-        segments_gen, info = w_model.transcribe(
+        model_name = _VLLM_MODELS.get(model_size, "openai/whisper-large-v3-turbo")
+        response = VllmSttClient.from_preferences(prefs).transcribe(
             audio_path,
-            beam_size=5,
-            word_timestamps=False,   # Hviske-style chunking uses segment timestamps
+            model=model_name,
             language=language,
-            vad_filter=True,
-            vad_parameters={"min_silence_duration_ms": 500},
         )
 
-        audio_duration = max(1.0, getattr(info, "duration", 1.0))
-        detected_lang  = getattr(info, "language", lang_code)
-        print(f"Whisper Transcribe: Detected language: {detected_lang!r}  duration: {audio_duration:.1f}s")
+        audio_duration = max(1.0, float(response.get("duration") or _probe_audio_duration(audio_path) or 1.0))
+        detected_lang = response.get("language") or lang_code
+        print(f"vLLM Whisper: Detected language: {detected_lang!r} duration: {audio_duration:.1f}s")
 
-        # Consume the lazy generator, reporting progress per segment
-        seg_list: list = []
-        for seg in segments_gen:
-            seg_list.append(seg)
-            elapsed_audio = seg.end
+        seg_list = _segments_from_response(response, audio_duration)
+        for seg in seg_list:
             if inputs.progress_fn is not None:
-                inputs.progress_fn(int(elapsed_audio), int(audio_duration))
-            print(
-                f"  [{elapsed_audio:6.1f}s / {audio_duration:.1f}s]  {seg.text.strip()}"
-            )
+                inputs.progress_fn(int(seg["end"]), int(audio_duration))
+            print(f"  [{seg['end']:6.1f}s / {audio_duration:.1f}s]  {seg['text'].strip()}")
 
-        print(
-            f"Whisper Transcribe: Transcription done in {time.time() - t0:.1f}s  "
-            f"({len(seg_list)} segments)"
-        )
-
-        del w_model
-        gc.collect()
-        if device == "cuda":
-            torch.cuda.empty_cache()
-
-        # ── 3. build subtitles — Hviske algorithm ───────────────────────────
-        self.set_phase(inputs, "Step 3: Building subtitles")
+        # ── 2. build subtitles — Hviske algorithm ───────────────────────────
+        self.set_phase(inputs, "Step 2: Building subtitles")
         all_subs: list = []
         for seg in seg_list:
-            if not seg.text.strip():
+            if not seg["text"].strip():
                 continue
-            all_subs.extend(_break_into_subtitle_chunks(seg.start, seg.end, seg.text))
+            all_subs.extend(_break_into_subtitle_chunks(seg["start"], seg["end"], seg["text"]))
         all_subs.sort(key=lambda x: x["start"])
 
         if not all_subs:
@@ -359,8 +295,8 @@ class FasterWhisperTranscribePlugin(ModelPlugin):
 
         print(f"Whisper Transcribe: {len(all_subs)} subtitle chunks ready.")
 
-        # ── 4. insert text strips ───────────────────────────────────────────
-        self.set_phase(inputs, "Step 4: Inserting VSE strips")
+        # ── 3. insert text strips ───────────────────────────────────────────
+        self.set_phase(inputs, "Step 3: Inserting VSE strips")
         last_end_frame = strip_start_frame + int(all_subs[-1]["end"] * fps) + 2
         _ch_hint = inputs.insert_channel if inputs.insert_channel > 0 else 1
         channel  = _find_free_channel(seq_editor, strip_start_frame, last_end_frame,
@@ -414,3 +350,52 @@ class FasterWhisperTranscribePlugin(ModelPlugin):
         col.prop(scene, "whisper_model_size")
         col.prop(scene, "whisper_language")
         return False
+
+
+def _segments_from_response(response: dict, audio_duration: float) -> list[dict]:
+    segments = response.get("segments")
+    if isinstance(segments, list) and segments:
+        out = []
+        for seg in segments:
+            text = str(seg.get("text") or "").strip()
+            if not text:
+                continue
+            out.append({
+                "start": float(seg.get("start") or 0.0),
+                "end": float(seg.get("end") or audio_duration),
+                "text": text,
+            })
+        if out:
+            return out
+    text = str(response.get("text") or "").strip()
+    return [{"start": 0.0, "end": audio_duration, "text": text}] if text else []
+
+
+def _probe_audio_duration(path: str) -> float | None:
+    try:
+        import wave
+        with wave.open(path, "rb") as wav:
+            frames = wav.getnframes()
+            rate = wav.getframerate()
+            return frames / float(rate or 1)
+    except Exception:
+        pass
+    try:
+        import json
+        import subprocess
+        out = subprocess.check_output(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "json",
+                path,
+            ],
+            text=True,
+        )
+        return float(json.loads(out)["format"]["duration"])
+    except Exception:
+        return None

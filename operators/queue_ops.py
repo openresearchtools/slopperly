@@ -199,7 +199,7 @@ class RenderQueueJob(PropertyGroup):
     chatterbox_mtl_language: StringProperty(default="en")
 
     # MOSS-TTS
-    moss_model_variant:   StringProperty(default="v1.5")
+    moss_model_variant:   StringProperty(default="nano")
     moss_language:        StringProperty(default="AUTO")
     moss_duration_tokens: IntProperty(default=0)
     moss_max_new_tokens:  IntProperty(default=4096)
@@ -516,7 +516,7 @@ def _run_job(snapshot: dict, result_queue, cancel_event, progress_store) -> None
             omnivoice_denoise     = snapshot.get("omnivoice_denoise",     True),
             omnivoice_postprocess = snapshot.get("omnivoice_postprocess", True),
             chatterbox_mtl_language = snapshot.get("chatterbox_mtl_language", "en"),
-            moss_model_variant    = snapshot.get("moss_model_variant",    "v1.5"),
+            moss_model_variant    = snapshot.get("moss_model_variant",    "nano"),
             moss_language         = snapshot.get("moss_language",         "AUTO"),
             moss_duration_tokens  = snapshot.get("moss_duration_tokens",  0),
             moss_max_new_tokens   = snapshot.get("moss_max_new_tokens",   4096),
@@ -1004,7 +1004,7 @@ def _run_job(snapshot: dict, result_queue, cancel_event, progress_store) -> None
             # Chatterbox Multilingual
             "chatterbox_mtl_language": snapshot.get("chatterbox_mtl_language", "en"),
             # MOSS-TTS
-            "moss_model_variant":   snapshot.get("moss_model_variant",   "v1.5"),
+            "moss_model_variant":   snapshot.get("moss_model_variant",   "nano"),
             "moss_language":        snapshot.get("moss_language",        "AUTO"),
             "moss_duration_tokens": snapshot.get("moss_duration_tokens", 0),
             "moss_max_new_tokens":  snapshot.get("moss_max_new_tokens",  4096),
@@ -1391,7 +1391,7 @@ class SEQUENCER_OT_add_to_queue(Operator):
             omnivoice_denoise     = getattr(scene, "omnivoice_denoise",     True),
             omnivoice_postprocess = getattr(scene, "omnivoice_postprocess", True),
             chatterbox_mtl_language = getattr(scene, "chatterbox_mtl_language", "en"),
-            moss_model_variant    = getattr(scene, "moss_model_variant",    "v1.5"),
+            moss_model_variant    = getattr(scene, "moss_model_variant",    "nano"),
             moss_language         = getattr(scene, "moss_language",         "AUTO"),
             moss_duration_tokens  = getattr(scene, "moss_duration_tokens",  0),
             moss_max_new_tokens   = getattr(scene, "moss_max_new_tokens",   4096),
@@ -2384,7 +2384,7 @@ def _queue_insert_strip(scene, result: dict) -> None:
             # strips don't carry irrelevant TTS metadata.
             if result.get("model_card", "") == "MOSS-TTS":
                 for _k, _def in [
-                    ("moss_model_variant",   "v1.5"),
+                    ("moss_model_variant",   "nano"),
                     ("moss_language",        "AUTO"),
                     ("moss_duration_tokens", 0),
                     ("moss_max_new_tokens",  4096),

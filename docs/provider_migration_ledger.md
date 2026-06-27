@@ -44,3 +44,29 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Hidden aliases are not production-complete until their target workflow packs exist and GPU artifact tests pass through the addon `ModelPlugin.generate()` path.
 - The LTX 2.3 workflow pack is structurally committed, but GPU execution has not run in this block.
 - Remaining local migrations for Qwen, Wan, FLUX, audio, STT, TTS, and llama.cpp are still pending.
+
+## 2026-06-27 Local text/STT/TTS runtime client block
+
+### Production Paths Migrated
+
+- `text/moviigen_rewriter.py` now calls a local llama.cpp `/v1/chat/completions` endpoint instead of loading a Transformers model directly.
+- `text/faster_whisper_transcribe.py` now calls a local vLLM `/v1/audio/transcriptions` endpoint and preserves the existing VSE subtitle insertion behavior.
+- `audio/omnivoice.py` now calls local vLLM-Omni `/v1/audio/speech` with prompt, reference audio, reference text, speed, and instruction mapping.
+- `audio/moss_tts.py` now calls local vLLM-Omni using the pinned `OpenMOSS-Team/MOSS-TTS-Nano` profile.
+
+### Runtime Code Added
+
+- `slopperly/runtime/llamacpp/`
+- `slopperly/runtime/vllm/`
+- `slopperly/runtime/vllm_omni/`
+- Shared local-only HTTP helpers in `slopperly/runtime/http_utils.py`.
+
+### Verification
+
+- Unit tests cover local-only URL rejection, llama.cpp chat payloads, vLLM STT multipart requests, and vLLM-Omni speech response handling.
+
+### Blocked / Not Yet Certified
+
+- Real llama.cpp/vLLM/vLLM-Omni servers were not launched in this block.
+- No GPU artifacts were generated in this block.
+- Plugin wrapper completion still requires target-runtime artifact tests through `ModelPlugin.generate()`.

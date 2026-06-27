@@ -1068,17 +1068,11 @@ def register():
     bpy.types.Scene.moss_model_variant = bpy.props.EnumProperty(
         name="Variant",
         items=[
-            ("v1.5",     "MOSS-TTS-v1.5 (8B)",
-             "Flagship. Best quality, voice cloning + 31 languages (incl. Danish) + "
-             "duration control. Honours the Language setting and inline [pause Ns]. "
-             "Needs ~16GB+ VRAM. Recommended for non-English text."),
-            ("voicegen", "MOSS-VoiceGenerator (1.7B)",
-             "Designs a NEW voice from a text description in the prompt — no reference "
-             "audio (the Speaker Ref. field is hidden). Describe the voice, then the "
-             "line to speak, e.g. 'A calm young woman. Hello, welcome!'"),
+            ("nano", "MOSS-TTS-Nano",
+             "Pinned local vLLM-Omni MOSS profile."),
         ],
-        default="v1.5",
-        description="Which MOSS-TTS model variant to load (downloaded on first use)",
+        default="nano",
+        description="Pinned local vLLM-Omni MOSS profile",
     )
     bpy.types.Scene.moss_language = bpy.props.EnumProperty(
         name="Language",

@@ -42,3 +42,76 @@ models:
     validation_command: pytest tests/gpu/test_wan22_ti2v_5b.py --device cuda
     workflows:
       - wan22_ti2v_5b_720p24_gguf
+  - logical_name: vllm_whisper_large_v3_turbo_stt
+    legacy_aliases:
+      - faster-whisper-transcribe
+    task: transcription
+    runtime: vllm
+    model_source: https://huggingface.co/openai/whisper-large-v3-turbo
+    local_cache_path: models/vllm/openai/whisper-large-v3-turbo
+    required_files:
+      - model artifacts downloaded by vLLM
+    required_node_pack: vllm[audio]
+    supported_resolutions: []
+    context_limits: {}
+    default_parameters:
+      language: auto
+      response_format: verbose_json
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_vllm_stt.py --device cuda
+    workflows:
+      - text/faster_whisper_transcribe.py
+  - logical_name: llamacpp_prompt_rewriter
+    legacy_aliases:
+      - ZuluVision/MoviiGen1.1_Prompt_Rewriter
+    task: prompt_rewrite
+    runtime: llamacpp
+    model_source: local GGUF configured by model manager
+    local_cache_path: models/llamacpp/qwen_long_context_prompt_q5.gguf
+    required_files:
+      - qwen_long_context_prompt_q5.gguf
+    required_node_pack: llama.cpp b9803 ubuntu-x64-cuda13
+    supported_resolutions: []
+    context_limits:
+      context_length_default: 60000
+      max_new_tokens_default: 30000
+    default_parameters:
+      temperature: 0.7
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_llamacpp_prompt_rewrite.py --device cuda
+    workflows:
+      - text/moviigen_rewriter.py
+  - logical_name: omnivoice_vllm_omni
+    legacy_aliases:
+      - OmniVoice
+    task: tts_voice_clone
+    runtime: vllm_omni
+    model_source: https://huggingface.co/k2-fsa/OmniVoice
+    local_cache_path: models/vllm_omni/k2-fsa/OmniVoice
+    required_files:
+      - model artifacts downloaded by vLLM-Omni
+    required_node_pack: vllm-omni
+    supported_resolutions: []
+    default_parameters:
+      response_format: wav
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_vllm_omni_tts.py --device cuda
+    workflows:
+      - audio/omnivoice.py
+  - logical_name: moss_tts_nano_vllm_omni
+    legacy_aliases:
+      - MOSS-TTS
+    task: tts_voice_clone
+    runtime: vllm_omni
+    model_source: https://huggingface.co/OpenMOSS-Team/MOSS-TTS-Nano
+    local_cache_path: models/vllm_omni/OpenMOSS-Team/MOSS-TTS-Nano
+    required_files:
+      - model artifacts downloaded by vLLM-Omni
+    required_node_pack: vllm-omni
+    supported_resolutions: []
+    default_parameters:
+      response_format: wav
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_vllm_omni_voice_clone.py --device cuda
+    workflows:
+      - audio/moss_tts.py

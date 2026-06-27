@@ -2,6 +2,11 @@
 
 from ...models.base import ModelPlugin, InputSpec, UISection, ParamSpec, ModelInputs
 from ...utils.helpers import remove_duplicate_phrases
+from ...slopperly.runtime.llamacpp.client import (
+    DEFAULT_CONTEXT_LENGTH,
+    DEFAULT_MAX_NEW_TOKENS,
+    LlamaCppClient,
+)
 
 _SYSTEM_MSG = (
     "As a cinematic prompt engineer, be creative, rewrite the following into a "
@@ -19,51 +24,28 @@ class MoviiGenRewriterPlugin(ModelPlugin):
     INPUTS       = InputSpec.PROMPT   # text-only; no image input
     UI_SECTIONS  = [UISection.PROMPT]
     PARAMS       = ParamSpec()
-    REQUIRED_PACKAGES = ["torch", "transformers"]
+    REQUIRED_PACKAGES = []
 
     def load(self, prefs, scene, **kw):
-        import torch
-        from transformers import TorchAoConfig, AutoModelForCausalLM, AutoTokenizer
-        from torchao.quantization.quant_api import Int8WeightOnlyConfig
-
-        _cache_dir = prefs.hf_cache_dir or None
-        print("Loading MoviiGen Prompt Rewriter…")
-        quantization_config = TorchAoConfig(Int8WeightOnlyConfig())
-
-        model = AutoModelForCausalLM.from_pretrained(
-            self.MODEL_ID,
-            torch_dtype=torch.bfloat16,
-            device_map="auto",
-            quantization_config=quantization_config,
-            cache_dir=_cache_dir,
-            local_files_only=prefs.local_files_only,
-        )
-        tokenizer = AutoTokenizer.from_pretrained(self.MODEL_ID, cache_dir=_cache_dir, local_files_only=prefs.local_files_only)
-        return {"model": model, "processor": None, "tokenizer": tokenizer}
+        return {"pipe": None, "last_model_card": self.MODEL_ID}
 
     def generate(self, pipe, inputs: ModelInputs, scene, prefs) -> str:
-        model     = pipe["model"]
-        tokenizer = pipe["tokenizer"]
-
         messages = [
             {"role": "system", "content": _SYSTEM_MSG},
             {"role": "user",   "content": inputs.prompt},
         ]
-        formatted = tokenizer.apply_chat_template(
+        self.set_phase(inputs, "Generating with llama.cpp")
+        client = LlamaCppClient.from_preferences(prefs)
+        text, diagnostics = client.chat(
             messages,
-            tokenize=False,
-            add_generation_prompt=True,
+            model=getattr(prefs, "llamacpp_text_model", "") or None,
+            temperature=float(getattr(inputs, "temperature", 0.7) or 0.7),
+            context_length=DEFAULT_CONTEXT_LENGTH,
+            max_new_tokens=DEFAULT_MAX_NEW_TOKENS,
         )
-        model_inputs = tokenizer([formatted], return_tensors="pt").to(model.device)
-
-        self.set_phase(inputs, "Generating")
-        generated_ids = model.generate(**model_inputs, max_new_tokens=512)
-        # Strip the prompt tokens from the output
-        trimmed = [
-            out[len(inp):]
-            for inp, out in zip(model_inputs.input_ids, generated_ids)
-        ]
-        text = tokenizer.batch_decode(trimmed, skip_special_tokens=True)[0]
         text = remove_duplicate_phrases(text)
+        usage = diagnostics.get("usage") or {}
+        if usage:
+            inputs.usage_note = f"llama.cpp usage: {usage}"
         print("MoviiGen enhanced prompt:", text)
         return text
