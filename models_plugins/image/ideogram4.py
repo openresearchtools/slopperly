@@ -28,7 +28,7 @@ class Ideogram4Plugin(ModelPlugin):
         "Optional local prompt upsampling needs: pip install outlines."
     )
     MODEL_TYPE   = "image"
-    INPUTS       = InputSpec.PROMPT | InputSpec.HF_TOKEN | InputSpec.LORA
+    INPUTS       = InputSpec.PROMPT | InputSpec.LORA
     UI_SECTIONS  = [
         UISection.PROMPT,
         UISection.RESOLUTION, UISection.FRAMES, UISection.STEPS, UISection.GUIDANCE,
@@ -129,13 +129,6 @@ class Ideogram4Plugin(ModelPlugin):
         #from sdnq.common import use_torch_compile as triton_is_available
         #from sdnq.loader import apply_sdnq_options_to_model
         from diffusers import Ideogram4Pipeline
-
-        from huggingface_hub import login
-        if prefs.hugginface_token:
-            try:
-                login(token=prefs.hugginface_token, add_to_git_credential=True)
-            except Exception as e:
-                raise RuntimeError(f"HuggingFace login failed: {e}")
 
         _cache_dir = prefs.hf_cache_dir or None
         mode = kw.get("mode", "txt2img")

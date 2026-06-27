@@ -332,8 +332,6 @@ class SEQUENCER_PT_pallaidium_panel(Panel):  # UI
             col = layout.column(align=True)
             if _has(UISection.FRAMES):
                 col.prop(context.scene, "generate_movie_frames", text="Frames")
-            if type == "movie" and _has(UISection.AUDIO_OUTPUT):
-                col.prop(context.scene, "remote_generate_audio", text="Generate Audio")
             if _has(UISection.AUDIO_DURATION):
                 col.prop(context.scene, "audio_length_in_f", text="Frames")
             if type == "audio" and _has(UISection.SPEED):
@@ -488,24 +486,10 @@ class SEQUENCER_PT_pallaidium_panel(Panel):  # UI
             col.prop(addon_prefs, "audio_model_card", text=" ")
         if type == "text":
             col.prop(addon_prefs, "text_model_card", text=" ")
-            from ..models.base import InputSpec as _InputSpec
-            if plugin is not None and _InputSpec.HF_TOKEN in plugin.INPUTS:
-                row = col.row(align=True)
-                row.prop(addon_prefs, "hugginface_token")
-                row.operator(
-                    "wm.url_open", text="", icon="URL"
-                ).url = "https://huggingface.co/settings/tokens"
             if plugin is not None:
                 plugin.draw_custom_ui(col, context)
         if type == "image":
             col.prop(addon_prefs, "image_model_card", text=" ")
-            from ..models.base import InputSpec as _InputSpec
-            if plugin is not None and _InputSpec.HF_TOKEN in plugin.INPUTS:
-                row = col.row(align=True)
-                row.prop(addon_prefs, "hugginface_token")
-                row.operator(
-                    "wm.url_open", text="", icon="URL"
-                ).url = "https://huggingface.co/settings/tokens"
         # Batch Count: shown only when the active plugin actually produces
         # multiple distinct outputs per run. Deterministic single-output models
         # (captioning, transcription, stem split, external single-shot APIs)

@@ -33,8 +33,6 @@ class InputSpec(Flag):
     FACE_FOLDER   = auto()   # IP Adapter face image folder
     STYLE_FOLDER  = auto()   # IP Adapter style image folder
     LORA          = auto()   # LoRA files with per-file weights
-    API_KEY       = auto()   # external runtime API key (e.g. MiniMax)
-    HF_TOKEN      = auto()   # HuggingFace token (gated-model download)
     MUSIC_PARAMS  = auto()   # BPM, key, time signature, lyrics for music generation
 
 

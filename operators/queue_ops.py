@@ -141,9 +141,11 @@ class RenderQueueJob(PropertyGroup):
     ref_text:        StringProperty()
 
     # Prefs snapshot
-    hugginface_token: StringProperty()
-    remote_backend_url: StringProperty()
-    remote_backend_key: StringProperty()
+    comfyui_url: StringProperty()
+    vllm_url: StringProperty()
+    vllm_omni_url: StringProperty()
+    llamacpp_url: StringProperty()
+    slopperly_runtime_root: StringProperty()
     local_files_only: BoolProperty()
     display_console:  BoolProperty(default=False)
     generator_ai:     StringProperty()
@@ -400,9 +402,11 @@ def _run_job(snapshot: dict, result_queue, cancel_event, progress_store) -> None
 
         # ---- Proxy objects — every field comes from the snapshot ----------
         prefs_proxy = types.SimpleNamespace(
-            hugginface_token = snapshot.get("hugginface_token", ""),
-            remote_backend_url = snapshot.get("remote_backend_url", ""),
-            remote_backend_key = snapshot.get("remote_backend_key", ""),
+            comfyui_url = snapshot.get("comfyui_url", "http://127.0.0.1:8188"),
+            vllm_url = snapshot.get("vllm_url", "http://127.0.0.1:8090"),
+            vllm_omni_url = snapshot.get("vllm_omni_url", "http://127.0.0.1:8091"),
+            llamacpp_url = snapshot.get("llamacpp_url", "http://127.0.0.1:8092"),
+            slopperly_runtime_root = snapshot.get("slopperly_runtime_root", ""),
             local_files_only = snapshot.get("local_files_only", False),
             generator_ai     = snapshot.get("generator_ai", ""),
             hf_cache_dir     = snapshot.get("hf_cache_dir", ""),
@@ -1337,9 +1341,11 @@ class SEQUENCER_OT_add_to_queue(Operator):
             music_time_signature = getattr(scene, "music_time_signature", ""),
             ref_audio_path    = bpy.path.abspath(getattr(scene, "ref_audio_path", "") or ""),
             ref_text          = getattr(scene, "ref_text", ""),
-            hugginface_token  = getattr(prefs, "hugginface_token", ""),
-            remote_backend_url = getattr(prefs, "remote_backend_url", ""),
-            remote_backend_key = getattr(prefs, "remote_backend_key", ""),
+            comfyui_url      = getattr(prefs, "comfyui_url", "http://127.0.0.1:8188"),
+            vllm_url         = getattr(prefs, "vllm_url", "http://127.0.0.1:8090"),
+            vllm_omni_url    = getattr(prefs, "vllm_omni_url", "http://127.0.0.1:8091"),
+            llamacpp_url     = getattr(prefs, "llamacpp_url", "http://127.0.0.1:8092"),
+            slopperly_runtime_root = getattr(prefs, "slopperly_runtime_root", ""),
             local_files_only  = getattr(prefs, "local_files_only", False),
             display_console   = getattr(prefs, "display_console", True),
             generator_ai      = getattr(prefs, "generator_ai", "") or os.path.join(
@@ -1802,8 +1808,9 @@ def _queue_start_job(scene, job) -> None:
         "chat_temperature", "fps", "music_bpm", "music_lyrics",
         "music_key_scale", "music_time_signature",
         "image_path", "movie_path", "sound_path", "last_image_path", "middle_images_json", "ref_audio_path",
-        "ref_text", "hugginface_token",
-        "remote_backend_url", "remote_backend_key", "local_files_only", "display_console",
+        "ref_text",
+        "comfyui_url", "vllm_url", "vllm_omni_url", "llamacpp_url",
+        "slopperly_runtime_root", "local_files_only", "display_console",
         "generator_ai", "hf_cache_dir", "lora_files_json", "lora_folder",
         "insert_frame_start", "insert_frame_end",
         "insert_channel", "insert_duration",

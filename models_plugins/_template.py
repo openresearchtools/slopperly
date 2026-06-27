@@ -50,7 +50,7 @@ class MyModelPlugin(ModelPlugin):
     # InputSpec.FACE_FOLDER     IP Adapter face folder
     # InputSpec.STYLE_FOLDER    IP Adapter style folder
     # InputSpec.LORA            LoRA files with weights
-    # InputSpec.API_KEY         external API key
+    # Gated model auth belongs in local model download/install steps.
     #
     INPUTS = InputSpec.PROMPT | InputSpec.NEG_PROMPT | InputSpec.IMAGE
 

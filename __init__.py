@@ -175,11 +175,6 @@ bl_info = {
 classes = (
     *_queue_classes,
     GeneratorAddonPreferences,
-    PALLAIDIUM_OT_refresh_remote_models,
-    PALLAIDIUM_OT_start_backend,
-    PALLAIDIUM_OT_stop_backend,
-    PALLAIDIUM_OT_open_workflows_folder,
-    PALLAIDIUM_OT_import_comfy_workflow,
     SEQUENCER_OT_generate_movie,
     SEQUENCER_OT_generate_audio,
     SEQUENCER_OT_generate_image,
@@ -580,14 +575,6 @@ def register():
         name="genai_out_path", default=""
     )
     bpy.types.Scene.genai_out_path = ""
-
-    # Remote video models that support generated audio (e.g. Seedance 2.0).
-    bpy.types.Scene.remote_generate_audio = bpy.props.BoolProperty(
-        name="Generate Audio",
-        description="Ask the backend to generate synchronized audio for the video "
-                    "(supported by Seedance 2.0 models)",
-        default=True,
-    )
 
     bpy.types.Scene.minimax_subject = bpy.props.StringProperty(
         name="minimax_subject", default=""
@@ -1181,20 +1168,6 @@ def register():
     except Exception as _mfe:
         print(f"[Pallaidium] mask_florence2 register failed: {_mfe}")
 
-    # Restore remote models discovered in a previous session (cineloom-style
-    # persisted cache) so they appear in the dropdowns without re-querying a
-    # backend. Best-effort: a missing/stale cache simply loads nothing.
-    try:
-        prefs = bpy.context.preferences.addons[__package__].preferences
-        from .utils.remote_backend import load_discovery_cache
-        from .models import register_remote_models
-        cached = load_discovery_cache(getattr(prefs, "remote_backend_url", ""))
-        if cached:
-            n = register_remote_models(cached, prefs)
-            print(f"[Pallaidium] restored {n} cached remote model(s).")
-    except Exception as _rce:
-        print(f"[Pallaidium] remote model cache restore skipped: {_rce}")
-
 
 def _apply_hf_env_from_prefs(_=None):
     """Set HF_HUB_CACHE / HF_HUB_DISABLE_XET from saved preferences.
@@ -1337,7 +1310,6 @@ def unregister():
     del bpy.types.Scene.movie_path
     del bpy.types.Scene.image_path
     del bpy.types.Scene.sound_path
-    del bpy.types.Scene.remote_generate_audio
     del bpy.types.Scene.ltx_middle_images_json
     del bpy.types.Scene.refine_sd
     del bpy.types.Scene.aurasr

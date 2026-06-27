@@ -44,7 +44,7 @@ Combine with `|` to declare what data your model needs:
 | `InputSpec.FACE_FOLDER` | IP Adapter face image folder |
 | `InputSpec.STYLE_FOLDER` | IP Adapter style image folder |
 | `InputSpec.LORA` | LoRA files with per-file weights |
-| `InputSpec.API_KEY` | External API key |
+| Gated model auth | Configure during local model download/installation, not in generation plugin inputs |
 
 ---
 

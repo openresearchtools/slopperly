@@ -92,8 +92,6 @@ class RemoteModelPlugin(ModelPlugin):
                 "seed": inputs.seed,
                 "strength": inputs.strength,
             }
-            if getattr(self, "_supports_audio_output", False):
-                p["generate_audio"] = bool(getattr(scene, "remote_generate_audio", True))
             return p
         if t == "audio":
             return {
@@ -398,8 +396,6 @@ def _derive_ui(mtype: str, modes: list, entry: dict):
             sections.insert(3, UISection.VIDEO_STRIP)
         if entry.get("needs_audio_ref"):
             inputs |= InputSpec.AUDIO_REF        # reference audio (audio_urls)
-        if entry.get("supports_audio_output"):
-            sections.append(UISection.AUDIO_OUTPUT)
         return inputs, sections
 
     if mtype == "audio":
