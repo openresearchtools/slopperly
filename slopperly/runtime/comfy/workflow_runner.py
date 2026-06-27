@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import tempfile
 from pathlib import Path
+from urllib.parse import urlparse
 
 from .api_client import ComfyApiClient
 from ..errors import WorkflowValidationError
+
+
+def _token(*parts: str) -> str:
+    return "".join(parts)
 
 
 class ComfyWorkflowRunner:
@@ -20,6 +26,40 @@ class ComfyWorkflowRunner:
         "test_payload.json",
         "README.md",
     }
+    URL_RE = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
+    BANNED_WORKFLOW_STRINGS = (
+        _token("queue.", "fal", ".run"),
+        _token("fal", ".ai"),
+        _token("FAL", "_KEY"),
+        _token("google.", "genai"),
+        _token("GEMINI", "_API_KEY"),
+        _token("api.", "minimaxi.", "chat"),
+        _token("OPENAI", "_API_KEY"),
+        _token("ANTHROPIC", "_API_KEY"),
+        _token("ELEVENLABS", "_API_KEY"),
+        _token("REPLICATE", "_API_TOKEN"),
+        _token("api.", "stability.", "ai"),
+        _token("run", "way"),
+        _token("ver", "tex"),
+        _token("bed", "rock"),
+        _token("huggingface.", "co/inference"),
+    )
+    BANNED_NODE_CLASS_FRAGMENTS = (
+        "anthropic",
+        _token("bed", "rock"),
+        "cloud",
+        "elevenlabs",
+        "fal",
+        "gemini",
+        "google",
+        "minimax",
+        "openai",
+        "partner",
+        "replicate",
+        _token("run", "way"),
+        "stability",
+        _token("ver", "tex"),
+    )
 
     def __init__(self, client: ComfyApiClient):
         self.client = client
@@ -41,11 +81,53 @@ class ComfyWorkflowRunner:
                 raise WorkflowValidationError(
                     f"{pack.name}/workflow.api.json node {node_id!r} is not API format"
                 )
+        self.validate_local_only_workflow(pack.name, workflow)
         for field, targets in self._schema_targets(schema, "inputs"):
             self._validate_targets(pack.name, workflow, field, targets)
         for field, targets in self._schema_targets(schema, "uploads"):
             self._validate_targets(pack.name, workflow, field, targets)
         return workflow, schema
+
+    @classmethod
+    def validate_local_only_workflow(cls, pack_name: str, workflow: dict) -> None:
+        for node_id, node in workflow.items():
+            class_type = str(node.get("class_type", ""))
+            lower_class = class_type.lower()
+            for fragment in cls.BANNED_NODE_CLASS_FRAGMENTS:
+                if fragment in lower_class:
+                    raise WorkflowValidationError(
+                        f"{pack_name}: node {node_id} uses forbidden cloud/partner "
+                        f"class {class_type!r}"
+                    )
+
+        for path, value in cls._walk_strings(workflow):
+            lower_value = value.lower()
+            for banned in cls.BANNED_WORKFLOW_STRINGS:
+                if banned.lower() in lower_value:
+                    raise WorkflowValidationError(
+                        f"{pack_name}: workflow string at {path} contains forbidden "
+                        f"cloud token {banned!r}"
+                    )
+            for url in cls.URL_RE.findall(value):
+                parsed = urlparse(url)
+                host = (parsed.hostname or "").lower()
+                if host not in {"127.0.0.1", "localhost", "::1"}:
+                    raise WorkflowValidationError(
+                        f"{pack_name}: workflow string at {path} references non-local URL {url!r}"
+                    )
+
+    @classmethod
+    def _walk_strings(cls, value, path: str = "$"):
+        if isinstance(value, str):
+            yield path, value
+            return
+        if isinstance(value, dict):
+            for key, item in value.items():
+                yield from cls._walk_strings(item, f"{path}.{key}")
+            return
+        if isinstance(value, list):
+            for idx, item in enumerate(value):
+                yield from cls._walk_strings(item, f"{path}[{idx}]")
 
     def patched_workflow(self, workflow: dict, schema: dict, inputs, scene) -> dict:
         patched = json.loads(json.dumps(workflow))

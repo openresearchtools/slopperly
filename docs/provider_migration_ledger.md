@@ -198,6 +198,24 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - This block uses a local fake Comfy server and fake output bytes to verify request flow only.
 - Real ComfyUI launch, model download, plugin-path LTX 2.3 execution, ffprobe validation, and GPU artifact certification remain blocked until the owned runtime and model artifacts are installed.
 
+## 2026-06-27 Comfy workflow local-only validation block
+
+### Workflow Guard Added
+
+- `ComfyWorkflowRunner.validate_pack()` now rejects committed API workflows that reference cloud/partner node classes.
+- The same pack validation now rejects hosted endpoint URLs and explicit hosted-provider tokens inside `workflow.api.json`, while allowing localhost URLs for explicitly local/self-hosted helper nodes.
+- The existing `workflow_packs` audit and report-only doctor inherit this guard because both use the same pack validator.
+
+### Verification
+
+- `python tests/unit/test_comfy_workflow_security.py`
+- `python -m slopperly.audit.workflow_packs`
+- `python -m slopperly.doctor --local-only --runtimes none --report-only`
+
+### Blocked / Not Yet Certified
+
+- This is static workflow-pack validation. Runtime network isolation during real GPU artifact generation is still required before final acceptance.
+
 ## 2026-06-27 Model artifact registry explicitness block
 
 ### Registry Tightened

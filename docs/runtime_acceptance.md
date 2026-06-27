@@ -7,6 +7,7 @@
 - Required node classes from `slopperly/runtime/comfy/nodes.lock.yaml` must be present.
 - Every `workflow.api.json` must validate as API-format JSON.
 - Production generation clients must reject non-local inference URLs.
+- Comfy workflow packs must reject cloud partner nodes and non-local endpoint URLs before queueing.
 - Production code must not expose or import the old generic remote backend surface.
 
 ## Current Evidence
@@ -21,6 +22,7 @@
 - `python -m slopperly.audit.model_registry` validates registry fields, download modes, Hugging Face artifact sources, required files, and GPU validation command declarations.
 - `python tests/integration/test_local_plugin_paths.py` exercises selected `ModelPlugin.generate()` paths against local fake OpenAI-compatible runtime servers.
 - `python tests/integration/test_comfy_workflow_runner.py` exercises the committed LTX 2.3 Comfy workflow pack against a local fake Comfy server, including `/object_info` node checks, input-image upload, API graph patching, queue submission, history polling, output collection, and existing queue phase/progress callbacks.
+- `python tests/unit/test_comfy_workflow_security.py` verifies that committed Comfy packs reject cloud/partner node classes and hosted endpoint URLs while allowing local self-hosted URLs.
 
 ## Current Blocks
 
