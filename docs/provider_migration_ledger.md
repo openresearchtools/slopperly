@@ -973,3 +973,31 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Dynamic project LoRA injection remains unmapped in these workflow packs; the wrapper preserves the LoRA UI and records dynamic LoRA injection as a follow-up.
 - Masked inpaint remains blocked because the committed official Comfy graph is a reference-edit graph, not a mask workflow. The wrapper records this when `inputs.mode == "inpaint"`.
 - The official reference-edit graph does not expose a denoise/strength input. The image-strength UI remains visible and the wrapper records that limitation in `inputs.usage_note`.
+
+## 2026-06-27 FLUX.2 Klein 9B Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/image/flux2_klein_9b.py` now routes `ModelsLab/FLUX.2-klein-9B` through the local Comfy gateway instead of importing Torch/Diffusers/Transformers and running `Flux2KleinPipeline` in the add-on process.
+- The existing prompt, image strip, three Klein reference selectors, resolution, frames, steps, guidance, image strength, seed, and LoRA UI sections remain present.
+- Text-to-image and image edit use the distilled FLUX.2 Klein 9B FP8 Comfy graph profile so the old 4-step, guidance-1 plugin behavior is preserved. The separate base 9B 20-step profile is not exposed until separately certified.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/flux2_klein_9b_t2i_edit/` and `slopperly/workflows/comfy/flux2_klein_9b_t2i_edit_img2img/` with editable/API workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- The workflows use Comfy core `UNETLoader`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`; edit adds `LoadImage`, `ImageScale`, `VAEEncode`, and `ReferenceLatent`.
+- Registered `flux2_klein_9b_t2i_edit` in `slopperly/config/models.yaml` with legacy aliases `ModelsLab/FLUX.2-klein-9B` and `black-forest-labs/FLUX.2-klein-9B`, Hugging Face artifact source `black-forest-labs/FLUX.2-klein-9b-fp8`, and auxiliary sources for `qwen_3_8b_fp8mixed.safetensors` and `full_encoder_small_decoder.safetensors`.
+
+### Verification
+
+- Integration coverage calls `Flux2Klein9BPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching, edit image uploads, optional reference disconnect behavior, and PNG artifact collection.
+- Workflow-runner integration coverage verifies both committed FLUX.2 Klein 9B packs directly and collects single PNG artifacts from Comfy history outputs.
+- GPU certification coverage is registered in `tests/gpu/test_flux2_klein_9b.py` and validates text-to-image and image-edit PNG artifacts when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with core FLUX.2 Klein node classes, `flux-2-klein-9b-fp8.safetensors`, `qwen_3_8b_fp8mixed.safetensors`, and `full_encoder_small_decoder.safetensors` installed locally.
+- Dynamic project LoRA injection remains unmapped in these workflow packs; the wrapper preserves the LoRA UI and records dynamic LoRA injection as a follow-up.
+- Masked inpaint remains blocked because the committed official Comfy graph is a reference-edit graph, not a mask workflow. The wrapper records this when `inputs.mode == "inpaint"`.
+- The official reference-edit graph does not expose a denoise/strength input. The image-strength UI remains visible and the wrapper records that limitation in `inputs.usage_note`.

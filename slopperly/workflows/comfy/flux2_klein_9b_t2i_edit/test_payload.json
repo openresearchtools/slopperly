@@ -1,0 +1,15 @@
+{
+  "prompt": "a clean local Slopperly FLUX.2 Klein 9B poster with crisp text",
+  "width": 1024,
+  "height": 1024,
+  "steps": 4,
+  "guidance": 1.0,
+  "seed": 42004,
+  "frames": 1,
+  "flux2_klein_model": "flux-2-klein-9b-fp8.safetensors",
+  "flux2_klein_text_encoder": "qwen_3_8b_fp8mixed.safetensors",
+  "flux2_klein_clip_type": "flux2",
+  "flux2_klein_vae": "full_encoder_small_decoder.safetensors",
+  "flux2_klein_sampler": "euler",
+  "flux2_klein_guidance": 1.0
+}

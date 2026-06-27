@@ -517,16 +517,22 @@ class RuntimeHandler(BaseHTTPRequestHandler):
             if (
                 any(
                     node.get("class_type") == "UNETLoader"
-                    and str((node.get("inputs") or {}).get("unet_name", "")).startswith("flux-2-klein-4b")
+                    and str((node.get("inputs") or {}).get("unet_name", "")).startswith("flux-2-klein-")
                     for node in RuntimeHandler.comfy_prompt.values()
                     if isinstance(node, dict)
                 )
             ):
                 output_node = "18" if "18" in RuntimeHandler.comfy_prompt else "13"
+                suffix = "9b" if any(
+                    node.get("class_type") == "UNETLoader"
+                    and "9b" in str((node.get("inputs") or {}).get("unet_name", ""))
+                    for node in RuntimeHandler.comfy_prompt.values()
+                    if isinstance(node, dict)
+                ) else "4b"
                 filename = (
-                    "slopperly_flux2_klein_4b_edit_00001_.png"
+                    f"slopperly_flux2_klein_{suffix}_edit_00001_.png"
                     if output_node == "18"
-                    else "slopperly_flux2_klein_4b_00001_.png"
+                    else f"slopperly_flux2_klein_{suffix}_00001_.png"
                 )
                 return self._json({
                     "prompt-1": {
@@ -1794,6 +1800,92 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(edit_prompt["2"]["inputs"]["width"], 1024)
         self.assertEqual(edit_prompt["14"]["inputs"]["steps"], 4)
         self.assertEqual(edit_prompt["12"]["inputs"]["noise_seed"], 42005)
+        self.assertEqual(edit_prompt["11"]["inputs"]["positive"], ["27", 0])
+        self.assertEqual(edit_prompt["22"]["inputs"]["latent"], ["21", 0])
+        self.assertNotIn("latent", edit_prompt["27"]["inputs"])
+        self.assertNotIn("latent", edit_prompt["28"]["inputs"])
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[0])
+        self.assertIn(b'filename="ref.png"', RuntimeHandler.comfy_uploads[1])
+        self.assertIn("denoise/strength input", edit_inputs.usage_note)
+
+    def test_flux2_klein_9b_uses_comfy_t2i_and_edit_plugin_paths(self):
+        module = load_plugin_module("image", "flux2_klein_9b")
+        plugin = module.Flux2Klein9BPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            t2i_inputs = self.base.ModelInputs(
+                prompt="local FLUX.2 Klein 9B text to image",
+                width=1024,
+                height=1024,
+                steps=4,
+                guidance=1.0,
+                seed=42009,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            RuntimeHandler.comfy_uploads = []
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, t2i_inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+            t2i_prompt = RuntimeHandler.comfy_prompts[-1]
+            self.assertEqual(RuntimeHandler.comfy_uploads, [])
+            self.assertEqual(t2i_prompt["1"]["inputs"]["unet_name"], "flux-2-klein-9b-fp8.safetensors")
+            self.assertEqual(t2i_prompt["2"]["inputs"]["clip_name"], "qwen_3_8b_fp8mixed.safetensors")
+            self.assertEqual(t2i_prompt["2"]["inputs"]["type"], "flux2")
+            self.assertEqual(t2i_prompt["3"]["inputs"]["vae_name"], "full_encoder_small_decoder.safetensors")
+            self.assertEqual(t2i_prompt["4"]["inputs"]["text"], "local FLUX.2 Klein 9B text to image")
+            self.assertEqual(t2i_prompt["6"]["inputs"]["cfg"], 1.0)
+            self.assertEqual(t2i_prompt["7"]["inputs"]["noise_seed"], 42009)
+            self.assertEqual(t2i_prompt["9"]["inputs"]["steps"], 4)
+            self.assertEqual(t2i_prompt["9"]["inputs"]["width"], 1024)
+            self.assertEqual(t2i_prompt["10"]["inputs"]["height"], 1024)
+
+            source = Path(tmp) / "source.png"
+            ref = Path(tmp) / "ref.png"
+            source.write_bytes(b"local flux source image")
+            ref.write_bytes(b"local flux reference image")
+            scene = SimpleNamespace(
+                sequence_editor=SimpleNamespace(strips=[
+                    SimpleNamespace(name="ref", type="IMAGE", filepath=str(ref)),
+                ]),
+                klein_strip_1="ref",
+                klein_strip_2="",
+                klein_strip_3="",
+            )
+            edit_inputs = self.base.ModelInputs(
+                prompt="edit the local FLUX.2 Klein 9B image",
+                image=str(source),
+                mode="img2img",
+                width=1024,
+                height=1024,
+                steps=4,
+                guidance=1.0,
+                strength=0.65,
+                seed=42010,
+                frames=1,
+            )
+
+            RuntimeHandler.comfy_uploads = []
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, edit_inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        edit_prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(len(RuntimeHandler.comfy_uploads), 2)
+        self.assertEqual(edit_prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(edit_prompt["19"]["inputs"]["image"], "uploaded_source_2.png")
+        self.assertEqual(edit_prompt["3"]["inputs"]["unet_name"], "flux-2-klein-9b-fp8.safetensors")
+        self.assertEqual(edit_prompt["4"]["inputs"]["clip_name"], "qwen_3_8b_fp8mixed.safetensors")
+        self.assertEqual(edit_prompt["5"]["inputs"]["vae_name"], "full_encoder_small_decoder.safetensors")
+        self.assertEqual(edit_prompt["6"]["inputs"]["text"], "edit the local FLUX.2 Klein 9B image")
+        self.assertEqual(edit_prompt["14"]["inputs"]["steps"], 4)
+        self.assertEqual(edit_prompt["12"]["inputs"]["noise_seed"], 42010)
         self.assertEqual(edit_prompt["11"]["inputs"]["positive"], ["27", 0])
         self.assertEqual(edit_prompt["22"]["inputs"]["latent"], ["21", 0])
         self.assertNotIn("latent", edit_prompt["27"]["inputs"])

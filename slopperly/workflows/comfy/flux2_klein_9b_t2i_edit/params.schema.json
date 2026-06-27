@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "workflow_id": "flux2_klein_9b_t2i_edit",
+  "description": "Patch schema for local FLUX.2 Klein 9B text-to-image through Comfy core nodes.",
+  "inputs": {
+    "flux2_klein_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "flux2_klein_text_encoder": [
+      {
+        "node": "2",
+        "input": "clip_name"
+      }
+    ],
+    "flux2_klein_clip_type": [
+      {
+        "node": "2",
+        "input": "type"
+      }
+    ],
+    "flux2_klein_vae": [
+      {
+        "node": "3",
+        "input": "vae_name"
+      }
+    ],
+    "prompt": [
+      {
+        "node": "4",
+        "input": "text"
+      }
+    ],
+    "flux2_klein_guidance": [
+      {
+        "node": "6",
+        "input": "cfg"
+      }
+    ],
+    "seed": [
+      {
+        "node": "7",
+        "input": "noise_seed"
+      }
+    ],
+    "flux2_klein_sampler": [
+      {
+        "node": "8",
+        "input": "sampler_name"
+      }
+    ],
+    "steps": [
+      {
+        "node": "9",
+        "input": "steps"
+      }
+    ],
+    "width": [
+      {
+        "node": "9",
+        "input": "width"
+      },
+      {
+        "node": "10",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "9",
+        "input": "height"
+      },
+      {
+        "node": "10",
+        "input": "height"
+      }
+    ],
+    "batch": [
+      {
+        "node": "10",
+        "input": "batch_size"
+      }
+    ]
+  },
+  "uploads": {},
+  "unmapped_ui_parameters": {
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "image_strength": "Text-to-image does not consume image strength.",
+    "custom_loras": "The workflow keeps the LoRA UI visible but dynamic project LoRA injection is not mapped in this certified graph yet."
+  },
+  "outputs": [
+    {
+      "node": "13",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ]
+}

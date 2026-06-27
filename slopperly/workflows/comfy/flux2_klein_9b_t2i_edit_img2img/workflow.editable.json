@@ -1,0 +1,33 @@
+{
+  "workflow_id": "flux2_klein_9b_t2i_edit_img2img",
+  "source_template": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_flux2_klein_image_edit_9b_distilled.json",
+  "format": "editable-reference",
+  "description": "Editable reference for the official FLUX.2 Klein 9B distilled image-edit template. The production API graph keeps the ReferenceLatent conditioning path and adds optional Slopperly reference slots.",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "title": "Primary selected image"
+    },
+    {
+      "id": 3,
+      "type": "UNETLoader",
+      "title": "FLUX.2 Klein 9B FP8 model"
+    },
+    {
+      "id": 9,
+      "type": "ReferenceLatent",
+      "title": "Primary positive reference latent"
+    },
+    {
+      "id": 14,
+      "type": "Flux2Scheduler",
+      "title": "FLUX.2 scheduler"
+    },
+    {
+      "id": 18,
+      "type": "SaveImage",
+      "title": "Slopperly PNG output"
+    }
+  ]
+}
