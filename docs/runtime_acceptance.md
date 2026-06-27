@@ -20,3 +20,4 @@
 - Owned ComfyUI install command currently records the pinned recipe but does not yet clone/install the runtime.
 - vLLM, vLLM-Omni, and llama.cpp install/supervisor/client implementations still need full migrations and artifact tests.
 - vLLM, vLLM-Omni, and llama.cpp clients now exist with unit coverage, but runtime launch and GPU artifact validation remain blocked until the local model servers are installed and started.
+- Artifact validators and workflow/dropdown audits now exist. Dropdown certification remains blocked until real plugin-path GPU artifact evidence is written for each registry entry.
