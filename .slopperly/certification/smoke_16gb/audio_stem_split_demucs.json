@@ -1,0 +1,57 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/audio_stem_split_demucs/stems_manifest.json",
+  "command": "pytest tests/gpu/test_stem_split.py::test_stem_split --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T16:06:40+00:00",
+  "logical_name": "audio_stem_split_demucs",
+  "metadata": {
+    "runtime_url": "http://127.0.0.1:8190",
+    "source_audio": "/home/user/Documents/Slopperly/tests/fixtures/stem_split_source.wav",
+    "stem_paths": {
+      "bass": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/audio_stem_split_demucs/bass_stem_split_source.flac",
+      "drums": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/audio_stem_split_demucs/drums_stem_split_source.flac",
+      "other": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/audio_stem_split_demucs/other_stem_split_source.flac",
+      "vocals": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/audio_stem_split_demucs/vocals_stem_split_source.flac"
+    }
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "kind": "audio_stems",
+    "stems": {
+      "bass": {
+        "channels": 2,
+        "duration": 1.0,
+        "format": "FLAC",
+        "kind": "audio",
+        "rms": 1.0,
+        "sample_rate": 44100
+      },
+      "drums": {
+        "channels": 2,
+        "duration": 1.0,
+        "format": "FLAC",
+        "kind": "audio",
+        "rms": 1.0,
+        "sample_rate": 44100
+      },
+      "other": {
+        "channels": 2,
+        "duration": 1.0,
+        "format": "FLAC",
+        "kind": "audio",
+        "rms": 1.0,
+        "sample_rate": 44100
+      },
+      "vocals": {
+        "channels": 2,
+        "duration": 1.0,
+        "format": "FLAC",
+        "kind": "audio",
+        "rms": 1.0,
+        "sample_rate": 44100
+      }
+    }
+  }
+}

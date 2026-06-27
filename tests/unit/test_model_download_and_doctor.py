@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 import sys
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -15,6 +16,7 @@ from slopperly.models.download import (
     huggingface_repo_id,
     is_exact_file,
     is_safe_relative_file,
+    mirror_torchaudio_asset,
 )
 
 
@@ -93,6 +95,29 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertIn(("omnivoice_vllm_omni", "PLAN"), statuses)
         self.assertIn(("moss_tts_nano_vllm_omni", "PLAN"), statuses)
         self.assertFalse([result for result in results if result.status == "BLOCKED"])
+
+    def test_torchaudio_asset_mirror_copies_to_hub_cache(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "owned" / "hdemucs_high_trained.pt"
+            source.parent.mkdir(parents=True)
+            source.write_bytes(b"local demucs checkpoint")
+            entry = {
+                "default_parameters": {
+                    "torchaudio_asset_key": "models/hdemucs_high_trained.pt",
+                }
+            }
+            with mock.patch("slopperly.models.download.torch_hub_dir", return_value=root / "hub"):
+                result = mirror_torchaudio_asset(
+                    entry=entry,
+                    name="audio_stem_split_demucs",
+                    source_path=source,
+                    dry_run=False,
+                )
+
+            self.assertEqual(result.status, "PASS")
+            mirrored = root / "hub" / "torchaudio" / "models" / "hdemucs_high_trained.pt"
+            self.assertEqual(mirrored.read_bytes(), b"local demucs checkpoint")
 
     def test_doctor_local_only_checks_pass_without_runtime_probe(self):
         checks = run_checks(root=ROOT, local_only=True, cuda=False, runtimes="none")

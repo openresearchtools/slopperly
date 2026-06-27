@@ -29,9 +29,10 @@ The pinned node uses Torchaudio `HDEMUCS_HIGH_MUSDB_PLUS`, which loads asset key
 
 - Hugging Face artifact source recorded for Slopperly model inventory: `paobukaidecha/hdemucs_high_trained`
 - File: `hdemucs_high_trained.pt`
-- Required runtime cache target: Torchaudio hub checkpoint cache as `hdemucs_high_trained.pt`
+- Required owned-cache target: `ComfyUI/models/torchaudio/hdemucs_high_trained.pt`
+- Required Torchaudio runtime mirror: `~/.cache/torch/hub/torchaudio/models/hdemucs_high_trained.pt`
 
-This workflow must be run only after the checkpoint is already present in the local runtime cache. Runtime generation is not allowed to download model artifacts.
+This workflow must be run only after the checkpoint is already present in the owned cache and mirrored into the Torchaudio hub cache. `python -m slopperly.models.download --model audio_stem_split_demucs --accept-licenses` prepares both locations. Runtime generation is not allowed to download model artifacts.
 
 ## UI Parameter Mapping
 

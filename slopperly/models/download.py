@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -81,6 +83,60 @@ def target_path(cache_root: Path, entry: dict, filename: str) -> Path:
 
 def snapshot_path(cache_root: Path, entry: dict) -> Path:
     return cache_root / Path(str(entry.get("local_cache_path") or entry.get("logical_name")))
+
+
+def torchaudio_asset_key(entry: dict) -> str:
+    params = entry.get("default_parameters") or {}
+    if not isinstance(params, dict):
+        return ""
+    key = str(params.get("torchaudio_asset_key") or "").strip()
+    return key if is_safe_relative_file(key) else ""
+
+
+def torch_hub_dir() -> Path:
+    try:
+        import torch
+
+        return Path(torch.hub.get_dir())
+    except Exception:
+        torch_home = Path(os.environ.get("TORCH_HOME", Path.home() / ".cache" / "torch"))
+        return torch_home / "hub"
+
+
+def torchaudio_cache_path(asset_key: str) -> Path:
+    return torch_hub_dir() / "torchaudio" / Path(asset_key)
+
+
+def mirror_torchaudio_asset(
+    *,
+    entry: dict,
+    name: str,
+    source_path: Path,
+    dry_run: bool,
+) -> DownloadResult | None:
+    asset_key = torchaudio_asset_key(entry)
+    if not asset_key:
+        return None
+    dest = torchaudio_cache_path(asset_key)
+    if dry_run:
+        return DownloadResult(
+            "PLAN",
+            name,
+            f"would mirror Torchaudio asset key {asset_key}",
+            str(dest),
+        )
+    if not source_path.is_file() or source_path.stat().st_size <= 0:
+        return DownloadResult(
+            "BLOCKED",
+            name,
+            f"Torchaudio source artifact is missing: {source_path}",
+            str(dest),
+        )
+    if dest.is_file() and dest.stat().st_size == source_path.stat().st_size:
+        return DownloadResult("PASS", name, "Torchaudio asset already mirrored", str(dest))
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source_path, dest)
+    return DownloadResult("PASS", name, "Torchaudio asset mirrored", str(dest))
 
 
 def selected_entries(root: Path, names: list[str] | None = None) -> list[dict]:
@@ -212,6 +268,14 @@ def download_artifact_entry(
             continue
         if dest.is_file() and dest.stat().st_size > 0:
             results.append(DownloadResult("PASS", name, "artifact already cached", str(dest)))
+            mirror = mirror_torchaudio_asset(
+                entry=entry,
+                name=name,
+                source_path=dest,
+                dry_run=False,
+            )
+            if mirror:
+                results.append(mirror)
             continue
         if dry_run:
             results.append(
@@ -222,6 +286,14 @@ def download_artifact_entry(
                     str(dest),
                 )
             )
+            mirror = mirror_torchaudio_asset(
+                entry=entry,
+                name=name,
+                source_path=dest,
+                dry_run=True,
+            )
+            if mirror:
+                results.append(mirror)
             continue
         if not accept_licenses:
             results.append(
@@ -267,6 +339,14 @@ def download_artifact_entry(
         if final_path != dest and final_path.is_file() and not dest.exists():
             final_path.replace(dest)
         results.append(DownloadResult("PASS", name, "artifact downloaded", str(dest)))
+        mirror = mirror_torchaudio_asset(
+            entry=entry,
+            name=name,
+            source_path=dest,
+            dry_run=False,
+        )
+        if mirror:
+            results.append(mirror)
     return results
 
 
