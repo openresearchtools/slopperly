@@ -83,11 +83,14 @@ class ComfyHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers.get("Content-Length", "0"))
         body = self.rfile.read(length)
-        if self.path == "/upload/image":
-            ComfyHandler.request_order.append("/upload/image")
+        if self.path in {"/upload/image", "/upload/video"}:
+            ComfyHandler.request_order.append(self.path)
             ComfyHandler.upload_bodies.append(body)
             upload_count = len(ComfyHandler.upload_bodies)
-            name = "uploaded_source.png" if upload_count == 1 else f"uploaded_source_{upload_count}.png"
+            if self.path == "/upload/video":
+                name = "uploaded_video.mp4" if upload_count == 1 else f"uploaded_video_{upload_count}.mp4"
+            else:
+                name = "uploaded_source.png" if upload_count == 1 else f"uploaded_source_{upload_count}.png"
             return self._json({"name": name, "subfolder": "", "type": "input"})
         if self.path == "/prompt":
             ComfyHandler.request_order.append("/prompt")
@@ -290,6 +293,70 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertIn(b'filename="first.png"', ComfyHandler.upload_bodies[0])
         self.assertIn(b'filename="second.png"', ComfyHandler.upload_bodies[1])
         self.assertIn(b'filename="anchor.png"', ComfyHandler.upload_bodies[2])
+
+    def test_upload_schema_can_use_video_endpoint_and_form_field(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pack = Path(tmp) / "video_upload_pack"
+            shutil.copytree(ROOT / "slopperly/workflows/comfy/ltx23_i2v", pack)
+
+            workflow_path = pack / "workflow.api.json"
+            workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+            workflow["109"] = {
+                "class_type": "VHS_LoadVideo",
+                "inputs": {
+                    "video": "placeholder.mp4",
+                },
+            }
+            workflow_path.write_text(json.dumps(workflow, indent=2), encoding="utf-8")
+
+            schema_path = pack / "params.schema.json"
+            schema = json.loads(schema_path.read_text(encoding="utf-8"))
+            schema["uploads"] = {
+                "video_path": [
+                    {
+                        "node": "109",
+                        "input": "video",
+                        "type": "input",
+                        "endpoint": "/upload/video",
+                        "form_field": "video",
+                    }
+                ]
+            }
+            schema_path.write_text(json.dumps(schema, indent=2), encoding="utf-8")
+
+            video = Path(tmp) / "clip.mp4"
+            video.write_bytes(b"local video fixture bytes")
+            output = Path(tmp) / "result.mp4"
+
+            ComfyHandler.reset({node["class_type"]: {} for node in workflow.values()})
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                video_path=str(video),
+                prompt="local video upload",
+                neg_prompt="",
+                width=1280,
+                height=720,
+                frames=49,
+                fps=24,
+                strength=0.65,
+                seed=7,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    pack,
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(output),
+                    timeout=2,
+                )
+
+        self.assertEqual(result, str(output))
+        self.assertIn("/upload/video", ComfyHandler.request_order)
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["109"]["inputs"]["video"], "uploaded_video.mp4")
+        self.assertIn(b'name="video"; filename="clip.mp4"', ComfyHandler.upload_bodies[0])
+        self.assertIn(b'name="type"', ComfyHandler.upload_bodies[0])
 
 
 if __name__ == "__main__":

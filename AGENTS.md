@@ -765,3 +765,10 @@ The following upstream sources are the factual basis for this spec:
 - Completed: Dropdown certification now requires a PASS record for the exact logical model/profile and a real artifact file.
 - Evidence: unit coverage validates discovered PASS records and rejected BLOCKED records.
 - Still blocked: tests have not been run against live RTX 4090 runtimes in this block; Qwen/Wan workflow packs and plugin-path migrations remain incomplete.
+
+### 2026-06-27 Comfy upload endpoint schema block
+
+- Completed: Comfy workflow upload schema targets can declare `endpoint`, `form_field`, and `type_field` for image/audio/video-style upload routes.
+- Completed: Workflow validation rejects absolute upload endpoint URLs; endpoints must be relative Comfy paths.
+- Evidence: `tests/integration/test_comfy_workflow_runner.py` covers `/upload/video` with multipart field `video`; `tests/unit/test_comfy_workflow_security.py` covers invalid upload endpoints.
+- Still blocked: real audio/video Comfy workflow packs and GPU artifact tests have not run against owned ComfyUI.

@@ -88,26 +88,46 @@ class ComfyApiClient:
         )
         return body
 
-    def upload_file(self, path: str, *, image_type: str = "input") -> dict:
+    def upload_file(
+        self,
+        path: str,
+        *,
+        image_type: str = "input",
+        endpoint: str = "/upload/image",
+        form_field: str = "image",
+        type_field: str = "type",
+    ) -> dict:
+        if not endpoint.startswith("/") or "://" in endpoint:
+            raise RuntimeUnavailableError(
+                f"ComfyUI upload endpoint must be a local path, got {endpoint!r}"
+            )
+        if type_field and not isinstance(image_type, str):
+            raise RuntimeUnavailableError("ComfyUI upload type must be a string")
         file_path = Path(path)
         mime = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
         boundary = "----SlopperlyComfyBoundary"
         payload = []
         payload.append(f"--{boundary}\r\n".encode())
         payload.append(
-            f'Content-Disposition: form-data; name="image"; filename="{file_path.name}"\r\n'.encode()
+            (
+                f'Content-Disposition: form-data; name="{form_field}"; '
+                f'filename="{file_path.name}"\r\n'
+            ).encode()
         )
         payload.append(f"Content-Type: {mime}\r\n\r\n".encode())
         payload.append(file_path.read_bytes())
         payload.append(b"\r\n")
-        payload.append(f"--{boundary}\r\n".encode())
-        payload.append(b'Content-Disposition: form-data; name="type"\r\n\r\n')
-        payload.append(image_type.encode())
-        payload.append(b"\r\n")
+        if type_field:
+            payload.append(f"--{boundary}\r\n".encode())
+            payload.append(
+                f'Content-Disposition: form-data; name="{type_field}"\r\n\r\n'.encode()
+            )
+            payload.append(image_type.encode())
+            payload.append(b"\r\n")
         payload.append(f"--{boundary}--\r\n".encode())
         return self._request(
             "POST",
-            "/upload/image",
+            endpoint,
             data=b"".join(payload),
             headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
         )

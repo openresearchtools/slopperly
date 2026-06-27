@@ -352,3 +352,20 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - These tests were not run against live GPU runtimes in this block.
 - The llama.cpp, vLLM, and vLLM-Omni tests will report `BLOCKED` until their local servers are installed, launched, and backed by downloaded model artifacts.
 - The Qwen Image Edit and Wan2.2 TI2V tests currently report `BLOCKED` because their required Comfy workflow packs and plugin-path migration are not yet committed.
+
+## 2026-06-27 Comfy upload endpoint schema block
+
+### Runtime Gateway Behavior Added
+
+- Comfy upload schema targets can now declare `endpoint`, `form_field`, and `type_field` instead of being hardcoded to `/upload/image` and multipart field `image`.
+- Upload endpoints must be relative Comfy paths; absolute URLs are rejected during workflow-pack validation.
+- Existing image upload schemas remain compatible because the defaults are still `/upload/image`, `image`, and `type`.
+
+### Verification
+
+- `python tests/integration/test_comfy_workflow_runner.py`
+- `python tests/unit/test_comfy_workflow_security.py`
+
+### Blocked / Not Yet Certified
+
+- This block verifies request construction against a local fake Comfy server only. Real audio/video upload workflows still need committed packs, owned Comfy runtime execution, and GPU artifact validation.

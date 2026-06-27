@@ -29,6 +29,13 @@ def _mutate_workflow(pack: Path, mutator):
     path.write_text(json.dumps(workflow, indent=2), encoding="utf-8")
 
 
+def _mutate_schema(pack: Path, mutator):
+    path = pack / "params.schema.json"
+    schema = json.loads(path.read_text(encoding="utf-8"))
+    mutator(schema)
+    path.write_text(json.dumps(schema, indent=2), encoding="utf-8")
+
+
 class ComfyWorkflowSecurityTests(unittest.TestCase):
     def test_current_ltx23_pack_is_local_only(self):
         workflow, schema = ComfyWorkflowRunner(None).validate_pack(SOURCE_PACK)
@@ -82,6 +89,22 @@ class ComfyWorkflowSecurityTests(unittest.TestCase):
             workflow, _ = ComfyWorkflowRunner(None).validate_pack(pack)
 
         self.assertIn("127.0.0.1", workflow["11"]["inputs"]["text"])
+
+    def test_upload_endpoint_must_be_relative_comfy_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pack = _copy_pack(tmp)
+            _mutate_schema(
+                pack,
+                lambda schema: schema["uploads"]["image"][0].__setitem__(
+                    "endpoint",
+                    "http://127.0.0.1:8188/upload/image",
+                ),
+            )
+
+            with self.assertRaises(WorkflowValidationError) as raised:
+                ComfyWorkflowRunner(None).validate_pack(pack)
+
+        self.assertIn("endpoint must be a local Comfy path", str(raised.exception))
 
 
 if __name__ == "__main__":

@@ -88,9 +88,9 @@ class ComfyWorkflowRunner:
                 )
         self.validate_local_only_workflow(pack.name, workflow)
         for field, targets in self._schema_targets(schema, "inputs"):
-            self._validate_targets(pack.name, workflow, field, targets)
+            self._validate_targets(pack.name, workflow, field, targets, section="inputs")
         for field, targets in self._schema_targets(schema, "uploads"):
-            self._validate_targets(pack.name, workflow, field, targets)
+            self._validate_targets(pack.name, workflow, field, targets, section="uploads")
         return workflow, schema
 
     @classmethod
@@ -159,8 +159,14 @@ class ComfyWorkflowRunner:
                 upload_path, cleanup = self._coerce_media_file(value, field)
                 if cleanup:
                     temp_paths.append(upload_path)
-                upload_type = targets[0].get("type", "input") if targets else "input"
-                response = self.client.upload_file(str(upload_path), image_type=upload_type)
+                upload_options = self._upload_options(field, targets)
+                response = self.client.upload_file(
+                    str(upload_path),
+                    image_type=upload_options["type"],
+                    endpoint=upload_options["endpoint"],
+                    form_field=upload_options["form_field"],
+                    type_field=upload_options["type_field"],
+                )
                 uploaded_name = response.get("name") or response.get("filename")
                 if not uploaded_name:
                     raise WorkflowValidationError(
@@ -309,6 +315,44 @@ class ComfyWorkflowRunner:
             f"media input {field!r} must be a file path or image object with save()"
         )
 
+    @classmethod
+    def _upload_options(cls, field: str, targets) -> dict:
+        first = targets[0] if targets else {}
+        options = {
+            "type": first.get("type", "input"),
+            "endpoint": first.get("endpoint", "/upload/image"),
+            "form_field": first.get("form_field", "image"),
+            "type_field": first.get("type_field", "type"),
+        }
+        cls._validate_upload_options(field, options)
+        for target in targets[1:]:
+            for key, expected in options.items():
+                actual = target.get(key, expected)
+                if actual != expected:
+                    raise WorkflowValidationError(
+                        f"upload field {field!r} has inconsistent {key!r}: "
+                        f"{actual!r} != {expected!r}"
+                    )
+        return options
+
+    @staticmethod
+    def _validate_upload_options(field: str, options: dict) -> None:
+        endpoint = options.get("endpoint")
+        if not isinstance(endpoint, str) or not endpoint.startswith("/") or "://" in endpoint:
+            raise WorkflowValidationError(
+                f"upload field {field!r} endpoint must be a local Comfy path, got {endpoint!r}"
+            )
+        for key in ("form_field", "type_field", "type"):
+            value = options.get(key)
+            if value is not None and not isinstance(value, str):
+                raise WorkflowValidationError(
+                    f"upload field {field!r} option {key!r} must be a string"
+                )
+        if options.get("type_field") and not isinstance(options.get("type"), str):
+            raise WorkflowValidationError(
+                f"upload field {field!r} option 'type' must be a string when type_field is set"
+            )
+
     @staticmethod
     def _schema_targets(schema: dict, section: str):
         mappings = schema.get(section, {})
@@ -318,10 +362,20 @@ class ComfyWorkflowRunner:
             raise WorkflowValidationError(f"schema section {section!r} must be a mapping")
         return mappings.items()
 
-    @staticmethod
-    def _validate_targets(pack_name: str, workflow: dict, field: str, targets) -> None:
+    @classmethod
+    def _validate_targets(
+        cls,
+        pack_name: str,
+        workflow: dict,
+        field: str,
+        targets,
+        *,
+        section: str,
+    ) -> None:
         if not isinstance(targets, list):
             raise WorkflowValidationError(f"{pack_name}: schema field {field!r} must map to a list")
+        if section == "uploads":
+            cls._upload_options(field, targets)
         for target in targets:
             node_id = str(target.get("node"))
             input_name = target.get("input")
