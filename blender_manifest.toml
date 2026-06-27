@@ -70,11 +70,8 @@ paths_exclude_pattern = [
   "__pycache__/",
   "/.git/",
   "/*.zip",
-  # Local backend server examples and ComfyUI bridge.
-  # for the tutorial, but not part of the installable add-on.
-  "/remote_backends/",
-  # Dev/test artifacts.
-  "/test_remote_backend.py",
+  # Palladium reference archive; not part of the installable Slopperly add-on.
+  "/reference/",
 ]
 
 # Additional Information from bl_info

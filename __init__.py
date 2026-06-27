@@ -1269,13 +1269,6 @@ def _reset_queue_state(_=None):
 
 
 def unregister():
-    # Stop any adapter subprocess Pallaidium launched so it never lingers after
-    # the add-on is disabled or Blender quits.
-    try:
-        from .utils.adapter_launcher import stop_adapter
-        stop_adapter()
-    except Exception:
-        pass
     try:
         from .operators.mask_florence2 import unregister as _mf_unregister
         _mf_unregister()

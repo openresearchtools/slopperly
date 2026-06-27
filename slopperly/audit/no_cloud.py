@@ -30,8 +30,6 @@ ALLOWLIST_PREFIXES = (
     "README.md",
     "docs/",
     "reference/",
-    "remote_backends/README.md",
-    "remote_backends/requirements.txt",
     "slopperly/audit/no_cloud.py",
     "unsupported_models_plugins/",
 )

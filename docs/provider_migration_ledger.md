@@ -106,3 +106,21 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 ### Blocked / Not Yet Certified
 
 - This block does not certify any model dropdown entry. Real plugin-path artifact tests are still required before entries can be marked production-certified.
+
+## 2026-06-27 Remote backend archive block
+
+### Production Remote Surface Isolated
+
+- Moved the generic remote plugin factory from `models/remote_base.py` to `reference/palladium/models/remote_base.py`.
+- Moved the generic remote backend client and adapter launcher from `utils/` to `reference/palladium/utils/`.
+- Moved bundled remote adapters, mock backend, old Comfy bridge, and legacy Comfy workflow examples from `remote_backends/` to `reference/palladium/remote_backends/`.
+- Moved the old backend contract extension docs and standalone remote-backend test harness into `reference/palladium/`.
+- Removed `register_remote_models()` and `clear_remote_models()` from the production model registry. Production discovery now registers committed local plugins and hidden compatibility aliases only.
+
+### Audit Added
+
+- Added `python -m slopperly.audit.local_only_surface`, which fails if the old remote backend paths, remote URL/key preferences, remote model factory hooks, or API/HF generation input flags reappear in production paths.
+
+### Blocked / Not Yet Certified
+
+- This block does not add workflow packs or GPU artifacts. Dropdown certification remains blocked until real plugin-path artifact tests pass on the target device profile.

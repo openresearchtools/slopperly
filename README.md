@@ -134,88 +134,24 @@ The addon panel is located in the **Video Sequence Editor > Sidebar (N-Panel) > 
 
 The generated media will be saved to the directory specified in the addon preferences and automatically added to your VSE timeline on a new channel.
 
-## Remote Backends (optional)
+## Local-Only Slopperly Runtime
 
-Pallaidium runs models **locally** by default. Optionally, it can also drive an
-external generation server that speaks the **OpenAI-`/v1`-dialect Backend
-Contract** — letting you offload generation to a beefier machine or a cloud
-provider while the add-on stays a thin client. This is entirely opt-in; nothing
-changes unless you enable it.
+Slopperly production generation is local-only. The old Palladium remote backend
+contract, connector launcher, mock server, Comfy bridge, and cloud connector
+notes have been moved into `reference/palladium/` for audit/revert history.
 
-### Enabling (one-click)
+Production dropdowns are populated from committed local plugins and hidden
+saved-project aliases only. Local runtime settings live in add-on preferences
+for owned ComfyUI, vLLM, vLLM-Omni, and llama.cpp.
 
-In **Preferences → Add-ons → Pallaidium**, find the **Remote Backend** box:
-
-1. **Model Source** — choose what appears in the model dropdowns:
-   - **Local** (default) — only models that run locally in Blender.
-   - **Remote** — only models served by the configured backend.
-   - **Local & Remote** — both, side by side.
-2. **Adapter** — pick a bundled connector:
-   - **Mock** — tiny canned media; verifies the wiring with zero setup.
-   - **ComfyUI** — forwards to a running ComfyUI (set the **ComfyUI URL** field;
-     start ComfyUI first).
-   - **fal.ai** — cloud models; paste your key in **Remote Backend Key**.
-   - **Custom URL** — connect to a backend you started yourself (type its URL +
-     optional key; falls back to `PALLAIDIUM_BACKEND_URL` / `PALLAIDIUM_BACKEND_KEY`).
-3. Click **Start Backend**. Pallaidium launches the connector with Blender's own
-   Python (no console, no `pip`), fills in the URL, queries `GET /v1/models`, and
-   adds each model to the dropdowns prefixed `[Remote]`. Click **Stop Backend**
-   when done. (For **Custom URL** the button is **Connect & Load Models** — there
-   is nothing to launch.) **Refresh Models** re-queries the list at any time.
-
-The connector runs only while started; discovered models are cached so they
-reappear after a Blender restart. Remote models then behave like any other: pick
-one, set your prompt / inputs / standard settings, and Generate. Progress and
-**Cancel** work through the queue just like local jobs.
-
-### What works remotely
-
-All four media types are supported — **Movie (video), Image, Audio, and Text
-(transcription)** — including reference inputs where the model declares them:
-
-- img2img / img2vid init image, and **multiple** reference images (e.g. Klein, or
-  Seedance reference-to-video),
-- last-frame / anchor frames for video, motion/structure **control** video,
-- **reference audio** and a **Generate Audio** soundtrack toggle for video models
-  that declare them (e.g. Seedance 2.0),
-- **voice cloning** (reference audio + reference transcript) for TTS,
-- IP-Adapter face/style folders.
-
-References are uploaded to the backend via `POST /v1/files`; the exact request
-fields are listed in [docs/BACKEND_CONTRACT_EXTENSIONS.md](docs/BACKEND_CONTRACT_EXTENSIONS.md).
-
-### Adding ComfyUI workflows (no console)
-
-With the **ComfyUI** adapter selected, two buttons appear:
-
-- **Import Workflow** — pick a workflow exported from ComfyUI with
-  *Settings → enable Dev mode → Save (API Format)*. It's copied into
-  `remote_backends/comfyui_workflows/` and becomes a `[Remote] <filename>` model;
-  if the backend is running it auto-reloads so the model shows up immediately.
-- **Open Folder** — opens that folder to manage workflow files directly.
-
-The adapter detects each workflow's media type and injects your prompt / size /
-seed / reference image(s) **by node title** (or via a `<id>.meta.json` sidecar
-for complex graphs). Full convention:
-`remote_backends/comfyui_workflows/README.md`.
-
-### Other backends
-
-The contract is **provider-agnostic** — any server implementing it works, and you
-can switch with the Adapter dropdown. Beyond the three bundled connectors:
-
-- **[LocalAI](https://localai.io/)** and other OpenAI-compatible servers — point
-  **Custom URL** at them (image/audio via `/v1/images/generations`,
-  `/v1/audio/speech`, `/v1/audio/transcriptions`).
-- **Your own connector** — drop a stdlib `<name>_adapter.py` + `<name>.manifest.json`
-  into `remote_backends/` and it appears in the Adapter dropdown, no add-on
-  changes needed. See `remote_backends/README.md` § *Write your own connector*.
-
-The example connectors (mock, ComfyUI, fal.ai) ship in `remote_backends/`, are
-**stdlib-only** (so Pallaidium can launch them with Blender's Python), and are
-excluded from the built add-on.
+Comfy-backed production work now belongs under
+`slopperly/workflows/comfy/<workflow_id>/` as paired editable/API workflow packs
+with schema, model manifest, test payload, and validation notes.
 
 ## Change Log
+
+Legacy Palladium change-log entries below may refer to archived remote-backend
+files now preserved under `reference/palladium/`.
 
 2026-06-25: Add: **One-click remote backends.** An **Adapter** dropdown (Mock / ComfyUI / fal.ai / Custom URL) plus **Start/Stop Backend** buttons launch a bundled connector with Blender's own Python — no console, no `pip`. Connectors are now **stdlib-only** (`remote_backends/_adapter_http.py` shared helpers), self-describe via `<name>.manifest.json`, and discovered models are cached (`discovery.json`) so they survive a restart. New **fal.ai** connector (queue REST) ships **Seedance 1.0 Pro / Pro Fast**, **Seedance 2.0 / Fast / Mini** (text-, image- and **reference-to-video** with up to 9 reference images), **seed-audio-1.0** TTS, and FLUX dev. Video models can declare `needs_audio_ref` (reference-audio picker) and `supports_audio_output` (**Generate Audio** soundtrack toggle → `generate_audio`). **Import Workflow** / **Open Folder** add ComfyUI workflows from inside Blender. Docs: `remote_backends/README.md`, [docs/BACKEND_CONTRACT_EXTENSIONS.md](docs/BACKEND_CONTRACT_EXTENSIONS.md).
 
@@ -598,5 +534,4 @@ https://github.com/tin2tin/Generative_AI/assets/1322593/2dd2d2f1-a1f6-4562-8116-
 - [Marlin Video Captions](https://github.com/HeliosZhao/Marlin)
 
 ![PallAIdium](https://github.com/tin2tin/Generative_AI/assets/1322593/1b1b232f-00d9-4b0b-86fb-5f0f24136d2c)
-
 

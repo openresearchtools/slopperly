@@ -23,6 +23,7 @@ import importlib.util
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(ROOT, "..", ".."))
 PKG = "_palla_test"
 
 
@@ -37,7 +38,8 @@ def _fake_pkg(name, path):
 
 
 def _load(modname, relpath, pkg):
-    spec = importlib.util.spec_from_file_location(modname, os.path.join(ROOT, relpath))
+    path = relpath if os.path.isabs(relpath) else os.path.join(ROOT, relpath)
+    spec = importlib.util.spec_from_file_location(modname, path)
     mod = importlib.util.module_from_spec(spec)
     mod.__package__ = pkg
     sys.modules[modname] = mod
@@ -50,7 +52,7 @@ _fake_pkg(PKG + ".utils", os.path.join(ROOT, "utils"))
 _fake_pkg(PKG + ".models", os.path.join(ROOT, "models"))
 
 rb = _load(PKG + ".utils.remote_backend", "utils/remote_backend.py", PKG + ".utils")
-_load(PKG + ".models.base", "models/base.py", PKG + ".models")
+_load(PKG + ".models.base", os.path.join(REPO_ROOT, "models/base.py"), PKG + ".models")
 remote_base = _load(PKG + ".models.remote_base", "models/remote_base.py", PKG + ".models")
 base = sys.modules[PKG + ".models.base"]
 

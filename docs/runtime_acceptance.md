@@ -7,12 +7,13 @@
 - Required node classes from `slopperly/runtime/comfy/nodes.lock.yaml` must be present.
 - Every `workflow.api.json` must validate as API-format JSON.
 - Production generation clients must reject non-local inference URLs.
+- Production code must not expose or import the old generic remote backend surface.
 
 ## Current Evidence
 
 - Python compile check passes for edited production modules.
-- Existing backend test passes against `127.0.0.1`.
 - Static no-cloud audit passes for production paths.
+- Local-only production surface audit passes for remote backend factory/client/UI hooks.
 
 ## Current Blocks
 
