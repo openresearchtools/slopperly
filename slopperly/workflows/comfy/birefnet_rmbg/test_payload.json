@@ -1,0 +1,9 @@
+{
+  "input_image": "tests/fixtures/birefnet_source.ppm",
+  "seed": 123,
+  "frames": 1,
+  "birefnet_model": "BiRefNet-HR",
+  "birefnet_mask_blur": 0,
+  "birefnet_mask_offset": 0,
+  "birefnet_refine_foreground": false
+}

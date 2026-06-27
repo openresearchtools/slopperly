@@ -109,3 +109,11 @@ custom_nodes:
     install_command: pip install -r requirements.txt
     python_extras: []
     required_node_classes: []
+  - id: comfyui_rmbg
+    repo: https://github.com/1038lab/ComfyUI-RMBG.git
+    commit: d7402513f23f58db7d56754b02a4f51a148b4941
+    install_command: pip install -r requirements.txt
+    python_extras: []
+    required_node_classes:
+      - BiRefNetRMBG
+      - RMBG

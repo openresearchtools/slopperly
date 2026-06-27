@@ -107,6 +107,33 @@ models:
     workflows:
       - florence2_caption_ocr
       - text/florence2.py
+  - logical_name: birefnet_rmbg
+    legacy_aliases:
+      - ZhengPeng7/BiRefNet_HR
+    task: background_removal
+    runtime: comfy
+    model_source: https://huggingface.co/1038lab/BiRefNet
+    download_mode: hf_snapshot
+    local_cache_path: models/RMBG/BiRefNet
+    required_files:
+      - birefnet.py
+      - BiRefNet_config.py
+      - BiRefNet-HR.safetensors
+      - config.json
+    required_node_pack: comfyui_rmbg
+    supported_resolutions: []
+    context_limits: {}
+    default_parameters:
+      model: BiRefNet-HR
+      background: Alpha
+      mask_blur: 0
+      mask_offset: 0
+      refine_foreground: false
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_birefnet_rmbg.py --device cuda
+    workflows:
+      - birefnet_rmbg
+      - image/birefnet.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter

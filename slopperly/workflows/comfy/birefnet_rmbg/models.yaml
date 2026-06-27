@@ -1,0 +1,25 @@
+workflow_id: birefnet_rmbg
+task: background_removal
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui_rmbg
+    repo: https://github.com/1038lab/ComfyUI-RMBG.git
+    commit: d7402513f23f58db7d56754b02a4f51a148b4941
+    classes:
+      - BiRefNetRMBG
+model_files:
+  rmbg:
+    - RMBG/BiRefNet/birefnet.py
+    - RMBG/BiRefNet/BiRefNet_config.py
+    - RMBG/BiRefNet/BiRefNet-HR.safetensors
+    - RMBG/BiRefNet/config.json
+supported_profiles:
+  - input: image
+    output: png_alpha
+    dimensions: preserve_input
+artifact_contract:
+  output_type: png_alpha
+  validation:
+    - PIL-readable
+    - alpha channel present
+    - dimensions equal input dimensions

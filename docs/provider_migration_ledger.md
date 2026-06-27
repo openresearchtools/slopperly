@@ -423,3 +423,26 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 ### Blocked / Not Yet Certified
 
 - This block verifies request construction against a local fake Comfy server only. Real audio/video upload workflows still need committed packs, owned Comfy runtime execution, and GPU artifact validation.
+
+## 2026-06-27 BiRefNet Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/image/birefnet.py` now calls the local `birefnet_rmbg` Comfy workflow through `SlopperlyRuntimeGateway` instead of importing Torch/Transformers and running BiRefNet directly in the add-on process.
+- The existing selected-image requirement and image plugin behavior are preserved; the local runtime returns a PNG artifact path for downstream VSE insertion.
+
+### Workflow and Registry Added
+
+- Added `slopperly/workflows/comfy/birefnet_rmbg/` with API/editable workflow JSON, patch schema, model manifest, test payload, and README.
+- Added pinned `comfyui_rmbg` node lock entry for `1038lab/ComfyUI-RMBG` at commit `d7402513f23f58db7d56754b02a4f51a148b4941`.
+- Added `birefnet_rmbg` to `slopperly/config/models.yaml` with legacy alias `ZhengPeng7/BiRefNet_HR` and node-compatible artifact source `1038lab/BiRefNet`.
+
+### Verification
+
+- Integration coverage calls `BiRefNetPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard.
+- GPU certification coverage is registered in `tests/gpu/test_birefnet_rmbg.py` and validates PNG alpha plus input dimensions when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI, the pinned RMBG node pack, and the `BiRefNet-HR` model files in the local model cache.

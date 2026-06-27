@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "workflow_id": "birefnet_rmbg",
+  "description": "Patch schema for local BiRefNet-HR background removal through ComfyUI-RMBG.",
+  "inputs": {
+    "birefnet_model": [
+      {
+        "node": "2",
+        "input": "model"
+      }
+    ],
+    "birefnet_mask_blur": [
+      {
+        "node": "2",
+        "input": "mask_blur"
+      }
+    ],
+    "birefnet_mask_offset": [
+      {
+        "node": "2",
+        "input": "mask_offset"
+      }
+    ],
+    "birefnet_refine_foreground": [
+      {
+        "node": "2",
+        "input": "refine_foreground"
+      }
+    ]
+  },
+  "uploads": {
+    "input_image": [
+      {
+        "node": "1",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "frames": "The existing BiRefNet UI section is preserved, but the local workflow is a single-image alpha-matte operation.",
+    "steps": "BiRefNetRMBG is segmentation inference, not sampler-based generation.",
+    "guidance": "BiRefNetRMBG does not expose CFG guidance."
+  },
+  "output": {
+    "node": "3",
+    "type": "image/png",
+    "contract": "Return a readable PNG with an alpha channel and the same dimensions as the input image."
+  }
+}

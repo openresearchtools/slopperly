@@ -790,3 +790,12 @@ The following upstream sources are the factual basis for this spec:
 - Completed: `florence2_caption_ocr` is registered in `slopperly/config/models.yaml` with legacy alias `florence-community/Florence-2-large`.
 - Evidence: integration coverage verifies Comfy text/JSON history collection and calls `Florence2Plugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard.
 - Still blocked: real RTX 4090 Florence2 artifact certification requires owned ComfyUI, downloaded Florence-2 artifacts, and `tests/fixtures/florence2_caption.png`.
+
+### 2026-06-27 BiRefNet Comfy workflow block
+
+- Completed: `image/birefnet.py` now routes background removal through the local Comfy workflow gateway instead of direct Torch/Transformers inference in the add-on process.
+- Completed: `birefnet_rmbg` workflow pack is committed with API/editable workflow JSON, schema, model manifest, test payload, and README.
+- Completed: `comfyui_rmbg` is pinned in `slopperly/runtime/comfy/nodes.lock.yaml` with exact `BiRefNetRMBG`/`RMBG` node classes from `1038lab/ComfyUI-RMBG`.
+- Completed: `birefnet_rmbg` is registered in `slopperly/config/models.yaml` with legacy alias `ZhengPeng7/BiRefNet_HR`.
+- Evidence: integration coverage calls `BiRefNetPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies the patched `LoadImage -> BiRefNetRMBG -> SaveImage` graph.
+- Still blocked: real RTX 4090 BiRefNet artifact certification requires owned ComfyUI, downloaded `BiRefNet-HR` artifacts, and the pinned RMBG node pack installed.

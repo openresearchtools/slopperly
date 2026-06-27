@@ -46,6 +46,7 @@ def install_plugin_import_harness() -> None:
     _ensure_package(f"{TEST_PACKAGE}.models_plugins")
     _ensure_package(f"{TEST_PACKAGE}.models_plugins.text")
     _ensure_package(f"{TEST_PACKAGE}.models_plugins.audio")
+    _ensure_package(f"{TEST_PACKAGE}.models_plugins.image")
     _ensure_package(f"{TEST_PACKAGE}.utils")
 
     if f"{TEST_PACKAGE}.models.base" not in sys.modules:
@@ -89,6 +90,9 @@ class RuntimeHandler(BaseHTTPRequestHandler):
     speech_payloads = []
     transcription_body = b""
     wav_bytes = b"RIFF$\x00\x00\x00WAVEfmt "
+    png_bytes = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+    )
 
     def log_message(self, *args):
         pass
@@ -114,10 +118,34 @@ class RuntimeHandler(BaseHTTPRequestHandler):
         if self.path == "/object_info":
             return self._json({
                 "LoadImage": {},
+                "SaveImage": {},
+                "BiRefNetRMBG": {},
                 "DownloadAndLoadFlorence2Model": {},
                 "Florence2Run": {},
             })
+        if self.path.startswith("/view"):
+            return self._binary(self.png_bytes, "image/png")
         if self.path == "/history/prompt-1":
+            if any(
+                node.get("class_type") == "BiRefNetRMBG"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "3": {
+                                "images": [
+                                    {
+                                        "filename": "birefnet_rmbg.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -395,6 +423,28 @@ class LocalPluginPathTests(unittest.TestCase):
                 for prompt in RuntimeHandler.comfy_prompts)
         )
         self.assertIn(b'filename="slopperly_input_image_', RuntimeHandler.comfy_uploads[0])
+
+    def test_birefnet_rmbg_uses_comfy_plugin_path(self):
+        module = load_plugin_module("image", "birefnet")
+        plugin = module.BiRefNetPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace()
+            inputs = self.base.ModelInputs(image=FakeImage(), seed=456, frames=1)
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["2"]["class_type"], "BiRefNetRMBG")
+        self.assertEqual(prompt["2"]["inputs"]["model"], "BiRefNet-HR")
+        self.assertEqual(prompt["2"]["inputs"]["background"], "Alpha")
+        self.assertIn(b'filename="slopperly_input_image_', RuntimeHandler.comfy_uploads[-1])
 
     def test_marlin_video_captions_uses_vllm_vlm_plugin_path(self):
         module = load_plugin_module("text", "marlin_video_captions")
