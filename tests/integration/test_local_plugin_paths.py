@@ -57,6 +57,8 @@ def install_plugin_import_harness() -> None:
     helpers.clean_filename = lambda value: re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_")
     helpers.solve_path = lambda filename: str(Path(tempfile.gettempdir()) / filename)
     helpers.remove_duplicate_phrases = lambda text: text
+    helpers.find_strip_by_name = _find_strip_by_name
+    helpers.get_strip_path = _get_strip_path
     sys.modules[f"{TEST_PACKAGE}.utils.helpers"] = helpers
 
     for name in [
@@ -156,6 +158,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "FL_ChatterboxVC": {},
                 "FL_ChatterboxTurboTTS": {},
                 "FL_ChatterboxMultilingualTTS": {},
+                "ailab_OmniGen": {},
             })
         if self.path.startswith("/view"):
             if ".mp4" in self.path:
@@ -450,6 +453,26 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "ailab_OmniGen"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "5": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_omnigen_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -530,7 +553,13 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 return self._json({"name": "uploaded_video.mp4", "subfolder": "", "type": "input"})
             if b".wav\"" in body or b".flac\"" in body or b".mp3\"" in body:
                 return self._json({"name": "uploaded_audio.wav", "subfolder": "", "type": "input"})
-            return self._json({"name": "uploaded_source.png", "subfolder": "", "type": "input"})
+            image_uploads = [
+                upload for upload in RuntimeHandler.comfy_uploads
+                if b".wav\"" not in upload and b".flac\"" not in upload and b".mp3\"" not in upload
+            ]
+            count = len(image_uploads)
+            name = "uploaded_source.png" if count == 1 else f"uploaded_source_{count}.png"
+            return self._json({"name": name, "subfolder": "", "type": "input"})
         if self.path == "/prompt":
             RuntimeHandler.comfy_prompt = json.loads(body.decode("utf-8"))["prompt"]
             RuntimeHandler.comfy_prompts.append(RuntimeHandler.comfy_prompt)
@@ -545,6 +574,21 @@ def _tiny_wav(path: Path):
         wav.setsampwidth(2)
         wav.setframerate(16000)
         wav.writeframes(b"\0\0" * 3200)
+
+
+def _find_strip_by_name(scene, name):
+    editor = getattr(scene, "sequence_editor", None)
+    strips = getattr(editor, "strips", None)
+    if not isinstance(strips, list):
+        strips = getattr(editor, "strips_all", [])
+    for strip in strips or []:
+        if getattr(strip, "name", "") == name:
+            return strip
+    return None
+
+
+def _get_strip_path(strip):
+    return getattr(strip, "filepath", None) or getattr(strip, "path", None)
 
 
 class FakeStrips:
@@ -777,6 +821,63 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["4"]["inputs"]["height"], 48)
         self.assertEqual(prompt["4"]["inputs"]["crop"], "center")
         self.assertIn(b'filename="slopperly_input_image_', RuntimeHandler.comfy_uploads[-1])
+
+    def test_omnigen_uses_comfy_multi_image_plugin_path(self):
+        module = load_plugin_module("image", "omnigen")
+        plugin = module.OmniGenPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / "first.png"
+            second = Path(tmp) / "second.png"
+            first.write_bytes(b"first local image")
+            second.write_bytes(b"second local image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(
+                sequence_editor=SimpleNamespace(strips=[
+                    SimpleNamespace(name="first", type="IMAGE", filepath=str(first)),
+                    SimpleNamespace(name="second", type="IMAGE", filepath=str(second)),
+                ]),
+                omnigen_prompt_1="Build a compact product render",
+                omnigen_prompt_2=", using the second reference for color",
+                omnigen_prompt_3="",
+                omnigen_strip_1="first",
+                omnigen_strip_2="second",
+                omnigen_strip_3="",
+                img_guidance_scale=1.65,
+            )
+            inputs = self.base.ModelInputs(
+                prompt="fallback prompt",
+                width=640,
+                height=512,
+                steps=8,
+                guidance=3.1,
+                seed=9090,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["2"]["inputs"]["image"], "uploaded_source_2.png")
+        self.assertNotIn("3", prompt)
+        self.assertEqual(prompt["4"]["class_type"], "ailab_OmniGen")
+        self.assertIn("Build a compact product render", prompt["4"]["inputs"]["prompt"])
+        self.assertIn("<img><|image_1|></img>", prompt["4"]["inputs"]["prompt"])
+        self.assertIn("<img><|image_2|></img>", prompt["4"]["inputs"]["prompt"])
+        self.assertNotIn("image_3", prompt["4"]["inputs"])
+        self.assertEqual(prompt["4"]["inputs"]["width"], 640)
+        self.assertEqual(prompt["4"]["inputs"]["height"], 512)
+        self.assertEqual(prompt["4"]["inputs"]["num_inference_steps"], 8)
+        self.assertEqual(prompt["4"]["inputs"]["guidance_scale"], 3.1)
+        self.assertEqual(prompt["4"]["inputs"]["img_guidance_scale"], 1.65)
+        self.assertTrue(prompt["4"]["inputs"]["use_input_image_size_as_output"])
+        self.assertEqual(prompt["4"]["inputs"]["memory_management"], "Memory Priority")
+        self.assertIn(b'filename="first.png"', RuntimeHandler.comfy_uploads[0])
+        self.assertIn(b'filename="second.png"', RuntimeHandler.comfy_uploads[1])
 
     def test_local_video_vsr_uses_comfy_plugin_path(self):
         module = load_plugin_module("video", "maxine_vsr_video")

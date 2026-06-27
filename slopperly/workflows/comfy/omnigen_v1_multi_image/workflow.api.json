@@ -1,0 +1,60 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "omnigen_image_1.png"
+    }
+  },
+  "2": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "omnigen_image_2.png"
+    }
+  },
+  "3": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "omnigen_image_3.png"
+    }
+  },
+  "4": {
+    "class_type": "ailab_OmniGen",
+    "inputs": {
+      "preset_prompt": "None",
+      "prompt": "Combine image_1, image_2, and image_3 into one coherent local test image.",
+      "model_precision": "Auto",
+      "memory_management": "Memory Priority",
+      "guidance_scale": 3.0,
+      "img_guidance_scale": 1.6,
+      "num_inference_steps": 50,
+      "separate_cfg_infer": true,
+      "use_input_image_size_as_output": true,
+      "width": 1024,
+      "height": 1024,
+      "seed": 0,
+      "max_input_image_size": 1024,
+      "image_1": [
+        "1",
+        0
+      ],
+      "image_2": [
+        "2",
+        0
+      ],
+      "image_3": [
+        "3",
+        0
+      ]
+    }
+  },
+  "5": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "4",
+        0
+      ],
+      "filename_prefix": "slopperly_omnigen"
+    }
+  }
+}

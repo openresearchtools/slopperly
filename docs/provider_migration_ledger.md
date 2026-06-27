@@ -707,3 +707,29 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with ComfyUI_Fill-ChatterBox, core `LoadAudio`/`SaveAudio`, the Turbo snapshot installed under `models/chatterbox/chatterbox_turbo/`, and the multilingual snapshot installed under `models/chatterbox/chatterbox_multilingual/`.
 - Turbo and Multilingual do not expose audio duration, silence trimming, or direct speed controls in the pinned nodes; those existing UI fields are preserved and recorded as deliberately unmapped in workflow schemas.
+
+## 2026-06-27 OmniGen Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/image/omnigen.py` now routes the legacy `Shitao/OmniGen-v1-diffusers` plugin through the local Comfy gateway instead of importing Torch/Diffusers and running `OmniGenPipeline` in the add-on process.
+- The existing triple prompt/image UI is preserved. The wrapper resolves the same three strip pickers to local file paths, keeps per-slot prompt text in the composed OmniGen instruction, and returns the existing image artifact path shape.
+- The wrapper preserves the old reference-image behavior by enabling `use_input_image_size_as_output` whenever at least one reference image is selected.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/omnigen_v1_multi_image/` with editable/API workflow JSON, schema, model manifest, smoke payload, and README.
+- The workflow uses optional `LoadImage` nodes feeding `ailab_OmniGen -> SaveImage`; empty image slots are disconnected and pruned before runtime node validation.
+- Registered `omnigen_v1_multi_image` in `slopperly/config/models.yaml` with legacy alias `Shitao/OmniGen-v1-diffusers`, Hugging Face artifact source `Shitao/OmniGen-v1`, and required snapshot files including `model.safetensors`, tokenizer files, and the VAE safetensor.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` so the pinned `1038lab/ComfyUI-OmniGen` pack asserts the exact `/object_info` class key `ailab_OmniGen`.
+
+### Verification
+
+- Integration coverage calls `OmniGenPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies selected strip uploads, prompt placeholder preservation, optional third-slot pruning, and PNG artifact collection.
+- Workflow-runner integration coverage verifies the committed `omnigen_v1_multi_image` pack uploads two indexed image references, prunes the empty third `LoadImage` slot, patches exact OmniGen parameters, and collects one image artifact.
+- GPU certification coverage is registered in `tests/gpu/test_omnigen.py` and validates a readable PNG from the OmniGen plugin path when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with `ailab_OmniGen`, core `LoadImage`/`SaveImage`, the `Shitao/OmniGen-v1` snapshot installed under `models/LLM/OmniGen-v1/`, and the OmniGen node's code dependency available before generation so no first-run external downloader is used.

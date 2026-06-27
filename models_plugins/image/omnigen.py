@@ -1,14 +1,18 @@
-"""Multi-image generation via OmniGen (Shitao/OmniGen-v1-diffusers)."""
+"""Multi-image generation via the local ComfyUI OmniGen workflow."""
 
 from ...models.base import ModelPlugin, InputSpec, UISection, ParamSpec, ModelInputs
-from ...utils.helpers import gfx_device, low_vram, find_strip_by_name, get_strip_path, load_first_frame, load_strip_as_pil
+from ...slopperly.runtime.gateway import SlopperlyRuntimeGateway
+from ...utils.helpers import clean_filename, find_strip_by_name, get_strip_path, solve_path
+
+
+WORKFLOW_ID = "omnigen_v1_multi_image"
 
 
 class OmniGenPlugin(ModelPlugin):
     MODEL_ID     = "Shitao/OmniGen-v1-diffusers"
     DISPLAY_NAME = "Image: OmniGen (multi-image)"
     MODEL_TYPE   = "image"
-    DESCRIPTION  = "Multi-image / instruction-based generation via OmniGen"
+    DESCRIPTION  = "Multi-image / instruction-based generation via local ComfyUI OmniGen"
 
     INPUTS       = InputSpec.PROMPT | InputSpec.MULTI_IMAGE
     UI_SECTIONS  = [
@@ -16,26 +20,16 @@ class OmniGenPlugin(ModelPlugin):
         UISection.RESOLUTION, UISection.FRAMES, UISection.STEPS, UISection.GUIDANCE, UISection.SEED,
     ]
     PARAMS       = ParamSpec(steps=50, guidance=3.0, max_multi_images=3)
-    REQUIRED_PACKAGES          = ["torch", "diffusers"]
+    REQUIRED_PACKAGES          = []
     supports_inpaint           = False
     supports_img2img           = False
     uses_standard_input_strip  = False
 
     def load(self, prefs, scene, **kw):
-        import torch
-        from diffusers import OmniGenPipeline
-
-        _cache_dir = prefs.hf_cache_dir or None
-        print("Loading OmniGen…")
-        pipe = OmniGenPipeline.from_pretrained(self.MODEL_ID, torch_dtype=torch.bfloat16, cache_dir=_cache_dir, local_files_only=prefs.local_files_only)
-        if gfx_device == "mps":
-            pipe.to("mps")
-        elif low_vram():
-            pipe.enable_sequential_cpu_offload()
-            pipe.vae.enable_tiling()
-        else:
-            pipe.enable_model_cpu_offload()
-        return {"pipe": pipe, "converter": None, "refiner": None, "preprocessor": None}
+        return {
+            "gateway": SlopperlyRuntimeGateway(),
+            "last_model_card": self.MODEL_ID,
+        }
 
     def draw_custom_ui(self, col, context) -> bool:
         scene = context.scene
@@ -52,40 +46,55 @@ class OmniGenPlugin(ModelPlugin):
         return True
 
     def generate(self, pipe_obj, inputs: ModelInputs, scene, prefs):
-        import torch
+        gateway = pipe_obj.get("gateway") if isinstance(pipe_obj, dict) else None
+        if gateway is None:
+            gateway = SlopperlyRuntimeGateway()
 
-        pipe = pipe_obj["pipe"]
-        seed = inputs.seed
-        generator = (
-            torch.Generator("cuda").manual_seed(seed)
-            if torch.cuda.is_available() and seed != 0
-            else (torch.Generator(device=gfx_device).manual_seed(seed) if seed != 0 else None)
-        )
-
-        omnigen_images = []
+        images = [None, None, None]
+        image_prompts = ["", "", ""]
         prompt = getattr(scene, "omnigen_prompt_1", inputs.prompt) or inputs.prompt
         for idx, strip_attr in enumerate(["omnigen_strip_1", "omnigen_strip_2", "omnigen_strip_3"], start=1):
             prompt_attr = f"omnigen_prompt_{idx}"
+            slot_prompt = getattr(scene, prompt_attr, "") or ""
+            image_prompts[idx - 1] = slot_prompt
             if idx > 1:
-                prompt += getattr(scene, prompt_attr, "") or ""
+                prompt += slot_prompt
             strip_name = getattr(scene, strip_attr, None)
             if strip_name:
                 strip = find_strip_by_name(scene, strip_name)
                 if strip:
-                    omnigen_images.append(load_strip_as_pil(strip))
+                    image_path = get_strip_path(strip)
+                    if not image_path:
+                        raise ValueError(f"OmniGen could not resolve strip path for {strip_name!r}.")
+                    images[idx - 1] = image_path
                     prompt += f" <img><|image_{idx}|></img> "
 
-        img_size = bool(omnigen_images)
-        self.set_phase(inputs, "Generating")
-        return pipe(
-            prompt=prompt,
-            input_images=omnigen_images or None,
-            img_guidance_scale=getattr(scene, "img_guidance_scale", 1.6),
-            use_input_image_size_as_output=img_size,
-            num_inference_steps=inputs.steps,
-            guidance_scale=inputs.guidance,
-            height=inputs.height,
-            width=inputs.width,
-            generator=generator,
-            callback_on_step_end=self.step_callback(inputs),
-        ).images[0]
+        inputs.prompt = prompt.strip()
+        inputs.images = images
+        inputs.image_prompts = image_prompts
+        inputs.omnigen_img_guidance_scale = float(getattr(scene, "img_guidance_scale", 1.6) or 1.6)
+        inputs.omnigen_use_input_image_size_as_output = any(images)
+        inputs.omnigen_model_precision = getattr(scene, "omnigen_model_precision", "Auto") or "Auto"
+        inputs.omnigen_memory_management = getattr(
+            scene,
+            "omnigen_memory_management",
+            "Memory Priority",
+        ) or "Memory Priority"
+        inputs.omnigen_separate_cfg_infer = bool(
+            getattr(scene, "omnigen_separate_cfg_infer", True)
+        )
+        inputs.omnigen_max_input_image_size = int(
+            getattr(scene, "omnigen_max_input_image_size", 1024) or 1024
+        )
+
+        self.set_phase(inputs, "Generating with local ComfyUI OmniGen")
+        filename = clean_filename(f"{inputs.seed}_omnigen") or "omnigen"
+        destination = solve_path(filename + ".png")
+        return gateway.run_comfy_workflow(
+            WORKFLOW_ID,
+            inputs,
+            scene,
+            prefs,
+            destination=destination,
+            timeout=float(getattr(prefs, "comfyui_timeout", 3600.0) or 3600.0),
+        )

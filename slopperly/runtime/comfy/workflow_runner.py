@@ -154,7 +154,7 @@ class ComfyWorkflowRunner:
         try:
             for field, targets in self._schema_targets(schema, "uploads"):
                 value = self._media_input_value(inputs, field)
-                if value is None:
+                if value is None or value == "":
                     continue
                 upload_path, cleanup = self._coerce_media_file(value, field)
                 if cleanup:
@@ -181,6 +181,24 @@ class ComfyWorkflowRunner:
             for temp_path in temp_paths:
                 temp_path.unlink(missing_ok=True)
             raise
+
+    def apply_optional_upload_slots(self, workflow: dict, schema: dict, inputs) -> None:
+        """Disconnect optional media slots that have no user-supplied media."""
+        for field, targets in self._schema_targets(schema, "uploads"):
+            value = self._media_input_value(inputs, field)
+            if value is not None and value != "":
+                continue
+            for target in targets:
+                if not target.get("optional"):
+                    continue
+                for disconnect in self._disconnect_targets(target):
+                    node_id = str(disconnect["node"])
+                    input_name = disconnect["input"]
+                    node = workflow.get(node_id)
+                    if node is not None:
+                        node.setdefault("inputs", {}).pop(input_name, None)
+                if target.get("prune_node"):
+                    workflow.pop(str(target["node"]), None)
 
     def validate_runtime_nodes(self, workflow: dict) -> None:
         info = self.client.object_info()
@@ -386,6 +404,35 @@ class ComfyWorkflowRunner:
                 raise WorkflowValidationError(
                     f"{pack_name}: {field} maps to missing input {node_id}.{input_name}"
                 )
+            for disconnect in cls._disconnect_targets(target):
+                disconnect_node_id = str(disconnect.get("node"))
+                disconnect_input = disconnect.get("input")
+                disconnect_node = workflow.get(disconnect_node_id)
+                if disconnect_node is None:
+                    raise WorkflowValidationError(
+                        f"{pack_name}: {field} optional disconnect maps to missing "
+                        f"node {disconnect_node_id}"
+                    )
+                if disconnect_input not in (disconnect_node.get("inputs") or {}):
+                    raise WorkflowValidationError(
+                        f"{pack_name}: {field} optional disconnect maps to missing "
+                        f"input {disconnect_node_id}.{disconnect_input}"
+                    )
+
+    @staticmethod
+    def _disconnect_targets(target: dict) -> list[dict]:
+        disconnect = target.get("disconnect") or target.get("disconnects") or []
+        if isinstance(disconnect, dict):
+            return [disconnect]
+        if isinstance(disconnect, list):
+            if not all(isinstance(item, dict) for item in disconnect):
+                raise WorkflowValidationError(
+                    f"optional upload disconnect entries must be mappings: {disconnect!r}"
+                )
+            return disconnect
+        raise WorkflowValidationError(
+            f"optional upload disconnect must be a mapping or list: {disconnect!r}"
+        )
 
     def run_pack(
         self,
@@ -402,6 +449,7 @@ class ComfyWorkflowRunner:
         self._set_progress(inputs, 1, total_steps)
         self._set_phase(inputs, "Patching Comfy workflow parameters")
         workflow = self.patched_workflow(workflow, schema, inputs, scene)
+        self.apply_optional_upload_slots(workflow, schema, inputs)
         self._set_phase(inputs, "Checking Comfy workflow nodes")
         self.validate_runtime_nodes(workflow)
         self._set_progress(inputs, 2, total_steps)

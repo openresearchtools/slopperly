@@ -1,0 +1,24 @@
+{
+  "prompt": "Create a compact studio product render using image_1 and image_2 references.",
+  "images": [
+    "tests/fixtures/vsr_source.ppm",
+    "tests/fixtures/birefnet_source.ppm",
+    null
+  ],
+  "image_prompts": [
+    "Use image_1 for the object silhouette.",
+    "Use image_2 for the material palette.",
+    ""
+  ],
+  "width": 512,
+  "height": 512,
+  "steps": 8,
+  "guidance": 3.0,
+  "seed": 2026,
+  "omnigen_img_guidance_scale": 1.6,
+  "omnigen_use_input_image_size_as_output": false,
+  "omnigen_model_precision": "Auto",
+  "omnigen_memory_management": "Memory Priority",
+  "omnigen_separate_cfg_infer": true,
+  "omnigen_max_input_image_size": 1024
+}

@@ -1,0 +1,95 @@
+{
+  "last_node_id": 5,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "title": "Reference image 1",
+      "widgets_values": [
+        "omnigen_image_1.png"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "LoadImage",
+      "title": "Reference image 2",
+      "widgets_values": [
+        "omnigen_image_2.png"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "LoadImage",
+      "title": "Reference image 3",
+      "widgets_values": [
+        "omnigen_image_3.png"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "ailab_OmniGen",
+      "title": "OmniGen local multi-image",
+      "widgets_values": [
+        "None",
+        "Combine image_1, image_2, and image_3 into one coherent local test image.",
+        "Auto",
+        "Memory Priority",
+        3.0,
+        1.6,
+        50,
+        true,
+        true,
+        1024,
+        1024,
+        0,
+        1024
+      ]
+    },
+    {
+      "id": 5,
+      "type": "SaveImage",
+      "title": "Save OmniGen image",
+      "widgets_values": [
+        "slopperly_omnigen"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      2,
+      0,
+      4,
+      1,
+      "IMAGE"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      2,
+      "IMAGE"
+    ],
+    [
+      4,
+      4,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "extra": {
+    "slopperly_workflow_id": "omnigen_v1_multi_image"
+  }
+}

@@ -1,0 +1,37 @@
+workflow_id: omnigen_v1_multi_image
+runtime: comfy
+required_custom_nodes:
+  - id: omnigen
+    repo: https://github.com/1038lab/ComfyUI-OmniGen.git
+    commit: 5890d3fdb7ac5b598d025a2a14fbd2d6c9d8104b
+    node_classes:
+      - ailab_OmniGen
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    node_classes:
+      - LoadImage
+      - SaveImage
+model_files:
+  - source: https://huggingface.co/Shitao/OmniGen-v1
+    download_mode: hf_snapshot
+    files:
+      - path: config.json
+        target: models/LLM/OmniGen-v1/config.json
+      - path: model.safetensors
+        target: models/LLM/OmniGen-v1/model.safetensors
+      - path: tokenizer.json
+        target: models/LLM/OmniGen-v1/tokenizer.json
+      - path: tokenizer_config.json
+        target: models/LLM/OmniGen-v1/tokenizer_config.json
+      - path: special_tokens_map.json
+        target: models/LLM/OmniGen-v1/special_tokens_map.json
+      - path: vae/config.json
+        target: models/LLM/OmniGen-v1/vae/config.json
+      - path: vae/diffusion_pytorch_model.safetensors
+        target: models/LLM/OmniGen-v1/vae/diffusion_pytorch_model.safetensors
+artifact_contract:
+  type: image/png
+  min_width: 128
+  min_height: 128
+  output_shape: single artifact path

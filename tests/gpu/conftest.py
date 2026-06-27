@@ -203,6 +203,21 @@ def fake_sequence_scene(**kwargs):
     return scene
 
 
+def _find_strip_by_name(scene, name):
+    editor = getattr(scene, "sequence_editor", None)
+    strips = getattr(editor, "strips", None)
+    if not isinstance(strips, list):
+        strips = getattr(editor, "strips_all", [])
+    for strip in strips or []:
+        if getattr(strip, "name", "") == name:
+            return strip
+    return None
+
+
+def _get_strip_path(strip):
+    return getattr(strip, "filepath", None) or getattr(strip, "path", None)
+
+
 def install_plugin_import_harness(root: Path) -> None:
     _ensure_package(TEST_PACKAGE)
     _ensure_package(f"{TEST_PACKAGE}.models")
@@ -220,6 +235,8 @@ def install_plugin_import_harness(root: Path) -> None:
     helpers.clean_filename = lambda value: re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_")
     helpers.solve_path = lambda filename: str(Path(tempfile.gettempdir()) / filename)
     helpers.remove_duplicate_phrases = lambda text: text
+    helpers.find_strip_by_name = _find_strip_by_name
+    helpers.get_strip_path = _get_strip_path
     sys.modules[f"{TEST_PACKAGE}.utils.helpers"] = helpers
 
     for name in [

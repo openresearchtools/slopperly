@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "workflow_id": "omnigen_v1_multi_image",
+  "description": "Patch schema for local OmniGen v1 text-to-image and multi-image instruction generation through ComfyUI.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "4",
+        "input": "prompt"
+      }
+    ],
+    "guidance": [
+      {
+        "node": "4",
+        "input": "guidance_scale"
+      }
+    ],
+    "steps": [
+      {
+        "node": "4",
+        "input": "num_inference_steps"
+      }
+    ],
+    "width": [
+      {
+        "node": "4",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "4",
+        "input": "height"
+      }
+    ],
+    "seed": [
+      {
+        "node": "4",
+        "input": "seed"
+      }
+    ],
+    "omnigen_img_guidance_scale": [
+      {
+        "node": "4",
+        "input": "img_guidance_scale"
+      }
+    ],
+    "omnigen_use_input_image_size_as_output": [
+      {
+        "node": "4",
+        "input": "use_input_image_size_as_output"
+      }
+    ],
+    "omnigen_model_precision": [
+      {
+        "node": "4",
+        "input": "model_precision"
+      }
+    ],
+    "omnigen_memory_management": [
+      {
+        "node": "4",
+        "input": "memory_management"
+      }
+    ],
+    "omnigen_separate_cfg_infer": [
+      {
+        "node": "4",
+        "input": "separate_cfg_infer"
+      }
+    ],
+    "omnigen_max_input_image_size": [
+      {
+        "node": "4",
+        "input": "max_input_image_size"
+      }
+    ]
+  },
+  "uploads": {
+    "images[0]": [
+      {
+        "node": "1",
+        "input": "image",
+        "type": "input",
+        "optional": true,
+        "prune_node": true,
+        "disconnect": {
+          "node": "4",
+          "input": "image_1"
+        }
+      }
+    ],
+    "images[1]": [
+      {
+        "node": "2",
+        "input": "image",
+        "type": "input",
+        "optional": true,
+        "prune_node": true,
+        "disconnect": {
+          "node": "4",
+          "input": "image_2"
+        }
+      }
+    ],
+    "images[2]": [
+      {
+        "node": "3",
+        "input": "image",
+        "type": "input",
+        "optional": true,
+        "prune_node": true,
+        "disconnect": {
+          "node": "4",
+          "input": "image_3"
+        }
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "negative_prompt": "The pinned ailab_OmniGen node exposes one instruction prompt and no negative prompt.",
+    "frames": "The existing image-plugin frame UI is preserved, but OmniGen emits one image per generate call.",
+    "hf_cache_dir": "Model downloads are handled by the Slopperly model manager. Generation must not use the custom node's first-run downloader.",
+    "local_files_only": "The Comfy node must find pre-downloaded local OmniGen files under models/LLM/OmniGen-v1."
+  },
+  "output": {
+    "node": "5",
+    "type": "image/png",
+    "contract": "Return one readable PNG image matching the requested dimensions unless use_input_image_size_as_output is enabled."
+  }
+}

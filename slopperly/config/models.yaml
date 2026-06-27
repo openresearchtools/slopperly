@@ -473,6 +473,40 @@ models:
       - chatterbox_multilingual_tts_comfy
       - chatterbox_multilingual_ref_tts_comfy
       - audio/chatterbox_multilingual.py
+  - logical_name: omnigen_v1_multi_image
+    legacy_aliases:
+      - Shitao/OmniGen-v1-diffusers
+    task: image_multi_reference
+    runtime: comfy
+    model_source: https://huggingface.co/Shitao/OmniGen-v1
+    download_mode: hf_snapshot
+    local_cache_path: models/LLM/OmniGen-v1
+    required_files:
+      - config.json
+      - model.safetensors
+      - tokenizer.json
+      - tokenizer_config.json
+      - special_tokens_map.json
+      - vae/config.json
+      - vae/diffusion_pytorch_model.safetensors
+    required_node_pack: comfyui_omnigen + comfyui core image
+    supported_resolutions:
+      - 512x512
+      - 1024x1024
+    supported_fps: []
+    context_limits: {}
+    default_parameters:
+      steps: 50
+      guidance: 3.0
+      img_guidance_scale: 1.6
+      model_precision: Auto
+      memory_management: Memory Priority
+      max_input_image_size: 1024
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_omnigen.py --device cuda
+    workflows:
+      - omnigen_v1_multi_image
+      - image/omnigen.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter

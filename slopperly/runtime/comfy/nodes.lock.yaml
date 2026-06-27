@@ -128,7 +128,8 @@ custom_nodes:
     commit: 5890d3fdb7ac5b598d025a2a14fbd2d6c9d8104b
     install_command: pip install -r requirements.txt
     python_extras: []
-    required_node_classes: []
+    required_node_classes:
+      - ailab_OmniGen
   - id: comfyui_rmbg
     repo: https://github.com/1038lab/ComfyUI-RMBG.git
     commit: d7402513f23f58db7d56754b02a4f51a148b4941

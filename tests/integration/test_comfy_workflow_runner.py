@@ -27,6 +27,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
     request_order = []
     video_bytes = b"fake mp4 bytes from local comfy"
     audio_bytes = b"RIFF$\x00\x00\x00WAVEfmt "
+    image_bytes = b"fake png bytes from local comfy"
 
     def log_message(self, *args):
         pass
@@ -295,6 +296,25 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "ailab_OmniGen"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "5": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_omnigen_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -321,6 +341,8 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "chatterbox" in parsed.query
             ):
                 return self._binary(self.audio_bytes, "audio/flac")
+            if "omnigen" in parsed.query:
+                return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
         self.send_response(404)
         self.end_headers()
@@ -413,6 +435,15 @@ def _foundation1_object_info() -> dict:
 def _chatterbox_object_info(workflow_id: str) -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _omnigen_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/omnigen_v1_multi_image/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -957,6 +988,63 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["2"]["inputs"]["top_p"], 0.91)
         self.assertEqual(prompt["2"]["inputs"]["seed"], 24603)
         self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
+
+    def test_omnigen_pack_uploads_references_and_prunes_empty_slots(self):
+        ComfyHandler.reset(_omnigen_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            first = Path(tmp) / "first.png"
+            second = Path(tmp) / "second.png"
+            destination = Path(tmp) / "omnigen.png"
+            first.write_bytes(b"first local image")
+            second.write_bytes(b"second local image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="combine image_1 and image_2 into one local test image",
+                images=[str(first), str(second), None],
+                width=640,
+                height=512,
+                steps=9,
+                guidance=3.25,
+                seed=2026,
+                omnigen_img_guidance_scale=1.7,
+                omnigen_use_input_image_size_as_output=False,
+                omnigen_model_precision="Auto",
+                omnigen_memory_management="Memory Priority",
+                omnigen_separate_cfg_infer=True,
+                omnigen_max_input_image_size=768,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/omnigen_v1_multi_image",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 2)
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["2"]["inputs"]["image"], "uploaded_source_2.png")
+        self.assertNotIn("3", prompt)
+        self.assertEqual(prompt["4"]["class_type"], "ailab_OmniGen")
+        self.assertEqual(prompt["4"]["inputs"]["image_1"], ["1", 0])
+        self.assertEqual(prompt["4"]["inputs"]["image_2"], ["2", 0])
+        self.assertNotIn("image_3", prompt["4"]["inputs"])
+        self.assertEqual(prompt["4"]["inputs"]["prompt"], "combine image_1 and image_2 into one local test image")
+        self.assertEqual(prompt["4"]["inputs"]["width"], 640)
+        self.assertEqual(prompt["4"]["inputs"]["height"], 512)
+        self.assertEqual(prompt["4"]["inputs"]["num_inference_steps"], 9)
+        self.assertEqual(prompt["4"]["inputs"]["guidance_scale"], 3.25)
+        self.assertEqual(prompt["4"]["inputs"]["img_guidance_scale"], 1.7)
+        self.assertFalse(prompt["4"]["inputs"]["use_input_image_size_as_output"])
+        self.assertEqual(prompt["4"]["inputs"]["max_input_image_size"], 768)
+        self.assertIn(b'filename="first.png"', ComfyHandler.upload_bodies[0])
+        self.assertIn(b'filename="second.png"', ComfyHandler.upload_bodies[1])
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):
         with tempfile.TemporaryDirectory() as tmp:
