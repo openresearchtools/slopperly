@@ -869,6 +869,7 @@ models:
       sampler: er_sde
       scheduler: simple
       denoise_formula: 1.0 - image_strength
+      lora_injection: dynamic_lora_loader_model_only
     minimum_vram_gb: 16
     validation_command: pytest tests/gpu/test_anima.py --device cuda
     workflows:

@@ -44,7 +44,7 @@ The files are sourced from `circlestone-labs/Anima`, using the official Anima Pr
 - Anima VAE -> node `3`, input `vae_name`
 - sampler/scheduler defaults -> node `7`, inputs `sampler_name` and `scheduler`
 
-The image-strength and LoRA UI remain visible. Text-to-image does not consume image strength, and arbitrary project LoRA injection is recorded as unmapped until a certified LoRA graph is added.
+The image-strength UI remains visible but text-to-image does not consume image strength. Selected project LoRAs are inserted dynamically before `KSampler` with one `LoraLoaderModelOnly` node per selected filename/weight.
 
 ## Output Contract
 

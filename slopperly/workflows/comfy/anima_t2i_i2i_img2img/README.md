@@ -48,7 +48,7 @@ The files are sourced from `circlestone-labs/Anima`, using the official Anima Pr
 - Anima VAE -> node `3`, input `vae_name`
 - sampler/scheduler defaults -> node `9`, inputs `sampler_name` and `scheduler`
 
-The LoRA UI remains visible. Arbitrary project LoRA injection is recorded as unmapped until a certified LoRA graph is added.
+Selected project LoRAs are inserted dynamically before `KSampler` with one `LoraLoaderModelOnly` node per selected filename/weight.
 
 ## Output Contract
 

@@ -1697,6 +1697,35 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["7"]["inputs"]["scheduler"], "simple")
 
         with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            lora_inputs = self.base.ModelInputs(
+                prompt="local Anima text to image with selected LoRA",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                steps=25,
+                guidance=4.0,
+                seed=2403,
+                frames=1,
+            )
+            enabled = [SimpleNamespace(name="anima_local_style", weight_value=0.6, enabled=True)]
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace(), enabled_items=enabled)
+                output = plugin.generate(pipe, lora_inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        lora_prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(lora_prompt["90"]["class_type"], "LoraLoaderModelOnly")
+        self.assertEqual(lora_prompt["90"]["inputs"]["model"], ["1", 0])
+        self.assertEqual(lora_prompt["90"]["inputs"]["lora_name"], "anima_local_style.safetensors")
+        self.assertEqual(lora_prompt["90"]["inputs"]["strength_model"], 0.6)
+        self.assertEqual(lora_prompt["7"]["inputs"]["model"], ["90", 0])
+        self.assertIn("applied 1 selected LoRA", lora_inputs.usage_note)
+        self.assertFalse(hasattr(lora_inputs, "_slopperly_comfy_workflow_mutator"))
+
+        with tempfile.TemporaryDirectory() as tmp:
             RuntimeHandler.comfy_uploads = []
             source = Path(tmp) / "source.png"
             source.write_bytes(b"local source image")
@@ -1731,6 +1760,44 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["9"]["inputs"]["cfg"], 4.0)
         self.assertAlmostEqual(prompt["9"]["inputs"]["denoise"], 0.35)
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            RuntimeHandler.comfy_uploads = []
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            lora_inputs = self.base.ModelInputs(
+                prompt="local Anima image to image with selected LoRA",
+                neg_prompt="text, watermark",
+                image=str(source),
+                mode="img2img",
+                width=1024,
+                height=1024,
+                steps=25,
+                guidance=4.0,
+                strength=0.65,
+                seed=2404,
+                frames=1,
+            )
+            enabled = [
+                SimpleNamespace(name="styles/anima_i2i_style.safetensors", weight_value=0.7, enabled=True)
+            ]
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace(), enabled_items=enabled)
+                output = plugin.generate(pipe, lora_inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        lora_prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(lora_prompt["90"]["class_type"], "LoraLoaderModelOnly")
+        self.assertEqual(lora_prompt["90"]["inputs"]["model"], ["1", 0])
+        self.assertEqual(lora_prompt["90"]["inputs"]["lora_name"], "anima_i2i_style.safetensors")
+        self.assertEqual(lora_prompt["90"]["inputs"]["strength_model"], 0.7)
+        self.assertEqual(lora_prompt["9"]["inputs"]["model"], ["90", 0])
+        self.assertAlmostEqual(lora_prompt["9"]["inputs"]["denoise"], 0.35)
+        self.assertIn("applied 1 selected LoRA", lora_inputs.usage_note)
+        self.assertFalse(hasattr(lora_inputs, "_slopperly_comfy_workflow_mutator"))
 
     def test_ernie_uses_comfy_t2i_plugin_paths(self):
         module = load_plugin_module("image", "ernie")

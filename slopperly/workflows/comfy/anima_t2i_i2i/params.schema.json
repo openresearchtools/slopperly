@@ -85,7 +85,7 @@
   "uploads": {},
   "unmapped_ui_parameters": {
     "image_strength": "Text-to-image does not consume the image strength field.",
-    "lora": "Project LoRA UI is preserved, but this certified graph does not dynamically inject arbitrary LoRA files yet."
+    "lora": "Selected project LoRA filenames and weights are dynamically inserted before KSampler with LoraLoaderModelOnly."
   },
   "output": {
     "node": "9",

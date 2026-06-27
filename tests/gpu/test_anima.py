@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 
 from slopperly.audit.network_guard import local_only_network
@@ -8,8 +9,8 @@ from slopperly.validation.artifacts import ArtifactValidationError, validate_ima
 LOGICAL_NAME = "anima_t2i_i2i"
 
 
-def test_anima_t2i(gpu_cert, plugin_loader, base_models, repo_root):
-    _run_anima_case(
+def test_anima_t2i_and_i2i(gpu_cert, plugin_loader, base_models, repo_root):
+    t2i = _run_anima_case(
         gpu_cert,
         plugin_loader,
         base_models,
@@ -20,10 +21,7 @@ def test_anima_t2i(gpu_cert, plugin_loader, base_models, repo_root):
         filename="anima_t2i.png",
         mode="txt2img",
     )
-
-
-def test_anima_i2i(gpu_cert, plugin_loader, base_models, repo_root):
-    _run_anima_case(
+    i2i = _run_anima_case(
         gpu_cert,
         plugin_loader,
         base_models,
@@ -33,6 +31,36 @@ def test_anima_i2i(gpu_cert, plugin_loader, base_models, repo_root):
         seed=240102,
         filename="anima_i2i.png",
         mode="img2img",
+    )
+
+    manifest_path = gpu_cert.artifact_path(LOGICAL_NAME, "anima_manifest.json")
+    manifest = {
+        "t2i": t2i,
+        "img2img": i2i,
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    gpu_cert.pass_artifact(
+        LOGICAL_NAME,
+        manifest_path,
+        {
+            "kind": "manifest",
+            "cases": {
+                "t2i": t2i["validation"],
+                "img2img": i2i["validation"],
+            },
+        },
+        metadata={
+            "runtime_url": t2i["runtime_url"],
+            "workflow_packs": {
+                "t2i": t2i["workflow_pack"],
+                "img2img": i2i["workflow_pack"],
+            },
+            "artifacts": {
+                "t2i": t2i["artifact"],
+                "img2img": i2i["artifact"],
+            },
+            "source": i2i.get("source"),
+        },
     )
 
 
@@ -99,10 +127,13 @@ def _run_anima_case(
         "runtime_url": runtime_url,
         "workflow_pack": str(workflow_pack),
         "mode": mode,
+        "artifact": str(output_path),
+        "result_path": str(result_path),
+        "validation": validation,
     }
     if source is not None:
         metadata["source"] = str(source)
-    gpu_cert.pass_artifact(LOGICAL_NAME, output_path, validation, metadata=metadata)
+    return metadata
 
 
 def _load_fixture(gpu_cert, path):

@@ -99,7 +99,7 @@
   },
   "unmapped_ui_parameters": {
     "strength": "Mapped as anima_denoise = 1.0 - strength for compatibility with the previous Diffusers img2img wrapper.",
-    "lora": "Project LoRA UI is preserved, but this certified graph does not dynamically inject arbitrary LoRA files yet."
+    "lora": "Selected project LoRA filenames and weights are dynamically inserted before KSampler with LoraLoaderModelOnly."
   },
   "output": {
     "node": "11",
