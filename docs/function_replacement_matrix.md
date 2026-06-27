@@ -16,5 +16,6 @@ This matrix is the working replacement plan for production-visible functions.
 | `MOSS-TTS` | Migrated to pinned Nano profile, GPU/server test pending | vLLM-Omni | `moss_tts_nano_vllm_omni` |
 | `ZhengPeng7/BiRefNet_HR` | Migrated wrapper, GPU/server test pending | ComfyUI | `birefnet_rmbg` |
 | `nvidia/maxine-vsr` | Migrated wrapper, GPU/server test pending | ComfyUI | `local_image_vsr_upscale` |
+| `nvidia/maxine-vsr-video` | Migrated wrapper, GPU/server test pending | ComfyUI | `local_video_vsr_upscale` |
 
 Entries are complete only after the corresponding GPU artifact test produces a real artifact through the addon plugin path.

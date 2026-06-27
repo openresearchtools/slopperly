@@ -431,7 +431,7 @@ class ComfyWorkflowRunner:
         results: list[str] = []
         for node_out in (history.get("outputs") or {}).values():
             self._collect_text_outputs(node_out, results, output_root, destination)
-            for kind in ("images", "videos", "audio"):
+            for kind in ("images", "videos", "gifs", "audio"):
                 for item in node_out.get(kind, []) or []:
                     filename = item.get("filename")
                     if not filename:

@@ -809,3 +809,15 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: integration coverage calls `MaxineVSRPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies the patched `LoadImage -> UpscaleModelLoader -> ImageUpscaleWithModel -> ImageScale -> SaveImage` graph.
 - Evidence: `python -m slopperly.models.download --profile smoke_16gb --dry-run --report-only` plans 10 local artifact entries with 0 blocked, including `ai-forever/Real-ESRGAN/RealESRGAN_x4.pth`.
 - Still blocked: real RTX 4090 local image VSR artifact certification requires owned ComfyUI running with core upscale nodes and `RealESRGAN_x4.pth` installed in `models/upscale_models/`.
+
+### 2026-06-27 Local video VSR Comfy workflow block
+
+- Completed: `video/maxine_vsr_video.py` now routes the legacy video super-resolution plugin through the local Comfy workflow gateway instead of NVIDIA Maxine/nvvfx in the add-on process.
+- Completed: `local_video_vsr_upscale` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, README, and a 1-second MP4 fixture with audio.
+- Completed: Comfy workflow artifact collection now recognizes VideoHelperSuite `gifs` outputs, which are used for MP4 results from `VHS_VideoCombine`.
+- Completed: `local_video_vsr_upscale` is registered in `slopperly/config/models.yaml` with legacy alias `nvidia/maxine-vsr-video` and artifact source `ai-forever/Real-ESRGAN`, file `RealESRGAN_x4.pth`.
+- Completed: `pytest.ini` now keeps pytest collection rooted at `tests`, allowing the acceptance command `python -m pytest tests/unit` to run outside Blender without importing `bpy`.
+- Evidence: integration coverage calls `MaxineVSRVideoPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies `/upload/video`, source-fps patching, `VHS_LoadVideo -> UpscaleModelLoader -> ImageUpscaleWithModel -> ImageScale -> VHS_VideoCombine`, H.264 MP4 format, and source-audio wiring.
+- Evidence: `python -m pytest tests/unit` passes 40 tests.
+- Evidence: `python -m slopperly.audit.workflow_packs` validates 5 committed Comfy workflow packs including `local_video_vsr_upscale`.
+- Still blocked: real RTX 4090 local video VSR artifact certification requires owned ComfyUI running with VideoHelperSuite, core upscale nodes, and `RealESRGAN_x4.pth` installed in `models/upscale_models/`.

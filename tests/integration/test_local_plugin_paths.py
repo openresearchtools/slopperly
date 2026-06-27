@@ -47,6 +47,7 @@ def install_plugin_import_harness() -> None:
     _ensure_package(f"{TEST_PACKAGE}.models_plugins.text")
     _ensure_package(f"{TEST_PACKAGE}.models_plugins.audio")
     _ensure_package(f"{TEST_PACKAGE}.models_plugins.image")
+    _ensure_package(f"{TEST_PACKAGE}.models_plugins.video")
     _ensure_package(f"{TEST_PACKAGE}.utils")
 
     if f"{TEST_PACKAGE}.models.base" not in sys.modules:
@@ -90,6 +91,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
     speech_payloads = []
     transcription_body = b""
     wav_bytes = b"RIFF$\x00\x00\x00WAVEfmt "
+    mp4_bytes = b"fake mp4 bytes from local comfy"
     png_bytes = base64.b64decode(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
     )
@@ -122,11 +124,15 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "UpscaleModelLoader": {},
                 "ImageUpscaleWithModel": {},
                 "ImageScale": {},
+                "VHS_LoadVideo": {},
+                "VHS_VideoCombine": {},
                 "BiRefNetRMBG": {},
                 "DownloadAndLoadFlorence2Model": {},
                 "Florence2Run": {},
             })
         if self.path.startswith("/view"):
+            if ".mp4" in self.path:
+                return self._binary(self.mp4_bytes, "video/mp4")
             return self._binary(self.png_bytes, "image/png")
         if self.path == "/history/prompt-1":
             if any(
@@ -154,6 +160,27 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 for node in RuntimeHandler.comfy_prompt.values()
                 if isinstance(node, dict)
             ):
+                if any(
+                    node.get("class_type") == "VHS_VideoCombine"
+                    for node in RuntimeHandler.comfy_prompt.values()
+                    if isinstance(node, dict)
+                ):
+                    return self._json({
+                        "prompt-1": {
+                            "outputs": {
+                                "5": {
+                                    "gifs": [
+                                        {
+                                            "filename": "local_video_vsr.mp4",
+                                            "subfolder": "",
+                                            "type": "output",
+                                            "format": "video/h264-mp4",
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    })
                 return self._json({
                     "prompt-1": {
                         "outputs": {
@@ -243,8 +270,10 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                     {"start": 1.0, "end": 2.0, "text": "world"},
                 ],
             })
-        if self.path == "/upload/image":
+        if self.path in {"/upload/image", "/upload/video"}:
             RuntimeHandler.comfy_uploads.append(body)
+            if self.path == "/upload/video":
+                return self._json({"name": "uploaded_video.mp4", "subfolder": "", "type": "input"})
             return self._json({"name": "uploaded_source.png", "subfolder": "", "type": "input"})
         if self.path == "/prompt":
             RuntimeHandler.comfy_prompt = json.loads(body.decode("utf-8"))["prompt"]
@@ -492,6 +521,44 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["4"]["inputs"]["height"], 48)
         self.assertEqual(prompt["4"]["inputs"]["crop"], "center")
         self.assertIn(b'filename="slopperly_input_image_', RuntimeHandler.comfy_uploads[-1])
+
+    def test_local_video_vsr_uses_comfy_plugin_path(self):
+        module = load_plugin_module("video", "maxine_vsr_video")
+        plugin = module.MaxineVSRVideoPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            video_path = Path(tmp) / "clip.mp4"
+            video_path.write_bytes(b"fake local video")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace()
+            inputs = self.base.ModelInputs(
+                video_path=str(video_path),
+                width=64,
+                height=48,
+                fps=12.5,
+                seed=790,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.mp4_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["inputs"]["video"], "uploaded_video.mp4")
+        self.assertEqual(prompt["1"]["inputs"]["force_rate"], 0)
+        self.assertEqual(prompt["1"]["inputs"]["custom_width"], 0)
+        self.assertEqual(prompt["1"]["inputs"]["frame_load_cap"], 0)
+        self.assertEqual(prompt["2"]["inputs"]["model_name"], "RealESRGAN_x4.pth")
+        self.assertEqual(prompt["3"]["class_type"], "ImageUpscaleWithModel")
+        self.assertEqual(prompt["4"]["inputs"]["width"], 64)
+        self.assertEqual(prompt["4"]["inputs"]["height"], 48)
+        self.assertEqual(prompt["5"]["class_type"], "VHS_VideoCombine")
+        self.assertEqual(prompt["5"]["inputs"]["frame_rate"], 12.5)
+        self.assertEqual(prompt["5"]["inputs"]["format"], "video/h264-mp4")
+        self.assertEqual(prompt["5"]["inputs"]["audio"], ["1", 2])
+        self.assertIn(b'name="video"; filename="clip.mp4"', RuntimeHandler.comfy_uploads[-1])
 
     def test_marlin_video_captions_uses_vllm_vlm_plugin_path(self):
         module = load_plugin_module("text", "marlin_video_captions")

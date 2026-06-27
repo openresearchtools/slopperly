@@ -215,6 +215,38 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Real RTX 4090 artifact certification was not run in this block.
 - `local_image_vsr_upscale` remains blocked in dropdown certification until owned ComfyUI is running with `RealESRGAN_x4.pth` installed in `models/upscale_models/` and `tests/gpu/test_local_image_vsr_upscale.py --device cuda` produces a validated PNG artifact.
 
+## 2026-06-27 Local video VSR Comfy workflow block
+
+### Production Path Migrated
+
+- `video/maxine_vsr_video.py` now routes the legacy `nvidia/maxine-vsr-video` path through the local Comfy gateway.
+- The production display name is now `Video: Local Super Resolution`; no NVIDIA Maxine runtime, `nvvfx`, Torch frame loop, or in-plugin ffmpeg mux path remains in the video plugin.
+- The existing video-strip input, resolution, seed, and output-file path behavior are preserved. The plugin probes the source video fps locally and passes it to `VHS_VideoCombine`.
+- Source audio is preserved by wiring `VHS_LoadVideo` audio output to `VHS_VideoCombine` optional `audio` input.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/local_video_vsr_upscale/` with editable/API workflow JSON, schema, model manifest, test payload, and README.
+- The workflow uses VideoHelperSuite `VHS_LoadVideo` and `VHS_VideoCombine`, plus core Comfy `UpscaleModelLoader`, `ImageUpscaleWithModel`, and `ImageScale`.
+- Updated Comfy workflow output collection to recognize VideoHelperSuite `gifs` history outputs, which are used for MP4 preview/artifact records.
+- Registered `local_video_vsr_upscale` in `slopperly/config/models.yaml` with legacy alias `nvidia/maxine-vsr-video` and Hugging Face artifact source `ai-forever/Real-ESRGAN`, file `RealESRGAN_x4.pth`.
+- Added `tests/fixtures/video_vsr_source.mp4`, a 1-second 16x12/12fps MP4 with audio for real artifact certification.
+- Added `pytest.ini` with `--confcutdir=tests` so `python -m pytest tests/unit` does not import the Blender add-on package root and require `bpy` outside Blender.
+
+### Verification
+
+- `python -m compileall -q models models_plugins slopperly tests`
+- `python -m pytest tests/unit`
+- `python tests/integration/test_local_plugin_paths.py`
+- `python -m slopperly.audit.workflow_packs`
+- `python -m slopperly.audit.model_registry --root .`
+- `python tests/unit/test_model_download_and_doctor.py`
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- `local_video_vsr_upscale` remains blocked in dropdown certification until owned ComfyUI is running with VideoHelperSuite, core upscale nodes, and `RealESRGAN_x4.pth` installed in `models/upscale_models/`, then `tests/gpu/test_local_video_vsr_upscale.py --device cuda` produces a validated MP4 artifact with audio.
+
 ## 2026-06-27 Comfy workflow runner integration block
 
 ### Runtime Gateway Behavior Added

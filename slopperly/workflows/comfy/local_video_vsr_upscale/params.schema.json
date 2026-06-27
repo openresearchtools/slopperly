@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "workflow_id": "local_video_vsr_upscale",
+  "description": "Patch schema for local video super-resolution through ComfyUI VideoHelperSuite and core upscale nodes.",
+  "inputs": {
+    "width": [
+      {
+        "node": "4",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "4",
+        "input": "height"
+      }
+    ],
+    "fps": [
+      {
+        "node": "5",
+        "input": "frame_rate"
+      }
+    ],
+    "local_vsr_model": [
+      {
+        "node": "2",
+        "input": "model_name"
+      }
+    ],
+    "local_vsr_upscale_method": [
+      {
+        "node": "4",
+        "input": "upscale_method"
+      }
+    ],
+    "local_vsr_crop": [
+      {
+        "node": "4",
+        "input": "crop"
+      }
+    ],
+    "local_video_vsr_frame_load_cap": [
+      {
+        "node": "1",
+        "input": "frame_load_cap"
+      }
+    ],
+    "local_video_vsr_format": [
+      {
+        "node": "5",
+        "input": "format"
+      }
+    ]
+  },
+  "uploads": {
+    "video_path": [
+      {
+        "node": "1",
+        "input": "video",
+        "type": "input",
+        "endpoint": "/upload/video",
+        "form_field": "video"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "seed": "Real-ESRGAN video upscaling is deterministic and does not expose a seed.",
+    "maxine_quality": "The old NVIDIA Maxine quality selector is not used by the local Comfy workflow."
+  },
+  "output": {
+    "node": "5",
+    "type": "video/mp4",
+    "contract": "Return an ffprobe-readable MP4 matching the requested width and height, preserving source fps and audio when present."
+  }
+}

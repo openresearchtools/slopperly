@@ -1,0 +1,12 @@
+{
+  "video_path": "tests/fixtures/video_vsr_source.mp4",
+  "width": 32,
+  "height": 24,
+  "fps": 12,
+  "seed": 123,
+  "local_vsr_model": "RealESRGAN_x4.pth",
+  "local_vsr_upscale_method": "bicubic",
+  "local_vsr_crop": "center",
+  "local_video_vsr_frame_load_cap": 0,
+  "local_video_vsr_format": "video/h264-mp4"
+}

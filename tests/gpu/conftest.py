@@ -210,6 +210,7 @@ def install_plugin_import_harness(root: Path) -> None:
     _ensure_package(f"{TEST_PACKAGE}.models_plugins.text")
     _ensure_package(f"{TEST_PACKAGE}.models_plugins.audio")
     _ensure_package(f"{TEST_PACKAGE}.models_plugins.image")
+    _ensure_package(f"{TEST_PACKAGE}.models_plugins.video")
     _ensure_package(f"{TEST_PACKAGE}.utils")
 
     if f"{TEST_PACKAGE}.models.base" not in sys.modules:

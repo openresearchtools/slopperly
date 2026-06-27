@@ -1,0 +1,45 @@
+workflow_id: local_video_vsr_upscale
+task: video_super_resolution
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    classes:
+      - UpscaleModelLoader
+      - ImageUpscaleWithModel
+      - ImageScale
+  - id: video_helper_suite
+    repo: https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git
+    commit: 4ee72c065db22c9d96c2427954dc69e7b908444b
+    classes:
+      - VHS_LoadVideo
+      - VHS_VideoCombine
+model_files:
+  upscale_models:
+    - RealESRGAN_x4.pth
+supported_profiles:
+  - input: video
+    output: mp4
+    width: 1920
+    height: 1080
+    fps: source
+  - input: video
+    output: mp4
+    width: 1280
+    height: 720
+    fps: source
+  - input: video
+    output: mp4
+    width: 32
+    height: 24
+    fps: source
+artifact_contract:
+  output_type: mp4
+  validation:
+    - ffprobe-readable
+    - width equals requested width
+    - height equals requested height
+    - fps equals source fps
+    - duration matches source duration within one frame
+    - audio stream is preserved when the source has audio
