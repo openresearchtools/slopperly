@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "workflow_id": "qwen_image_2512_t2i_gguf",
+  "description": "Patch schema for local Qwen-Image-2512 text-to-image generation through ComfyUI-GGUF.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "6",
+        "input": "text"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "7",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "8",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "8",
+        "input": "height"
+      }
+    ],
+    "steps": [
+      {
+        "node": "9",
+        "input": "steps"
+      }
+    ],
+    "seed": [
+      {
+        "node": "9",
+        "input": "seed"
+      }
+    ],
+    "qwen_image_cfg": [
+      {
+        "node": "9",
+        "input": "cfg"
+      }
+    ],
+    "qwen_image_sampler": [
+      {
+        "node": "9",
+        "input": "sampler_name"
+      }
+    ],
+    "qwen_image_scheduler": [
+      {
+        "node": "9",
+        "input": "scheduler"
+      }
+    ],
+    "qwen_image_denoise": [
+      {
+        "node": "9",
+        "input": "denoise"
+      }
+    ],
+    "qwen_image_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "qwen_image_lightning_lora": [
+      {
+        "node": "2",
+        "input": "lora_name"
+      }
+    ],
+    "qwen_image_lora_strength": [
+      {
+        "node": "2",
+        "input": "strength_model"
+      }
+    ],
+    "qwen_image_text_encoder": [
+      {
+        "node": "4",
+        "input": "clip_name"
+      }
+    ],
+    "qwen_image_vae": [
+      {
+        "node": "5",
+        "input": "vae_name"
+      }
+    ]
+  },
+  "uploads": {},
+  "unmapped_ui_parameters": {
+    "image": "Image input is handled by the companion qwen_image_2512_i2i_gguf workflow when ModelInputs.mode is img2img.",
+    "strength": "Image strength is mapped to KSampler denoise only in the companion img2img workflow.",
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "custom_loras": "The workflow applies the committed Lightning adapter. Dynamic project LoRA injection remains a follow-up because Comfy API workflows require concrete local LoRA filenames."
+  },
+  "output": {
+    "node": "11",
+    "type": "image/png",
+    "contract": "Return one readable PNG image matching the mapped requested dimensions."
+  }
+}

@@ -759,3 +759,30 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with `ailab_OmniGen`, core `LoadImage`/`SaveImage`, the `Shitao/OmniGen-v1` snapshot installed under `models/LLM/OmniGen-v1/`, and the OmniGen node's code dependency available before generation so no first-run external downloader is used.
+
+## 2026-06-27 Qwen Image 2512 Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/image/qwen_image.py` now routes `Qwen/Qwen-Image-2512` through the local Comfy gateway instead of importing Torch, Transformers, Diffusers, or loading Qwen pipelines in the add-on process.
+- The existing prompt, negative prompt, image strip, resolution, frames, steps, image strength, seed, and LoRA UI sections remain present.
+- The wrapper selects `qwen_image_2512_t2i_gguf` for text-to-image and `qwen_image_2512_i2i_gguf` for img2img. The old img2img behavior is preserved by mapping `ModelInputs.strength` to `KSampler.denoise` as `1.0 - strength`.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/qwen_image_2512_t2i_gguf/` and `slopperly/workflows/comfy/qwen_image_2512_i2i_gguf/` with editable/API workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- The workflows use ComfyUI-GGUF `UnetLoaderGGUF` for `qwen-image-2512-Q5_K_M.gguf`, Comfy core `CLIPLoader`, `VAELoader`, `ModelSamplingAuraFlow`, `LoraLoaderModelOnly`, `CLIPTextEncode`, `KSampler`, `VAEDecode`, and `SaveImage`. The img2img workflow adds `LoadImage`, `ImageScale`, and `VAEEncode`.
+- Registered `qwen_image_2512_t2i_gguf` in `slopperly/config/models.yaml` with legacy alias `Qwen/Qwen-Image-2512`, Hugging Face artifact source `unsloth/Qwen-Image-2512-GGUF`, auxiliary Comfy text encoder and VAE files, and the Lightning 4-step LoRA artifact.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` to assert the core `EmptySD3LatentImage` node used by the text-to-image workflow.
+
+### Verification
+
+- Integration coverage calls `QwenImagePlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching plus img2img upload and denoise mapping.
+- Workflow-runner integration coverage verifies both committed Qwen Image 2512 packs directly and collects single PNG artifacts from Comfy history outputs.
+- GPU certification coverage is registered in `tests/gpu/test_qwen_image_2512.py` and validates text-to-image and img2img PNG artifacts when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with ComfyUI-GGUF, core Qwen image nodes, `qwen-image-2512-Q5_K_M.gguf`, `qwen_2.5_vl_7b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`, and `Qwen-Image-2512-Lightning-4steps-V1.0-bf16.safetensors` installed locally.
+- Arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the committed graph applies the certified Lightning adapter and records custom LoRA injection as a follow-up.

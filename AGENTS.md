@@ -926,3 +926,15 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: workflow-runner integration coverage verifies the committed Qwen pack directly, and `tests/gpu/test_qwen_image_edit_2511.py` now performs one-reference and three-reference plugin-path certification attempts instead of reporting an unwired-test block.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with ComfyUI-GGUF, Comfy core Qwen/Kontext edit nodes, and the Qwen GGUF/text encoder/VAE/Lightning LoRA files installed locally.
 - Still blocked: arbitrary project LoRA injection is not dynamically mapped in this workflow pack yet; the committed graph applies the certified Lightning adapter and records custom LoRA injection as a follow-up rather than loading placeholder filenames.
+
+### 2026-06-27 Qwen Image 2512 Comfy workflow block
+
+- Completed: `image/qwen_image.py` now routes `Qwen/Qwen-Image-2512` through the local Comfy workflow gateway instead of direct Torch/Transformers/Diffusers execution and generation-time Hugging Face downloads in the add-on process.
+- Completed: the existing prompt, negative prompt, image strip, resolution, frames, steps, image strength, seed, and LoRA UI sections remain present; the wrapper selects text-to-image or img2img workflow packs from the existing `ModelInputs.mode` and `ModelInputs.image` values.
+- Completed: `qwen_image_2512_t2i_gguf` and `qwen_image_2512_i2i_gguf` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Completed: the workflows use ComfyUI-GGUF `UnetLoaderGGUF` for `qwen-image-2512-Q5_K_M.gguf`, Comfy core Qwen image nodes, and the local Lightning 4-step LoRA profile.
+- Completed: `slopperly/config/models.yaml` now records the Qwen Image 2512 GGUF plus auxiliary Comfy text encoder, Qwen VAE, and Lightning LoRA artifacts; `slopperly/runtime/comfy/nodes.lock.yaml` now asserts `EmptySD3LatentImage`.
+- Evidence: integration coverage calls `QwenImagePlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching, img2img image upload, and the preserved `denoise = 1.0 - strength` mapping.
+- Evidence: workflow-runner integration coverage verifies both committed Qwen Image 2512 packs directly, and `tests/gpu/test_qwen_image_2512.py` now performs text-to-image and img2img plugin-path certification attempts instead of reporting an unwired-test block.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with ComfyUI-GGUF, Comfy core Qwen image nodes, and the Qwen GGUF/text encoder/VAE/Lightning LoRA files installed locally.
+- Still blocked: arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the committed graph applies the certified Lightning adapter and records custom LoRA injection as a follow-up rather than loading placeholder filenames.

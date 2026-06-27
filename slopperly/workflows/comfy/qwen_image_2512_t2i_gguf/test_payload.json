@@ -1,0 +1,23 @@
+{
+  "prompt": "A clean local Slopperly image generation smoke test, small ceramic robot on a workbench.",
+  "negative_prompt": "text, watermark, low quality",
+  "width": 1024,
+  "height": 1024,
+  "steps": 4,
+  "seed": 2512,
+  "qwen_image_cfg": 1.0,
+  "qwen_image_sampler": "euler",
+  "qwen_image_scheduler": "simple",
+  "qwen_image_denoise": 1.0,
+  "qwen_image_model": "qwen-image-2512-Q5_K_M.gguf",
+  "qwen_image_text_encoder": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+  "qwen_image_vae": "qwen_image_vae.safetensors",
+  "qwen_image_lightning_lora": "Qwen-Image-2512-Lightning-4steps-V1.0-bf16.safetensors",
+  "qwen_image_lora_strength": 1.0,
+  "expected": {
+    "type": "image",
+    "width": 1024,
+    "height": 1024,
+    "readable": true
+  }
+}

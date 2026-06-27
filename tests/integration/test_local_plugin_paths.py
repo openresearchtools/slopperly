@@ -137,6 +137,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "UNETLoader": {},
                 "VAELoader": {},
                 "DualCLIPLoader": {},
+                "EmptySD3LatentImage": {},
                 "TextEncodeAceStepAudio1.5": {},
                 "EmptyAceStep1.5LatentAudio": {},
                 "ConditioningZeroOut": {},
@@ -492,6 +493,39 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "images": [
                                     {
                                         "filename": "slopperly_qwen_image_edit_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if (
+                any(
+                    node.get("class_type") == "UnetLoaderGGUF"
+                    for node in RuntimeHandler.comfy_prompt.values()
+                    if isinstance(node, dict)
+                )
+                and any(
+                    node.get("class_type") == "CLIPTextEncode"
+                    for node in RuntimeHandler.comfy_prompt.values()
+                    if isinstance(node, dict)
+                )
+            ):
+                output_node = "13" if "13" in RuntimeHandler.comfy_prompt else "11"
+                filename = (
+                    "slopperly_qwen_image_2512_i2i_00001_.png"
+                    if output_node == "13"
+                    else "slopperly_qwen_image_2512_00001_.png"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "images": [
+                                    {
+                                        "filename": filename,
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -958,6 +992,82 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertIn(b'filename="first.png"', RuntimeHandler.comfy_uploads[0])
         self.assertIn(b'filename="second.png"', RuntimeHandler.comfy_uploads[1])
         self.assertIn(b'filename="third.png"', RuntimeHandler.comfy_uploads[2])
+
+    def test_qwen_image_uses_comfy_t2i_plugin_path(self):
+        module = load_plugin_module("image", "qwen_image")
+        plugin = module.QwenImagePlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Qwen Image text to image",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                steps=4,
+                guidance=1.0,
+                seed=2512,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(RuntimeHandler.comfy_uploads, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "qwen-image-2512-Q5_K_M.gguf")
+        self.assertEqual(prompt["2"]["inputs"]["lora_name"], "Qwen-Image-2512-Lightning-4steps-V1.0-bf16.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["clip_name"], "qwen_2.5_vl_7b_fp8_scaled.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["vae_name"], "qwen_image_vae.safetensors")
+        self.assertEqual(prompt["6"]["inputs"]["text"], "local Qwen Image text to image")
+        self.assertEqual(prompt["7"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["8"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["9"]["inputs"]["seed"], 2512)
+        self.assertEqual(prompt["9"]["inputs"]["steps"], 4)
+        self.assertEqual(prompt["9"]["inputs"]["cfg"], 1.0)
+        self.assertEqual(prompt["9"]["inputs"]["denoise"], 1.0)
+
+    def test_qwen_image_uses_comfy_i2i_plugin_path(self):
+        module = load_plugin_module("image", "qwen_image")
+        plugin = module.QwenImagePlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Qwen Image image to image",
+                neg_prompt="text, watermark",
+                image=str(source),
+                mode="img2img",
+                width=1024,
+                height=1024,
+                steps=4,
+                guidance=1.0,
+                strength=0.65,
+                seed=2513,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["8"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["9"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["9"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["11"]["inputs"]["seed"], 2513)
+        self.assertEqual(prompt["11"]["inputs"]["steps"], 4)
+        self.assertEqual(prompt["11"]["inputs"]["cfg"], 1.0)
+        self.assertAlmostEqual(prompt["11"]["inputs"]["denoise"], 0.35)
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
 
     def test_google_nano_banana_alias_uses_local_qwen_workflow(self):
         module = load_plugin_module("image", "google_nano_banana")

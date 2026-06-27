@@ -54,6 +54,8 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
                 dry_run=True,
             )
         statuses = {(result.model, result.status) for result in results}
+        self.assertIn(("qwen_image_2512_t2i_gguf", "PLAN"), statuses)
+        self.assertIn(("qwen_image_2512_t2i_gguf:qwen_image_2512_text_encoder", "PLAN"), statuses)
         self.assertIn(("qwen_image_edit_2511_multi_gguf", "PLAN"), statuses)
         self.assertIn(("wan22_ti2v_5b_720p24_gguf", "PLAN"), statuses)
         self.assertIn(("vllm_whisper_large_v3_turbo_stt", "PLAN"), statuses)

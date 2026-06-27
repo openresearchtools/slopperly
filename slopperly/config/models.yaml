@@ -1,4 +1,51 @@
 models:
+  - logical_name: qwen_image_2512_t2i_gguf
+    legacy_aliases:
+      - Qwen/Qwen-Image-2512
+    task: image_t2i_i2i
+    runtime: comfy
+    model_source: https://huggingface.co/unsloth/Qwen-Image-2512-GGUF
+    download_mode: hf_file
+    local_cache_path: models/diffusion_models/qwen-image-2512-Q5_K_M.gguf
+    required_files:
+      - qwen-image-2512-Q5_K_M.gguf
+    auxiliary_sources:
+      - id: qwen_image_2512_text_encoder
+        model_source: https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+        required_files:
+          - path: split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors
+            target: qwen_2.5_vl_7b_fp8_scaled.safetensors
+      - id: qwen_image_vae
+        model_source: https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI
+        download_mode: hf_file
+        local_cache_path: models/vae/qwen_image_vae.safetensors
+        required_files:
+          - path: split_files/vae/qwen_image_vae.safetensors
+            target: qwen_image_vae.safetensors
+      - id: qwen_image_2512_lightning_lora
+        model_source: https://huggingface.co/lightx2v/Qwen-Image-2512-Lightning
+        download_mode: hf_file
+        local_cache_path: models/loras/Qwen-Image-2512-Lightning-4steps-V1.0-bf16.safetensors
+        required_files:
+          - Qwen-Image-2512-Lightning-4steps-V1.0-bf16.safetensors
+    required_node_pack: comfyui_gguf + comfyui core qwen image
+    supported_resolutions:
+      - 1024x1024
+      - 1328x1328
+    default_parameters:
+      steps: 4
+      cfg: 1.0
+      sampler: euler
+      scheduler: simple
+      fps: null
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_qwen_image_2512.py --device cuda
+    workflows:
+      - qwen_image_2512_t2i_gguf
+      - qwen_image_2512_i2i_gguf
+      - image/qwen_image.py
   - logical_name: qwen_image_edit_2511_multi_gguf
     legacy_aliases:
       - google/nano-banana

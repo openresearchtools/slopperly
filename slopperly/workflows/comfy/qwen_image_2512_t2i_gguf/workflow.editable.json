@@ -1,0 +1,9 @@
+{
+  "workflow_id": "qwen_image_2512_t2i_gguf",
+  "source": "Derived from Comfy-Org workflow_templates image_qwen_Image_2512.json and exported as a Slopperly API graph.",
+  "notes": [
+    "Production graph uses ComfyUI-GGUF UnetLoaderGGUF for qwen-image-2512-Q5_K_M.gguf instead of the upstream FP8 UNETLoader profile.",
+    "The committed Lightning LoRA is part of the certified 4-step profile.",
+    "Keep this editable placeholder beside workflow.api.json until a UI-saved Comfy workflow is committed from the owned runtime."
+  ]
+}

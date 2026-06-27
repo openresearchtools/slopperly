@@ -14,6 +14,7 @@ comfyui:
     - TextEncodeAceStepAudio1.5
     - TextEncodeQwenImageEditPlus
     - EmptyAceStep1.5LatentAudio
+    - EmptySD3LatentImage
     - ConditioningZeroOut
     - ConditioningStableAudio
     - EmptyLatentAudio

@@ -1,0 +1,9 @@
+{
+  "workflow_id": "qwen_image_2512_i2i_gguf",
+  "source": "Derived from Comfy-Org workflow_templates image_qwen_Image_2512.json and exported as a Slopperly API img2img graph.",
+  "notes": [
+    "Production graph uses LoadImage, ImageScale, and VAEEncode to preserve the existing Qwen image-strip img2img UI path.",
+    "Production graph uses ComfyUI-GGUF UnetLoaderGGUF for qwen-image-2512-Q5_K_M.gguf instead of the upstream FP8 UNETLoader profile.",
+    "Keep this editable placeholder beside workflow.api.json until a UI-saved Comfy workflow is committed from the owned runtime."
+  ]
+}

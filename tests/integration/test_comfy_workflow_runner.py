@@ -334,6 +334,37 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if (
+                any(
+                    node.get("class_type") == "UnetLoaderGGUF"
+                    for node in ComfyHandler.last_prompt.values()
+                )
+                and any(
+                    node.get("class_type") == "CLIPTextEncode"
+                    for node in ComfyHandler.last_prompt.values()
+                )
+            ):
+                output_node = "13" if "13" in ComfyHandler.last_prompt else "11"
+                filename = (
+                    "slopperly_qwen_image_2512_i2i_00001_.png"
+                    if output_node == "13"
+                    else "slopperly_qwen_image_2512_00001_.png"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "images": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -360,7 +391,11 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "chatterbox" in parsed.query
             ):
                 return self._binary(self.audio_bytes, "audio/flac")
-            if "omnigen" in parsed.query or "qwen_image_edit" in parsed.query:
+            if (
+                "omnigen" in parsed.query
+                or "qwen_image_edit" in parsed.query
+                or "qwen_image_2512" in parsed.query
+            ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
         self.send_response(404)
@@ -475,6 +510,15 @@ def _qwen_image_edit_object_info() -> dict:
             ROOT
             / "slopperly/workflows/comfy/qwen_image_edit_2511_multi_gguf/workflow.api.json"
         ).read_text(encoding="utf-8")
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _qwen_image_object_info(workflow_id: str) -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
+            encoding="utf-8"
+        )
     )
     return {node["class_type"]: {} for node in workflow.values()}
 
@@ -1140,6 +1184,109 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertNotIn("image3", prompt["12"]["inputs"])
         self.assertIn(b'filename="first.png"', ComfyHandler.upload_bodies[0])
         self.assertIn(b'filename="second.png"', ComfyHandler.upload_bodies[1])
+
+    def test_qwen_image_t2i_pack_patches_api_workflow(self):
+        ComfyHandler.reset(_qwen_image_object_info("qwen_image_2512_t2i_gguf"))
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "qwen_image.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local Qwen Image text to image",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                steps=4,
+                seed=2512,
+                qwen_image_cfg=1.0,
+                qwen_image_sampler="euler",
+                qwen_image_scheduler="simple",
+                qwen_image_denoise=1.0,
+                qwen_image_model="qwen-image-2512-Q5_K_M.gguf",
+                qwen_image_text_encoder="qwen_2.5_vl_7b_fp8_scaled.safetensors",
+                qwen_image_vae="qwen_image_vae.safetensors",
+                qwen_image_lightning_lora=(
+                    "Qwen-Image-2512-Lightning-4steps-V1.0-bf16.safetensors"
+                ),
+                qwen_image_lora_strength=1.0,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/qwen_image_2512_t2i_gguf",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(ComfyHandler.upload_bodies, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "qwen-image-2512-Q5_K_M.gguf")
+        self.assertEqual(prompt["2"]["inputs"]["lora_name"], "Qwen-Image-2512-Lightning-4steps-V1.0-bf16.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["clip_name"], "qwen_2.5_vl_7b_fp8_scaled.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["vae_name"], "qwen_image_vae.safetensors")
+        self.assertEqual(prompt["6"]["inputs"]["text"], "local Qwen Image text to image")
+        self.assertEqual(prompt["7"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["8"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["9"]["inputs"]["seed"], 2512)
+        self.assertEqual(prompt["9"]["inputs"]["steps"], 4)
+        self.assertEqual(prompt["9"]["inputs"]["cfg"], 1.0)
+        self.assertEqual(prompt["9"]["inputs"]["denoise"], 1.0)
+
+    def test_qwen_image_i2i_pack_uploads_image_and_patches_denoise(self):
+        ComfyHandler.reset(_qwen_image_object_info("qwen_image_2512_i2i_gguf"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            destination = Path(tmp) / "qwen_image_i2i.png"
+            source.write_bytes(b"local source image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local Qwen Image image to image",
+                neg_prompt="text, watermark",
+                image=str(source),
+                width=1024,
+                height=1024,
+                steps=4,
+                seed=2513,
+                qwen_image_cfg=1.0,
+                qwen_image_sampler="euler",
+                qwen_image_scheduler="simple",
+                qwen_image_denoise=0.35,
+                qwen_image_model="qwen-image-2512-Q5_K_M.gguf",
+                qwen_image_text_encoder="qwen_2.5_vl_7b_fp8_scaled.safetensors",
+                qwen_image_vae="qwen_image_vae.safetensors",
+                qwen_image_lightning_lora=(
+                    "Qwen-Image-2512-Lightning-4steps-V1.0-bf16.safetensors"
+                ),
+                qwen_image_lora_strength=1.0,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/qwen_image_2512_i2i_gguf",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 1)
+        self.assertEqual(prompt["8"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["9"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["9"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["11"]["inputs"]["seed"], 2513)
+        self.assertEqual(prompt["11"]["inputs"]["steps"], 4)
+        self.assertEqual(prompt["11"]["inputs"]["cfg"], 1.0)
+        self.assertEqual(prompt["11"]["inputs"]["denoise"], 0.35)
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):
         with tempfile.TemporaryDirectory() as tmp:
