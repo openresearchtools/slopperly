@@ -29,7 +29,7 @@ No `ace-step/ACE-Step-ComfyUI` cloud/local HTTP node is used in the production p
 
 Model artifacts are downloaded only through the Slopperly model manager from `https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files`.
 
-- `split_files/diffusion_models/acestep_v1.5_xl_base_bf16.safetensors` -> `ComfyUI/models/diffusion_models/acestep_v1.5_xl_base_bf16.safetensors`
+- `split_files/diffusion_models/acestep_v1.5_xl_turbo_bf16.safetensors` -> `ComfyUI/models/diffusion_models/acestep_v1.5_xl_turbo_bf16.safetensors`
 - `split_files/vae/ace_1.5_vae.safetensors` -> `ComfyUI/models/vae/ace_1.5_vae.safetensors`
 - `split_files/text_encoders/qwen_0.6b_ace15.safetensors` -> `ComfyUI/models/text_encoders/qwen_0.6b_ace15.safetensors`
 - `split_files/text_encoders/qwen_4b_ace15.safetensors` -> `ComfyUI/models/text_encoders/qwen_4b_ace15.safetensors`

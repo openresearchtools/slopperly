@@ -9,7 +9,7 @@
       "type": "UNETLoader",
       "title": "Load ACE-Step 1.5 Diffusion Model",
       "widgets_values": [
-        "acestep_v1.5_xl_base_bf16.safetensors",
+        "acestep_v1.5_xl_turbo_bf16.safetensors",
         "default"
       ]
     },

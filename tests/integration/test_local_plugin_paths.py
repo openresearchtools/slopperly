@@ -2816,7 +2816,7 @@ class LocalPluginPathTests(unittest.TestCase):
             self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
 
         prompt = RuntimeHandler.comfy_prompts[-1]
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "acestep_v1.5_xl_base_bf16.safetensors")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "acestep_v1.5_xl_turbo_bf16.safetensors")
         self.assertEqual(prompt["2"]["inputs"]["vae_name"], "ace_1.5_vae.safetensors")
         self.assertEqual(prompt["3"]["inputs"]["clip_name1"], "qwen_0.6b_ace15.safetensors")
         self.assertEqual(prompt["3"]["inputs"]["clip_name2"], "qwen_4b_ace15.safetensors")

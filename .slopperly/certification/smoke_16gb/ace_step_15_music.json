@@ -1,0 +1,22 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/ace_step_15_music/24680_bright_indie_pop_loop_clean_g_ace_step_15.flac",
+  "command": "pytest tests/gpu/test_ace_step.py::test_ace_step --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T15:06:30+00:00",
+  "logical_name": "ace_step_15_music",
+  "metadata": {
+    "output": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/ace_step_15_music/24680_bright_indie_pop_loop_clean_g_ace_step_15.flac",
+    "runtime_url": "http://127.0.0.1:8190"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "channels": 2,
+    "duration": 2.0,
+    "format": "FLAC",
+    "kind": "audio",
+    "rms": 1.0,
+    "sample_rate": 48000
+  }
+}

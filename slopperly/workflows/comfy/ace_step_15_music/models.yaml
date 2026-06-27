@@ -17,10 +17,10 @@ required_custom_nodes:
       - SaveAudio
 model_files:
   - source: https://huggingface.co/Comfy-Org/ace_step_1.5_ComfyUI_files
-    download_mode: hf_snapshot
+    download_mode: hf_file
     files:
-      - path: split_files/diffusion_models/acestep_v1.5_xl_base_bf16.safetensors
-        target: models/diffusion_models/acestep_v1.5_xl_base_bf16.safetensors
+      - path: split_files/diffusion_models/acestep_v1.5_xl_turbo_bf16.safetensors
+        target: models/diffusion_models/acestep_v1.5_xl_turbo_bf16.safetensors
       - path: split_files/vae/ace_1.5_vae.safetensors
         target: models/vae/ace_1.5_vae.safetensors
       - path: split_files/text_encoders/qwen_0.6b_ace15.safetensors

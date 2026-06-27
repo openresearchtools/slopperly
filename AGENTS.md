@@ -52,8 +52,9 @@ This section is the live progress report. The historical implementation log belo
 
 Current hard truth:
 
-- **DONE ON SPEC:** no original Palladium model/function from baseline commit `50cf377bf11349685010acb726a5e2b2e3cb9962` is fully done on spec yet.
+- **DONE ON SPEC:** `audio/ace_step.py` ACE-Step from baseline commit `50cf377bf11349685010acb726a5e2b2e3cb9962` now has a real local `AceStepPlugin.generate()` PASS artifact through owned Slopperly ComfyUI on the RTX 4090 profile.
 - **CERTIFIED NEW LOCAL DEFAULT:** new `video/wan_ti2v_5b.py` now has fresh direct T2V and direct I2V PASS records through `WanTI2V5BPlugin.generate()` against owned Slopperly ComfyUI on the RTX 4090 profile. This is not original Palladium parity; original Wan A14B, LTX, and other baseline functions still need their own migrations and real artifacts.
+- **CERTIFICATION SUMMARY:** `python -m slopperly.audit.dropdown_certification --profile smoke_16gb --report-only` now reports `PASS wan22_ti2v_5b_720p24_gguf`, `PASS ace_step_15_music`, and 38 blocked entries still requiring the next model install/runtime/artifact test.
 - **SCAFFOLD ONLY:** Comfy workflow packs, schemas, model registries, integration tests against fake loopback servers, and GPU test files exist for many functions. Those are not completion evidence.
 - **NOT VALID COMPLETION:** any report that says a function is done because a fake Comfy/vLLM server accepted a payload is wrong. It must say scaffold only.
 - **WORDING RULE:** human progress prose must state the required action when work is incomplete: install nodes/models, copy existing cache files, start the runtime, wire UI controls, or run the real artifact test. Machine certification JSON may contain a non-PASS status, but the AGENTS report must state the next action.
@@ -70,6 +71,8 @@ Runtime and model-cache facts found on disk:
 - Wan A14B I2V Q5 high/low noise files now present in the owned cache: `.slopperly/runtimes/ComfyUI/models/unet/HighNoise/Wan2.2-I2V-A14B-HighNoise-Q5_K_M.gguf` and `.slopperly/runtimes/ComfyUI/models/unet/LowNoise/Wan2.2-I2V-A14B-LowNoise-Q5_K_M.gguf`.
 - Existing user Comfy custom nodes include `ComfyUI-GGUF`, `ComfyUI-MultiGPU`, `WhatDreamsCost-ComfyUI`, and `ComfyUI-KJNodes`; owned Slopperly Comfy currently only shows `comfyui_gguf` and `video_helper_suite` among the checked important node packs. Missing owned node packs must be installed into `.slopperly/runtimes/ComfyUI/custom_nodes`, not relied on from the user Comfy tree.
 - Owned Slopperly Comfy was live-tested on `127.0.0.1:8190` for the Wan2.2 TI2V-5B direct local default with API nodes disabled, CUDA 13 PyTorch, dynamic VRAM, `ComfyUI-GGUF`, `VideoHelperSuite`, UMT5 FP8, Wan VAE, and the Wan TI2V Q5 GGUF model from the owned model cache.
+- ACE-Step 1.5 XL Turbo files are now installed in the owned Comfy model cache: `models/diffusion_models/acestep_v1.5_xl_turbo_bf16.safetensors`, `models/vae/ace_1.5_vae.safetensors`, `models/text_encoders/qwen_0.6b_ace15.safetensors`, and `models/text_encoders/qwen_4b_ace15.safetensors`.
+- Owned Slopperly Comfy was restarted on `127.0.0.1:8190` after the ACE-Step files landed, then live-tested through `AceStepPlugin.generate()` with ACE text encoder/diffusion/VAE loads from the owned cache and a real 2.000s FLAC output.
 - vLLM functions require installing/starting `.slopperly/vllm-venv` with `vllm[audio]` or multimodal support and running a local server on the configured localhost URL.
 - vLLM-Omni functions require installing/starting `.slopperly/vllm-omni-venv` with `vllm-omni` and one local speech model per server instance.
 - llama.cpp functions require installing/starting the configured Ubuntu x64 CUDA artifact and serving the local GGUF model through the local llama.cpp endpoint.
@@ -87,7 +90,7 @@ Per-function parity table:
 
 | Function / model | Current code truth | Not done / not on spec | Runtime, models, and UI mapping required before completion | Required real test |
 |---|---|---|---|---|
-| `audio/ace_step.py` ACE-Step | Comfy wrapper and `ace_step_15_music` workflow pack exist. | Scaffold only; no real music artifact certification. | Owned Comfy plus ACE-Step nodes/files; map prompt, lyrics/music params, duration, steps, guidance, seed. | WAV/FLAC duration/non-silent test through `AceStepPlugin.generate()`. |
+| `audio/ace_step.py` ACE-Step | DONE ON SPEC for `smoke_16gb`: Comfy wrapper and `ace_step_15_music` workflow pack use owned Comfy with ACE-Step 1.5 XL Turbo files, and `AceStepPlugin.generate()` produced a validated local FLAC artifact. | No remaining production blocker for the certified profile; broader devices still need their own certification before exposure there. | Prompt, lyrics, BPM, key, time signature, duration, steps, guidance, and seed are patched into the owned Comfy workflow. | PASS: `.slopperly/gpu-artifacts/smoke_16gb/ace_step_15_music/24680_bright_indie_pop_loop_clean_g_ace_step_15.flac`, FLAC stereo 48 kHz, 2.000s, non-silent validation. |
 | `audio/_stable_audio_3.py` Stable Audio 3 | Comfy wrapper and workflow pack exist. | Scaffold only; no real audio artifact. | Owned Comfy Stable Audio nodes/files; map prompt, negative, duration, steps, guidance, seed. | Real WAV/FLAC duration/non-silent test. |
 | `audio/foundation_music.py` Foundation-1 | Comfy wrapper exists and installer patch avoids import-time download. | Scaffold only; no real loop artifact. | Owned Comfy with Foundation-1 nodes/files; map prompt, negative, BPM/key/bar/time controls, duration, seed. | Real loop WAV test with BPM/bar duration validation. |
 | `audio/mmaudio.py` MMAudio | Comfy wrapper and workflow pack exist. | Scaffold only; no real video-to-audio artifact. | Owned Comfy with VideoHelperSuite and MMAudio nodes/models; map video strip, prompt, negative, duration, steps, cfg/guidance, seed. | Real video input to audio output, duration/sample-rate/non-silent validation. |
@@ -990,16 +993,21 @@ This work log is historical scaffold evidence only. It does not override the cur
 
 ### 2026-06-27 ACE-Step 1.5 Comfy workflow block
 
-- Current parity status: `audio/ace_step.py` is NOT DONE ON SPEC. Needs owned Comfy ACE-Step 1.5 files/nodes, prompt/lyrics/BPM/key/time-signature/duration/steps/guidance/seed mapping, and a real non-silent music artifact.
+- Current parity status: `audio/ace_step.py` is DONE ON SPEC for the `smoke_16gb` profile. It has a real owned-Comfy `AceStepPlugin.generate()` FLAC artifact, exact ACE-Step 1.5 XL Turbo model files, dropdown PASS certification, and no remaining production blocker for that certified profile.
 
-- Scaffold only: `audio/ace_step.py` now routes the legacy ACE-Step plugin through the local Comfy workflow gateway instead of direct Torch/Diffusers/Accelerate execution and generation-time Hugging Face model loading in the add-on process.
-- Scaffold only: `ace_step_15_music` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
-- Scaffold only: The workflow uses `UNETLoader -> ModelSamplingAuraFlow -> KSampler -> VAEDecodeAudio -> SaveAudio` plus `DualCLIPLoader -> TextEncodeAceStepAudio1.5`, preserving prompt/tags, lyrics, duration, steps, guidance, BPM, key, time signature, and seed.
-- Scaffold only: `ace_step_15_music` is registered in `slopperly/config/models.yaml` with legacy alias `ACE-Step/acestep-v15-xl-turbo-diffusers` and artifact source `Comfy-Org/ace_step_1.5_ComfyUI_files`.
-- Scaffold only: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts core ACE-Step 1.5 node classes including `TextEncodeAceStepAudio1.5`, `EmptyAceStep1.5LatentAudio`, and `ModelSamplingAuraFlow`.
+- Implemented: `audio/ace_step.py` routes the legacy ACE-Step plugin through the local Comfy workflow gateway instead of direct Torch/Diffusers/Accelerate execution and generation-time Hugging Face model loading in the add-on process.
+- Implemented: `ace_step_15_music` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Implemented: the workflow uses `UNETLoader -> ModelSamplingAuraFlow -> KSampler -> VAEDecodeAudio -> SaveAudio` plus `DualCLIPLoader -> TextEncodeAceStepAudio1.5`, preserving prompt/tags, lyrics, duration, steps, guidance, BPM, key, time signature, and seed.
+- Implemented: `ace_step_15_music` is registered in `slopperly/config/models.yaml` with legacy alias `ACE-Step/acestep-v15-xl-turbo-diffusers`, exact `hf_file` downloads from `Comfy-Org/ace_step_1.5_ComfyUI_files`, and the production diffusion default `acestep_v1.5_xl_turbo_bf16.safetensors`.
+- Implemented: `slopperly/runtime/comfy/nodes.lock.yaml` asserts core ACE-Step 1.5 node classes including `TextEncodeAceStepAudio1.5`, `EmptyAceStep1.5LatentAudio`, and `ModelSamplingAuraFlow`.
+- Evidence: `/home/user/Documents/Slopperly/.slopperly/runtimes/comfy-venv/bin/python -m slopperly.models.download --model ace_step_15_music --cache-root .slopperly/runtimes/ComfyUI --accept-licenses` downloaded `acestep_v1.5_xl_turbo_bf16.safetensors`, `ace_1.5_vae.safetensors`, `qwen_0.6b_ace15.safetensors`, and `qwen_4b_ace15.safetensors` into the owned Comfy model folders.
+- Evidence: owned Slopperly ComfyUI was restarted on `http://127.0.0.1:8190` with API nodes disabled, CUDA 13 PyTorch, dynamic VRAM, and the ACE nodes available in `/object_info`.
+- Evidence: `SLOPPERLY_COMFYUI_URL=http://127.0.0.1:8190 python -m pytest tests/gpu/test_ace_step.py --device cuda --profile smoke_16gb --runtime-timeout 30 -s` passed 1 test in 9.14s through `AceStepPlugin.generate()`.
+- Evidence: Comfy loaded `ACE15TEModel_`, `ACEStep15`, and `AudioOobleckVAE` from the owned cache and executed the prompt in 8.82s.
+- Evidence: `.slopperly/certification/smoke_16gb/ace_step_15_music.json` is PASS for `.slopperly/gpu-artifacts/smoke_16gb/ace_step_15_music/24680_bright_indie_pop_loop_clean_g_ace_step_15.flac`.
+- Evidence: `ffprobe` validates the generated artifact as FLAC, stereo, 48000 Hz, 2.000000s, 233644 bytes; the certification validator also recorded non-silent audio.
 - Evidence: integration coverage calls `AceStepPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies exact node/input patching plus FLAC artifact collection.
 - Evidence: workflow-runner integration coverage verifies the committed `ace_step_15_music` pack patches the graph and collects one Comfy audio artifact.
-- Not done - install/test required: real RTX 4090 ACE-Step artifact certification requires owned ComfyUI running with core ACE-Step nodes and the ACE-Step 1.5 split model files installed in `models/diffusion_models`, `models/vae`, and `models/text_encoders`.
 
 ### 2026-06-27 Foundation-1 Comfy workflow block
 
