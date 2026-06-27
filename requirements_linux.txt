@@ -15,6 +15,7 @@ python-dotenv
 packaging
 psutil
 pyyaml
+pytest
 regex
 sympy
 typing_extensions

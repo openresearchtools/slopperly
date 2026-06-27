@@ -28,6 +28,8 @@
 - `python tests/unit/test_media_timing.py` verifies shared audio-driven video timing math for audio duration, native frame count, target frame count, and 16 fps to 24 fps planning diagnostics.
 - `python tests/unit/test_network_guard.py` verifies that the runtime network guard blocks non-local sockets while allowing localhost runtime calls.
 - Current fake-server integration tests run under the runtime network guard, so the covered plugin/gateway paths fail if they attempt non-local connections.
+- `tests/gpu/` now contains pytest plugin-path artifact tests for the currently registered GPU validation commands. These tests call real plugin `generate()` methods and write JSON certification evidence under `.slopperly/certification/<profile>/`.
+- `python -m slopperly.audit.dropdown_certification --profile smoke_16gb` now requires a `PASS` certification JSON record for the exact logical model/profile and a real artifact file; `BLOCKED` records stay blocked and report their reason.
 
 ## Current Blocks
 
@@ -39,6 +41,7 @@
 - The LTX 2.3 Comfy workflow runner has local fake-server integration coverage, but it is not yet a plugin-path GPU artifact certification and the returned fake bytes are not claimed as a valid MP4.
 - Shared audio-driven timing planning exists, but LTX lipsync/dialogue and Wan interpolation workflows still need to call it from their local Comfy plugin paths and validate real MP4 duration/fps artifacts.
 - The runtime network guard has unit and fake-server integration coverage, but the required GPU artifact suite still needs to run under this guard after model downloads complete.
+- The GPU artifact harness exists, but it was not executed against real llama.cpp, vLLM, vLLM-Omni, or ComfyUI servers in this block. Its tests are expected to report `BLOCKED` until the corresponding local runtime is reachable, workflow packs are committed, model artifacts are downloaded, and real artifacts validate.
 - Artifact validators and workflow/dropdown audits now exist. Dropdown certification remains blocked until real plugin-path GPU artifact evidence is written for each registry entry.
 - Add-on preferences now expose local runtime endpoints only; remote backend discovery/API-key generation UI has been removed from production registration. Queue jobs snapshot local runtime endpoints.
 - Full doctor with `--cuda --runtimes all` reports CUDA evidence when present and remains BLOCKED for any local runtime server that is not running.

@@ -325,3 +325,30 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 ### Blocked / Not Yet Certified
 
 - This is runner-path coverage against a local fake Comfy server. Real Qwen/OmniGen/LTX multi-anchor workflow packs, model downloads, Comfy execution, and GPU artifact certification remain pending.
+
+## 2026-06-27 GPU certification harness block
+
+### Artifact Certification Added
+
+- Added certification evidence helpers in `slopperly/validation/certification.py`.
+- `dropdown_certification` now accepts discovered `.slopperly/certification/<profile>/<logical_name>.json` records and requires each record to have `status: PASS` for the exact model/profile before a dropdown entry can certify.
+- Added pytest GPU harness options `--device` and `--profile`, local runtime health checks, plugin import scaffolding, and PASS/BLOCKED/FAIL evidence writing.
+
+### GPU Tests Added
+
+- `tests/gpu/test_llamacpp_prompt_rewrite.py`
+- `tests/gpu/test_vllm_stt.py`
+- `tests/gpu/test_vllm_omni_tts.py`
+- `tests/gpu/test_vllm_omni_voice_clone.py`
+- `tests/gpu/test_qwen_image_edit_2511.py`
+- `tests/gpu/test_wan22_ti2v_5b.py`
+
+### Verification
+
+- Non-GPU checks validate the harness imports, certification audit behavior, and unchanged local-only audits.
+
+### Blocked / Not Yet Certified
+
+- These tests were not run against live GPU runtimes in this block.
+- The llama.cpp, vLLM, and vLLM-Omni tests will report `BLOCKED` until their local servers are installed, launched, and backed by downloaded model artifacts.
+- The Qwen Image Edit and Wan2.2 TI2V tests currently report `BLOCKED` because their required Comfy workflow packs and plugin-path migration are not yet committed.

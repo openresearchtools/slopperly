@@ -757,3 +757,11 @@ The following upstream sources are the factual basis for this spec:
 - Completed: Comfy workflow-pack schemas can now upload indexed media fields such as `images[0]`, `images[1]`, and `middle_images_paths[0].path`.
 - Evidence: `tests/integration/test_comfy_workflow_runner.py` covers the indexed field path against a local fake Comfy server under the runtime network guard.
 - Still blocked: real Qwen/OmniGen/LTX multi-reference workflow packs, owned Comfy runtime execution, model downloads, and GPU artifact certification.
+
+### 2026-06-27 GPU certification harness block
+
+- Completed: `tests/gpu/` now contains pytest GPU artifact tests for the currently registered validation commands.
+- Completed: GPU tests write JSON certification records with PASS/BLOCKED/FAIL status under `.slopperly/certification/<profile>/`.
+- Completed: Dropdown certification now requires a PASS record for the exact logical model/profile and a real artifact file.
+- Evidence: unit coverage validates discovered PASS records and rejected BLOCKED records.
+- Still blocked: tests have not been run against live RTX 4090 runtimes in this block; Qwen/Wan workflow packs and plugin-path migrations remain incomplete.

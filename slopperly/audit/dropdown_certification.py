@@ -6,13 +6,19 @@ import argparse
 from pathlib import Path
 
 from slopperly.config.registry import load_dropdown_profiles, model_entries
+from slopperly.validation.certification import (
+    discovered_certification_entries,
+    validate_certification_entry,
+)
 
 
 def certified_entries(profile: str, root: Path) -> dict:
     data = load_dropdown_profiles(root)
     profiles = data.get("certified_dropdown_entries", {}) if isinstance(data, dict) else {}
     profile_data = profiles.get(profile, {}) if isinstance(profiles, dict) else {}
-    return profile_data if isinstance(profile_data, dict) else {}
+    configured = profile_data if isinstance(profile_data, dict) else {}
+    discovered = discovered_certification_entries(profile, root)
+    return {**configured, **discovered}
 
 
 def audit(profile: str, root: Path) -> tuple[list[str], list[str]]:
@@ -29,13 +35,14 @@ def audit(profile: str, root: Path) -> tuple[list[str], list[str]]:
         if not cert:
             failures.append(f"{name}: no certification record for profile {profile!r}")
             continue
-        artifact = cert.get("artifact")
-        if not artifact or not (root / artifact).is_file():
-            failures.append(f"{name}: certification artifact missing: {artifact!r}")
-            continue
-        test_result = cert.get("test_result")
-        if not test_result or not (root / test_result).is_file():
-            failures.append(f"{name}: certification test result missing: {test_result!r}")
+        failure = validate_certification_entry(
+            root=root,
+            profile=profile,
+            logical_name=name,
+            cert=cert,
+        )
+        if failure:
+            failures.append(f"{name}: {failure}")
             continue
         passes.append(name)
     return passes, failures
