@@ -344,9 +344,9 @@ class MarlinVideoCaptionsPlugin(ModelPlugin):
         _speed = getattr(scene, "marlin_speed", "BALANCED")
         _tok_floor = {
             "QUALITY":  768,
-            "BALANCED": 768,
-            "FAST":     512,
-        }.get(_speed, 768)
+            "BALANCED": 512,
+            "FAST":     160,
+        }.get(_speed, 512)
         cap_new_tok = max(_tok_floor, int(trim_dur_s * 15))
 
         # - Step 3: inference (runs in worker thread) ---------------------

@@ -177,6 +177,17 @@ class LocalRuntimeClientTests(unittest.TestCase):
         self.assertEqual(content[1]["type"], "video_url")
         self.assertTrue(content[1]["video_url"]["url"].startswith("file://"))
 
+    def test_vllm_vlm_resolves_default_single_served_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            video_path = Path(tmp) / "clip.mp4"
+            video_path.write_bytes(b"fake local video")
+            VllmVlmClient(self.base_url).caption_video(
+                str(video_path),
+                duration_seconds=2.0,
+                max_tokens=128,
+            )
+        self.assertEqual(RuntimeHandler.last_json["model"], "local-model")
+
     def test_vllm_omni_speech_writes_binary_audio(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "voice.wav"

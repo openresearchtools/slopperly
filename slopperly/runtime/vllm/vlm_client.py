@@ -24,6 +24,19 @@ class VllmVlmClient:
     def health(self) -> dict:
         return self.http.get_json("/v1/models")
 
+    def served_model_id(self, requested_model: str) -> str:
+        """Use a single local-path model ID when vLLM advertises one."""
+        try:
+            models = self.health().get("data", [])
+        except RuntimeUnavailableError:
+            return requested_model
+        served_ids = [str(item.get("id")) for item in models if item.get("id")]
+        if requested_model in served_ids:
+            return requested_model
+        if requested_model == DEFAULT_VLM_MODEL and len(served_ids) == 1:
+            return served_ids[0]
+        return requested_model
+
     def chat(self, payload: dict) -> dict:
         return self.http.post_json("/v1/chat/completions", payload)
 
@@ -103,8 +116,9 @@ class VllmVlmClient:
         max_tokens: int,
     ) -> dict:
         uri = Path(video_path).expanduser().resolve().as_uri()
+        served_model = self.served_model_id(model)
         return {
-            "model": model,
+            "model": served_model,
             "temperature": 0.0,
             "max_tokens": max_tokens,
             "response_format": {"type": "json_object"},

@@ -50,6 +50,44 @@ class RuntimeSupervisorTests(unittest.TestCase):
         allowed_idx = command.index("--allowed-local-media-path") + 1
         self.assertEqual(command[allowed_idx], str(Path(".").resolve()))
 
+    def test_vllm_launch_accepts_multimodal_profile_flags(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            venv = root / "vllm-venv"
+            make_executable(venv / "bin/python")
+            model = root / "models/qwen-vl"
+            model.mkdir(parents=True)
+            supervisor = VllmSupervisor(
+                venv=venv,
+                url="http://127.0.0.1:8090",
+                allowed_local_media_path=root,
+            )
+            command = supervisor.launch_command(
+                str(model),
+                served_model_name="Qwen/Qwen2.5-VL-7B-Instruct",
+                download_dir=root / "runtime-cache",
+                max_model_len=4096,
+                gpu_memory_utilization=0.82,
+                cpu_offload_gb=6,
+                max_num_seqs=1,
+                limit_mm_per_prompt={"video": {"count": 1, "num_frames": 8}, "image": 0},
+                media_io_kwargs={"video": {"num_frames": 8, "backend": "pyav"}},
+                mm_processor_cache_gb=0,
+                enforce_eager=True,
+            )
+        self.assertIn("--served-model-name", command)
+        self.assertIn("Qwen/Qwen2.5-VL-7B-Instruct", command)
+        self.assertIn("--download-dir", command)
+        self.assertIn("--max-model-len", command)
+        self.assertIn("4096", command)
+        self.assertIn("--cpu-offload-gb", command)
+        self.assertIn("6.0", command)
+        self.assertIn("--limit-mm-per-prompt", command)
+        self.assertIn('"num_frames": 8', command[command.index("--limit-mm-per-prompt") + 1])
+        self.assertIn("--media-io-kwargs", command)
+        self.assertIn('"backend": "pyav"', command[command.index("--media-io-kwargs") + 1])
+        self.assertIn("--enforce-eager", command)
+
     def test_vllm_omni_launch_uses_local_openai_server(self):
         with tempfile.TemporaryDirectory() as tmp:
             venv = Path(tmp) / "vllm-omni-venv"

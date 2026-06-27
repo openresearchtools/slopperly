@@ -1,0 +1,20 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/vllm_video_caption_vlm/video_captions.txt",
+  "command": "pytest tests/gpu/test_video_caption_vlm.py::test_video_caption_vlm --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T18:12:30+00:00",
+  "logical_name": "vllm_video_caption_vlm",
+  "metadata": {
+    "caption_strips": 3,
+    "markers": 1,
+    "runtime_url": "http://127.0.0.1:8090",
+    "source_video": "/home/user/Documents/Slopperly/tests/fixtures/video_caption_smoke.mp4"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "chars": 135,
+    "kind": "text"
+  }
+}
