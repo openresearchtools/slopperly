@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "workflow_id": "zimage_t2i_i2i",
+  "description": "Patch schema for local Z-Image text-to-image generation through ComfyUI core nodes.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "5",
+        "input": "text"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "6",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "7",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "7",
+        "input": "height"
+      }
+    ],
+    "steps": [
+      {
+        "node": "8",
+        "input": "steps"
+      }
+    ],
+    "seed": [
+      {
+        "node": "8",
+        "input": "seed"
+      }
+    ],
+    "zimage_cfg": [
+      {
+        "node": "8",
+        "input": "cfg"
+      }
+    ],
+    "zimage_sampler": [
+      {
+        "node": "8",
+        "input": "sampler_name"
+      }
+    ],
+    "zimage_scheduler": [
+      {
+        "node": "8",
+        "input": "scheduler"
+      }
+    ],
+    "zimage_denoise": [
+      {
+        "node": "8",
+        "input": "denoise"
+      }
+    ],
+    "zimage_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "zimage_text_encoder": [
+      {
+        "node": "3",
+        "input": "clip_name"
+      }
+    ],
+    "zimage_vae": [
+      {
+        "node": "4",
+        "input": "vae_name"
+      }
+    ]
+  },
+  "uploads": {},
+  "unmapped_ui_parameters": {
+    "image": "Image input is handled by the companion zimage_t2i_i2i_img2img workflow when ModelInputs.mode is img2img.",
+    "strength": "Image strength is mapped to KSampler denoise only in the companion img2img workflow.",
+    "frames": "The image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call."
+  },
+  "output": {
+    "node": "10",
+    "type": "image/png",
+    "contract": "Return one readable PNG image matching the mapped requested dimensions."
+  }
+}

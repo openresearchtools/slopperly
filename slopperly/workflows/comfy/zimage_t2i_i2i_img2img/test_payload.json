@@ -1,0 +1,22 @@
+{
+  "prompt": "Polish the source into a clean local Z-Image smoke-test render.",
+  "negative_prompt": "text, watermark, low quality",
+  "image": "tests/fixtures/vsr_source.ppm",
+  "width": 1024,
+  "height": 1024,
+  "steps": 30,
+  "seed": 1202,
+  "zimage_cfg": 7.0,
+  "zimage_sampler": "res_multistep",
+  "zimage_scheduler": "simple",
+  "zimage_denoise": 0.35,
+  "zimage_model": "z_image_bf16.safetensors",
+  "zimage_text_encoder": "qwen_3_4b.safetensors",
+  "zimage_vae": "ae.safetensors",
+  "expected": {
+    "type": "image",
+    "width": 1024,
+    "height": 1024,
+    "readable": true
+  }
+}

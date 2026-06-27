@@ -1,0 +1,7 @@
+{
+  "workflow_id": "zimage_turbo_t2i_i2i_img2img",
+  "source": "Derived from Comfy-Org workflow_templates image_z_image_turbo.json and exported as a Slopperly API img2img graph.",
+  "notes": [
+    "Production graph adds LoadImage, ImageScale, and VAEEncode to the official Z-Image Turbo text/sampling path so the existing image-strip UI remains live."
+  ]
+}

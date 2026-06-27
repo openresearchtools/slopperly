@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "workflow_id": "zimage_turbo_t2i_i2i_img2img",
+  "description": "Patch schema for local Z-Image Turbo image-to-image generation through ComfyUI core nodes.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "5",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "8",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "8",
+        "input": "height"
+      }
+    ],
+    "steps": [
+      {
+        "node": "10",
+        "input": "steps"
+      }
+    ],
+    "seed": [
+      {
+        "node": "10",
+        "input": "seed"
+      }
+    ],
+    "zimage_cfg": [
+      {
+        "node": "10",
+        "input": "cfg"
+      }
+    ],
+    "zimage_sampler": [
+      {
+        "node": "10",
+        "input": "sampler_name"
+      }
+    ],
+    "zimage_scheduler": [
+      {
+        "node": "10",
+        "input": "scheduler"
+      }
+    ],
+    "zimage_denoise": [
+      {
+        "node": "10",
+        "input": "denoise"
+      }
+    ],
+    "zimage_model": [
+      {
+        "node": "1",
+        "input": "unet_name"
+      }
+    ],
+    "zimage_text_encoder": [
+      {
+        "node": "3",
+        "input": "clip_name"
+      }
+    ],
+    "zimage_vae": [
+      {
+        "node": "4",
+        "input": "vae_name"
+      }
+    ]
+  },
+  "uploads": {
+    "image": [
+      {
+        "node": "7",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "negative_prompt": "The official Z-Image Turbo Comfy template uses ConditioningZeroOut for the negative conditioning path instead of a negative text prompt.",
+    "frames": "The image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "strength": "Preserved as zimage_denoise = 1.0 - ModelInputs.strength to match the previous plugin's img2img strength call."
+  },
+  "output": {
+    "node": "12",
+    "type": "image/png",
+    "contract": "Return one readable PNG image matching the mapped requested dimensions."
+  }
+}

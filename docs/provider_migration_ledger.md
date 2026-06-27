@@ -786,3 +786,31 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI running with ComfyUI-GGUF, core Qwen image nodes, `qwen-image-2512-Q5_K_M.gguf`, `qwen_2.5_vl_7b_fp8_scaled.safetensors`, `qwen_image_vae.safetensors`, and `Qwen-Image-2512-Lightning-4steps-V1.0-bf16.safetensors` installed locally.
 - Arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the committed graph applies the certified Lightning adapter and records custom LoRA injection as a follow-up.
+
+## 2026-06-27 Z-Image Comfy workflow block
+
+### Production Paths Migrated
+
+- `models_plugins/image/zimage.py` now routes `Tongyi-MAI/Z-Image` and `Tongyi-MAI/Z-Image-Turbo` through the local Comfy gateway instead of importing Torch/Diffusers and running Z-Image pipelines in the add-on process.
+- The existing prompt, negative prompt, image strip, resolution, frames, steps, guidance, image strength, and seed UI sections remain present.
+- The wrapper selects text-to-image or img2img workflow packs from the existing `ModelInputs.mode` and `ModelInputs.image` values. The old img2img behavior is preserved by mapping `ModelInputs.strength` to `KSampler.denoise` as `1.0 - strength`.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/zimage_t2i_i2i/` and `slopperly/workflows/comfy/zimage_t2i_i2i_img2img/` for base Z-Image.
+- Added `slopperly/workflows/comfy/zimage_turbo_t2i_i2i/` and `slopperly/workflows/comfy/zimage_turbo_t2i_i2i_img2img/` for Z-Image Turbo.
+- The base workflows use Comfy core `UNETLoader`, `ModelSamplingAuraFlow`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `KSampler`, `VAEDecode`, and `SaveImage`; img2img adds `LoadImage`, `ImageScale`, and `VAEEncode`.
+- The Turbo workflows follow the official Comfy Turbo template with `ConditioningZeroOut` for the no-CFG negative path; img2img adds `LoadImage`, `ImageScale`, and `VAEEncode`.
+- Registered `zimage_t2i_i2i` and `zimage_turbo_t2i_i2i` in `slopperly/config/models.yaml` with exact Hugging Face split-file mappings for the base diffusion model, Turbo diffusion model, `qwen_3_4b.safetensors` text encoder, and `ae.safetensors` VAE.
+
+### Verification
+
+- Integration coverage calls `ZImagePlugin.load()`/`generate()` and `ZImageTurboPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching, img2img image upload, Turbo negative-prompt usage note, and denoise mapping.
+- Workflow-runner integration coverage verifies all four committed Z-Image packs directly and collects single PNG artifacts from Comfy history outputs.
+- GPU certification coverage is registered in `tests/gpu/test_zimage.py` and validates base/Turbo text-to-image and img2img PNG artifacts when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with core Z-Image node classes, `z_image_bf16.safetensors`, `z_image_turbo_bf16.safetensors`, `qwen_3_4b.safetensors`, and `ae.safetensors` installed locally.
+- Z-Image Turbo negative prompt text is deliberately unmapped because the official Comfy Turbo graph uses `ConditioningZeroOut`; the wrapper records this in `inputs.usage_note` when a negative prompt is supplied.

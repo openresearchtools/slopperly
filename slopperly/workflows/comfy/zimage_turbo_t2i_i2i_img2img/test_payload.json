@@ -1,0 +1,22 @@
+{
+  "prompt": "Polish the source into a fast local Z-Image Turbo smoke-test render.",
+  "negative_prompt": "",
+  "image": "tests/fixtures/vsr_source.ppm",
+  "width": 1024,
+  "height": 1024,
+  "steps": 8,
+  "seed": 1302,
+  "zimage_cfg": 1.0,
+  "zimage_sampler": "res_multistep",
+  "zimage_scheduler": "simple",
+  "zimage_denoise": 0.35,
+  "zimage_model": "z_image_turbo_bf16.safetensors",
+  "zimage_text_encoder": "qwen_3_4b.safetensors",
+  "zimage_vae": "ae.safetensors",
+  "expected": {
+    "type": "image",
+    "width": 1024,
+    "height": 1024,
+    "readable": true
+  }
+}

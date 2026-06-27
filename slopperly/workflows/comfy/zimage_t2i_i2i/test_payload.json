@@ -1,0 +1,21 @@
+{
+  "prompt": "A compact local workstation with a clean Z-Image smoke-test object.",
+  "negative_prompt": "text, watermark, low quality",
+  "width": 1024,
+  "height": 1024,
+  "steps": 30,
+  "seed": 1201,
+  "zimage_cfg": 7.0,
+  "zimage_sampler": "res_multistep",
+  "zimage_scheduler": "simple",
+  "zimage_denoise": 1.0,
+  "zimage_model": "z_image_bf16.safetensors",
+  "zimage_text_encoder": "qwen_3_4b.safetensors",
+  "zimage_vae": "ae.safetensors",
+  "expected": {
+    "type": "image",
+    "width": 1024,
+    "height": 1024,
+    "readable": true
+  }
+}

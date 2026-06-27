@@ -1,174 +1,108 @@
-"""Text-to-image and img2img via Z-Image (Tongyi-MAI/Z-Image and Z-Image-Turbo)."""
+"""Text-to-image and img2img via local ComfyUI Z-Image workflows."""
 
-import os as _os
-try:
-    import huggingface_hub as _hfhub
-    if not hasattr(_hfhub, "is_offline_mode"):
-        def _is_offline_mode():
-            return _os.environ.get("HF_HUB_OFFLINE", "0") == "1"
-        _hfhub.is_offline_mode = _is_offline_mode
-except Exception:
-    pass
+from ...models.base import ModelInputs, ModelPlugin, InputSpec, ParamSpec, UISection
+from ...slopperly.runtime.gateway import SlopperlyRuntimeGateway
+from ...utils.helpers import clean_filename, solve_path
 
-from ...models.base import ModelPlugin, InputSpec, UISection, ParamSpec, ModelInputs
-from ...utils.helpers import gfx_device, low_vram
+
+BASE_T2I_WORKFLOW_ID = "zimage_t2i_i2i"
+BASE_I2I_WORKFLOW_ID = "zimage_t2i_i2i_img2img"
+TURBO_T2I_WORKFLOW_ID = "zimage_turbo_t2i_i2i"
+TURBO_I2I_WORKFLOW_ID = "zimage_turbo_t2i_i2i_img2img"
 
 
 class _ZImageBase(ModelPlugin):
     MODEL_TYPE = "image"
-    REQUIRED_PACKAGES = ["torch", "diffusers"]
-    supports_inpaint  = False
+    REQUIRED_PACKAGES = []
+    supports_inpaint = False
 
-    INPUTS           = InputSpec.PROMPT | InputSpec.NEG_PROMPT | InputSpec.IMAGE
+    INPUTS = InputSpec.PROMPT | InputSpec.NEG_PROMPT | InputSpec.IMAGE
     UI_SECTIONS = [
-        UISection.PROMPT, UISection.NEG_PROMPT, UISection.IMAGE_STRIP,
-        UISection.RESOLUTION, UISection.FRAMES, UISection.STEPS, UISection.GUIDANCE,
-        UISection.IMAGE_STRENGTH, UISection.SEED,
+        UISection.PROMPT,
+        UISection.NEG_PROMPT,
+        UISection.IMAGE_STRIP,
+        UISection.RESOLUTION,
+        UISection.FRAMES,
+        UISection.STEPS,
+        UISection.GUIDANCE,
+        UISection.IMAGE_STRENGTH,
+        UISection.SEED,
     ]
 
-    _TURBO_TRANSFORMER = "linoyts/beyond-reality-z-image-diffusers"
+    COMFY_MODEL = ""
+    T2I_WORKFLOW_ID = ""
+    I2I_WORKFLOW_ID = ""
+    TURBO_PROFILE = False
 
-    def _build_pipe(self, model_id, prefs, turbo=False):
-        import torch
-        try:
-            from diffusers import ZImagePipeline
-        except ImportError as _e:
-            if "huggingface-hub" in str(_e):
-                raise RuntimeError(
-                    "Z-Image requires huggingface-hub>=1.5.0 but an older version is installed. "
-                    "Upgrade with: pip install \"huggingface_hub>=1.5.0\" -U"
-                ) from _e
-            raise
-
-        _cache_dir = prefs.hf_cache_dir or None
-        _lfo = prefs.local_files_only
-        if turbo:
-            from diffusers import ZImageTransformer2DModel
-            transformer = ZImageTransformer2DModel.from_pretrained(
-                self._TURBO_TRANSFORMER, torch_dtype=torch.bfloat16, cache_dir=_cache_dir,
-                local_files_only=_lfo,
-            )
-            pipe = ZImagePipeline.from_pretrained(
-                model_id, transformer=transformer, torch_dtype=torch.bfloat16, cache_dir=_cache_dir,
-                local_files_only=_lfo,
-            )
-        else:
-            pipe = ZImagePipeline.from_pretrained(
-                model_id, torch_dtype=torch.bfloat16, low_cpu_mem_usage=False, cache_dir=_cache_dir,
-                local_files_only=_lfo,
-            )
-
-        if gfx_device == "mps":
-            pipe.to("mps")
-        elif low_vram():
-            pipe.enable_sequential_cpu_offload() if turbo else pipe.enable_model_cpu_offload()
-            if not turbo:
-                pipe.vae.enable_tiling()
-        else:
-            pipe.enable_model_cpu_offload()
-        return pipe
-
-    def _build_img2img(self, model_id, prefs, turbo=False):
-        import torch
-        try:
-            from diffusers import ZImageImg2ImgPipeline
-        except ImportError as _e:
-            if "huggingface-hub" in str(_e):
-                raise RuntimeError(
-                    "Z-Image requires huggingface-hub>=1.5.0 but an older version is installed. "
-                    "Upgrade with: pip install \"huggingface_hub>=1.5.0\" -U"
-                ) from _e
-            raise
-
-        _cache_dir = prefs.hf_cache_dir or None
-        _lfo = prefs.local_files_only
-        if turbo:
-            from diffusers import ZImageTransformer2DModel
-            transformer = ZImageTransformer2DModel.from_pretrained(
-                self._TURBO_TRANSFORMER, torch_dtype=torch.bfloat16, cache_dir=_cache_dir,
-                local_files_only=_lfo,
-            )
-            conv = ZImageImg2ImgPipeline.from_pretrained(
-                model_id, transformer=transformer, torch_dtype=torch.bfloat16, cache_dir=_cache_dir,
-                local_files_only=_lfo,
-            )
-        else:
-            conv = ZImageImg2ImgPipeline.from_pretrained(
-                model_id, torch_dtype=torch.bfloat16, low_cpu_mem_usage=False, cache_dir=_cache_dir,
-                local_files_only=_lfo,
-            )
-
-        if gfx_device == "mps":
-            conv.to("mps")
-        elif low_vram():
-            conv.enable_sequential_cpu_offload() if turbo else conv.enable_model_cpu_offload()
-            if not turbo:
-                conv.vae.enable_tiling()
-        else:
-            conv.enable_model_cpu_offload()
-        return conv
+    def load(self, prefs, scene, **kw):
+        return {
+            "gateway": SlopperlyRuntimeGateway(),
+            "last_model_card": self.MODEL_ID,
+        }
 
     def generate(self, pipe_obj, inputs: ModelInputs, scene, prefs):
-        import torch
+        gateway = pipe_obj.get("gateway") if isinstance(pipe_obj, dict) else None
+        if gateway is None:
+            gateway = SlopperlyRuntimeGateway()
 
-        seed = inputs.seed
-        generator = (
-            torch.Generator("cuda").manual_seed(seed)
-            if torch.cuda.is_available() and seed != 0 else None
-        )
-        self.set_phase(inputs, "Generating")
-        cb = self.step_callback(inputs)
+        workflow_id = self.T2I_WORKFLOW_ID
+        stem = self.COMFY_MODEL.removesuffix(".safetensors")
         if inputs.mode == "img2img" and inputs.image is not None:
-            conv = pipe_obj["converter"]
-            return conv(
-                prompt=inputs.prompt,
-                negative_prompt=inputs.neg_prompt,
-                image=inputs.image,
-                strength=1.0 - inputs.strength,
-                num_inference_steps=inputs.steps,
-                guidance_scale=inputs.guidance,
-                generator=generator,
-                callback_on_step_end=cb,
-            ).images[0]
+            workflow_id = self.I2I_WORKFLOW_ID
+            stem = f"{stem}_i2i"
+            inputs.zimage_denoise = max(0.0, min(1.0, 1.0 - float(inputs.strength)))
         else:
-            pipe = pipe_obj["pipe"]
-            return pipe(
-                prompt=inputs.prompt,
-                negative_prompt=inputs.neg_prompt,
-                num_inference_steps=inputs.steps,
-                guidance_scale=inputs.guidance,
-                height=inputs.height,
-                width=inputs.width,
-                generator=generator,
-                callback_on_step_end=cb,
-            ).images[0]
+            inputs.zimage_denoise = 1.0
+
+        inputs.zimage_model = self.COMFY_MODEL
+        inputs.zimage_text_encoder = "qwen_3_4b.safetensors"
+        inputs.zimage_vae = "ae.safetensors"
+        inputs.zimage_sampler = "res_multistep"
+        inputs.zimage_scheduler = "simple"
+        if self.TURBO_PROFILE:
+            inputs.zimage_cfg = max(1.0, float(inputs.guidance or 0.0))
+            if inputs.neg_prompt:
+                inputs.usage_note = (
+                    (getattr(inputs, "usage_note", "") + "\n")
+                    if getattr(inputs, "usage_note", "")
+                    else ""
+                ) + (
+                    "Z-Image Turbo uses the official Comfy no-CFG graph with "
+                    "ConditioningZeroOut; the negative prompt field is preserved "
+                    "in the UI but not consumed by this Turbo workflow."
+                )
+        else:
+            inputs.zimage_cfg = float(inputs.guidance or self.PARAMS.guidance)
+
+        self.set_phase(inputs, f"Generating with local ComfyUI {self.DISPLAY_NAME}")
+        filename = clean_filename(f"{inputs.seed}_{stem}") or stem
+        destination = solve_path(filename + ".png")
+        return gateway.run_comfy_workflow(
+            workflow_id,
+            inputs,
+            scene,
+            prefs,
+            destination=destination,
+            timeout=float(getattr(prefs, "comfyui_timeout", 3600.0) or 3600.0),
+        )
 
 
 class ZImagePlugin(_ZImageBase):
-    MODEL_ID     = "Tongyi-MAI/Z-Image"
+    MODEL_ID = "Tongyi-MAI/Z-Image"
     DISPLAY_NAME = "Image: Z-Image"
-    DESCRIPTION  = "Text-to-image and img2img via Z-Image"
-    PARAMS       = ParamSpec(steps=30, guidance=7.0)
-
-    def load(self, prefs, scene, **kw):
-        mode = kw.get("mode", "txt2img")
-        if mode == "img2img":
-            conv = self._build_img2img(self.MODEL_ID, prefs, turbo=False)
-            return {"pipe": None, "converter": conv, "refiner": None, "preprocessor": None}
-        pipe = self._build_pipe(self.MODEL_ID, prefs, turbo=False)
-        return {"pipe": pipe, "converter": None, "refiner": None, "preprocessor": None}
+    DESCRIPTION = "Text-to-image and img2img via local ComfyUI Z-Image"
+    PARAMS = ParamSpec(steps=30, guidance=7.0)
+    COMFY_MODEL = "z_image_bf16.safetensors"
+    T2I_WORKFLOW_ID = BASE_T2I_WORKFLOW_ID
+    I2I_WORKFLOW_ID = BASE_I2I_WORKFLOW_ID
 
 
 class ZImageTurboPlugin(_ZImageBase):
-    MODEL_ID     = "Tongyi-MAI/Z-Image-Turbo"
+    MODEL_ID = "Tongyi-MAI/Z-Image-Turbo"
     DISPLAY_NAME = "Image: Z-Image Turbo (fast)"
-    DESCRIPTION  = "Fast text-to-image and img2img via Z-Image Turbo"
-    PARAMS       = ParamSpec(steps=8, guidance=0.0)
-
-    def load(self, prefs, scene, **kw):
-        mode = kw.get("mode", "txt2img")
-        if mode == "img2img":
-            conv = self._build_img2img(self.MODEL_ID, prefs, turbo=True)
-            return {"pipe": None, "converter": conv, "refiner": None, "preprocessor": None}
-        pipe = self._build_pipe(self.MODEL_ID, prefs, turbo=True)
-        return {"pipe": pipe, "converter": None, "refiner": None, "preprocessor": None}
+    DESCRIPTION = "Fast text-to-image and img2img via local ComfyUI Z-Image Turbo"
+    PARAMS = ParamSpec(steps=8, guidance=0.0)
+    COMFY_MODEL = "z_image_turbo_bf16.safetensors"
+    T2I_WORKFLOW_ID = TURBO_T2I_WORKFLOW_ID
+    I2I_WORKFLOW_ID = TURBO_I2I_WORKFLOW_ID
+    TURBO_PROFILE = True

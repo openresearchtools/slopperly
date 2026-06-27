@@ -938,3 +938,15 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: workflow-runner integration coverage verifies both committed Qwen Image 2512 packs directly, and `tests/gpu/test_qwen_image_2512.py` now performs text-to-image and img2img plugin-path certification attempts instead of reporting an unwired-test block.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with ComfyUI-GGUF, Comfy core Qwen image nodes, and the Qwen GGUF/text encoder/VAE/Lightning LoRA files installed locally.
 - Still blocked: arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the committed graph applies the certified Lightning adapter and records custom LoRA injection as a follow-up rather than loading placeholder filenames.
+
+### 2026-06-27 Z-Image Comfy workflow block
+
+- Completed: `image/zimage.py` now routes `Tongyi-MAI/Z-Image` and `Tongyi-MAI/Z-Image-Turbo` through the local Comfy workflow gateway instead of direct Torch/Diffusers execution and generation-time Hugging Face downloads in the add-on process.
+- Completed: the existing prompt, negative prompt, image strip, resolution, frames, steps, guidance, image strength, and seed UI sections remain present; the wrapper selects text-to-image or img2img workflow packs from the existing `ModelInputs.mode` and `ModelInputs.image` values.
+- Completed: `zimage_t2i_i2i`, `zimage_t2i_i2i_img2img`, `zimage_turbo_t2i_i2i`, and `zimage_turbo_t2i_i2i_img2img` workflow packs are committed with API/editable workflow JSON, schemas, model manifests, smoke payloads, and READMEs.
+- Completed: the workflows use official Comfy core Z-Image template nodes: `UNETLoader`, `ModelSamplingAuraFlow`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `KSampler`, `VAEDecode`, and `SaveImage`; img2img adds `LoadImage`, `ImageScale`, and `VAEEncode`; Turbo uses `ConditioningZeroOut` for the official no-CFG negative path.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact sources for `z_image_bf16.safetensors`, `z_image_turbo_bf16.safetensors`, `qwen_3_4b.safetensors`, and `ae.safetensors`.
+- Evidence: integration coverage calls `ZImagePlugin.load()`/`generate()` and `ZImageTurboPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching, img2img image upload, Turbo negative-prompt usage note, and preserved `denoise = 1.0 - strength` mapping.
+- Evidence: workflow-runner integration coverage verifies all four committed Z-Image packs directly, and `tests/gpu/test_zimage.py` now performs base/Turbo text-to-image and img2img plugin-path certification attempts instead of reporting an unwired-test block.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with core Z-Image node classes and the Z-Image diffusion/text encoder/VAE files installed locally.
+- Still blocked: Z-Image Turbo negative prompts are deliberately unmapped because the official Comfy Turbo graph uses `ConditioningZeroOut`; the wrapper records this in `inputs.usage_note` when a negative prompt is supplied.

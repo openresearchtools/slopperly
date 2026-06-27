@@ -90,6 +90,88 @@ models:
     validation_command: pytest tests/gpu/test_qwen_image_edit_2511.py --device cuda
     workflows:
       - qwen_image_edit_2511_multi_gguf
+  - logical_name: zimage_t2i_i2i
+    legacy_aliases:
+      - Tongyi-MAI/Z-Image
+    task: image_t2i_i2i
+    runtime: comfy
+    model_source: https://huggingface.co/Comfy-Org/z_image
+    download_mode: hf_file
+    local_cache_path: models/diffusion_models/z_image_bf16.safetensors
+    required_files:
+      - path: split_files/diffusion_models/z_image_bf16.safetensors
+        target: z_image_bf16.safetensors
+    auxiliary_sources:
+      - id: zimage_text_encoder
+        model_source: https://huggingface.co/Comfy-Org/z_image_turbo
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/qwen_3_4b.safetensors
+        required_files:
+          - path: split_files/text_encoders/qwen_3_4b.safetensors
+            target: qwen_3_4b.safetensors
+      - id: zimage_vae
+        model_source: https://huggingface.co/Comfy-Org/z_image_turbo
+        download_mode: hf_file
+        local_cache_path: models/vae/ae.safetensors
+        required_files:
+          - path: split_files/vae/ae.safetensors
+            target: ae.safetensors
+    required_node_pack: comfyui core z-image
+    supported_resolutions:
+      - 1024x1024
+    default_parameters:
+      steps: 30
+      cfg: 7.0
+      sampler: res_multistep
+      scheduler: simple
+      fps: null
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_zimage.py --device cuda
+    workflows:
+      - zimage_t2i_i2i
+      - zimage_t2i_i2i_img2img
+      - image/zimage.py
+  - logical_name: zimage_turbo_t2i_i2i
+    legacy_aliases:
+      - Tongyi-MAI/Z-Image-Turbo
+    task: image_t2i_i2i
+    runtime: comfy
+    model_source: https://huggingface.co/Comfy-Org/z_image_turbo
+    download_mode: hf_file
+    local_cache_path: models/diffusion_models/z_image_turbo_bf16.safetensors
+    required_files:
+      - path: split_files/diffusion_models/z_image_turbo_bf16.safetensors
+        target: z_image_turbo_bf16.safetensors
+    auxiliary_sources:
+      - id: zimage_turbo_text_encoder
+        model_source: https://huggingface.co/Comfy-Org/z_image_turbo
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/qwen_3_4b.safetensors
+        required_files:
+          - path: split_files/text_encoders/qwen_3_4b.safetensors
+            target: qwen_3_4b.safetensors
+      - id: zimage_turbo_vae
+        model_source: https://huggingface.co/Comfy-Org/z_image_turbo
+        download_mode: hf_file
+        local_cache_path: models/vae/ae.safetensors
+        required_files:
+          - path: split_files/vae/ae.safetensors
+            target: ae.safetensors
+    required_node_pack: comfyui core z-image
+    supported_resolutions:
+      - 1024x1024
+    default_parameters:
+      steps: 8
+      cfg: 1.0
+      sampler: res_multistep
+      scheduler: simple
+      fps: null
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_zimage.py --device cuda
+    workflows:
+      - zimage_turbo_t2i_i2i
+      - zimage_turbo_t2i_i2i_img2img
+      - image/zimage.py
   - logical_name: wan22_ti2v_5b_720p24_gguf
     legacy_aliases:
       - google/veo

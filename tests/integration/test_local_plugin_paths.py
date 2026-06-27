@@ -534,6 +534,44 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "UNETLoader"
+                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("z_image")
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                output_node = "12" if "12" in RuntimeHandler.comfy_prompt else "10"
+                unet_name = next(
+                    str((node.get("inputs") or {}).get("unet_name", ""))
+                    for node in RuntimeHandler.comfy_prompt.values()
+                    if isinstance(node, dict) and node.get("class_type") == "UNETLoader"
+                )
+                turbo = "turbo" in unet_name
+                img2img = output_node == "12"
+                filename = (
+                    "slopperly_zimage_turbo_i2i_00001_.png"
+                    if turbo and img2img
+                    else "slopperly_zimage_turbo_00001_.png"
+                    if turbo
+                    else "slopperly_zimage_i2i_00001_.png"
+                    if img2img
+                    else "slopperly_zimage_00001_.png"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "images": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -1067,6 +1105,143 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["11"]["inputs"]["steps"], 4)
         self.assertEqual(prompt["11"]["inputs"]["cfg"], 1.0)
         self.assertAlmostEqual(prompt["11"]["inputs"]["denoise"], 0.35)
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_zimage_uses_comfy_t2i_and_i2i_plugin_paths(self):
+        module = load_plugin_module("image", "zimage")
+        plugin = module.ZImagePlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Z-Image text to image",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                steps=30,
+                guidance=7.0,
+                seed=1201,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(RuntimeHandler.comfy_uploads, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z_image_bf16.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name"], "qwen_3_4b.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["type"], "lumina2")
+        self.assertEqual(prompt["4"]["inputs"]["vae_name"], "ae.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["text"], "local Z-Image text to image")
+        self.assertEqual(prompt["6"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["7"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["seed"], 1201)
+        self.assertEqual(prompt["8"]["inputs"]["steps"], 30)
+        self.assertEqual(prompt["8"]["inputs"]["cfg"], 7.0)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            RuntimeHandler.comfy_uploads = []
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Z-Image image to image",
+                neg_prompt="text, watermark",
+                image=str(source),
+                mode="img2img",
+                width=1024,
+                height=1024,
+                steps=30,
+                guidance=7.0,
+                strength=0.65,
+                seed=1202,
+                frames=1,
+            )
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["7"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["8"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["10"]["inputs"]["seed"], 1202)
+        self.assertEqual(prompt["10"]["inputs"]["steps"], 30)
+        self.assertEqual(prompt["10"]["inputs"]["cfg"], 7.0)
+        self.assertAlmostEqual(prompt["10"]["inputs"]["denoise"], 0.35)
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_zimage_turbo_uses_comfy_t2i_and_i2i_plugin_paths(self):
+        module = load_plugin_module("image", "zimage")
+        plugin = module.ZImageTurboPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Z-Image Turbo text to image",
+                neg_prompt="this is recorded as unmapped",
+                width=1024,
+                height=1024,
+                steps=8,
+                guidance=0.0,
+                seed=1301,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(RuntimeHandler.comfy_uploads, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z_image_turbo_bf16.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["text"], "local Z-Image Turbo text to image")
+        self.assertEqual(prompt["6"]["class_type"], "ConditioningZeroOut")
+        self.assertEqual(prompt["8"]["inputs"]["seed"], 1301)
+        self.assertEqual(prompt["8"]["inputs"]["steps"], 8)
+        self.assertEqual(prompt["8"]["inputs"]["cfg"], 1.0)
+        self.assertIn("negative prompt field is preserved", inputs.usage_note)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            RuntimeHandler.comfy_uploads = []
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Z-Image Turbo image to image",
+                neg_prompt="this is recorded as unmapped",
+                image=str(source),
+                mode="img2img",
+                width=1024,
+                height=1024,
+                steps=8,
+                guidance=0.0,
+                strength=0.65,
+                seed=1302,
+                frames=1,
+            )
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["7"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["8"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["10"]["inputs"]["seed"], 1302)
+        self.assertEqual(prompt["10"]["inputs"]["steps"], 8)
+        self.assertEqual(prompt["10"]["inputs"]["cfg"], 1.0)
+        self.assertAlmostEqual(prompt["10"]["inputs"]["denoise"], 0.35)
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
 
     def test_google_nano_banana_alias_uses_local_qwen_workflow(self):

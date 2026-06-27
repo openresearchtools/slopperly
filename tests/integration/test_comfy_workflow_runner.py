@@ -365,6 +365,43 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "UNETLoader"
+                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("z_image")
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                output_node = "12" if "12" in ComfyHandler.last_prompt else "10"
+                unet_name = next(
+                    str((node.get("inputs") or {}).get("unet_name", ""))
+                    for node in ComfyHandler.last_prompt.values()
+                    if node.get("class_type") == "UNETLoader"
+                )
+                turbo = "turbo" in unet_name
+                img2img = output_node == "12"
+                filename = (
+                    "slopperly_zimage_turbo_i2i_00001_.png"
+                    if turbo and img2img
+                    else "slopperly_zimage_turbo_00001_.png"
+                    if turbo
+                    else "slopperly_zimage_i2i_00001_.png"
+                    if img2img
+                    else "slopperly_zimage_00001_.png"
+                )
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            output_node: {
+                                "images": [
+                                    {
+                                        "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -395,6 +432,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 "omnigen" in parsed.query
                 or "qwen_image_edit" in parsed.query
                 or "qwen_image_2512" in parsed.query
+                or "zimage" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
@@ -515,6 +553,15 @@ def _qwen_image_edit_object_info() -> dict:
 
 
 def _qwen_image_object_info(workflow_id: str) -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _zimage_object_info(workflow_id: str) -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
             encoding="utf-8"
@@ -1286,6 +1333,160 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["11"]["inputs"]["steps"], 4)
         self.assertEqual(prompt["11"]["inputs"]["cfg"], 1.0)
         self.assertEqual(prompt["11"]["inputs"]["denoise"], 0.35)
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+
+    def test_zimage_base_packs_patch_t2i_and_i2i_graphs(self):
+        ComfyHandler.reset(_zimage_object_info("zimage_t2i_i2i"))
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "zimage.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local Z-Image text to image",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                steps=30,
+                seed=1201,
+                zimage_cfg=7.0,
+                zimage_sampler="res_multistep",
+                zimage_scheduler="simple",
+                zimage_denoise=1.0,
+                zimage_model="z_image_bf16.safetensors",
+                zimage_text_encoder="qwen_3_4b.safetensors",
+                zimage_vae="ae.safetensors",
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/zimage_t2i_i2i",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(ComfyHandler.upload_bodies, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z_image_bf16.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name"], "qwen_3_4b.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["type"], "lumina2")
+        self.assertEqual(prompt["4"]["inputs"]["vae_name"], "ae.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["text"], "local Z-Image text to image")
+        self.assertEqual(prompt["6"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["7"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["seed"], 1201)
+        self.assertEqual(prompt["8"]["inputs"]["steps"], 30)
+        self.assertEqual(prompt["8"]["inputs"]["cfg"], 7.0)
+        self.assertEqual(prompt["8"]["inputs"]["sampler_name"], "res_multistep")
+
+        ComfyHandler.reset(_zimage_object_info("zimage_t2i_i2i_img2img"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            destination = Path(tmp) / "zimage_i2i.png"
+            source.write_bytes(b"local source image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs.image = str(source)
+            inputs.seed = 1202
+            inputs.zimage_denoise = 0.35
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/zimage_t2i_i2i_img2img",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 1)
+        self.assertEqual(prompt["7"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["8"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["8"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["10"]["inputs"]["seed"], 1202)
+        self.assertEqual(prompt["10"]["inputs"]["steps"], 30)
+        self.assertEqual(prompt["10"]["inputs"]["cfg"], 7.0)
+        self.assertEqual(prompt["10"]["inputs"]["denoise"], 0.35)
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+
+    def test_zimage_turbo_packs_patch_t2i_and_i2i_graphs(self):
+        ComfyHandler.reset(_zimage_object_info("zimage_turbo_t2i_i2i"))
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "zimage_turbo.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local Z-Image Turbo text to image",
+                neg_prompt="ignored by official turbo graph",
+                width=1024,
+                height=1024,
+                steps=8,
+                seed=1301,
+                zimage_cfg=1.0,
+                zimage_sampler="res_multistep",
+                zimage_scheduler="simple",
+                zimage_denoise=1.0,
+                zimage_model="z_image_turbo_bf16.safetensors",
+                zimage_text_encoder="qwen_3_4b.safetensors",
+                zimage_vae="ae.safetensors",
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/zimage_turbo_t2i_i2i",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(ComfyHandler.upload_bodies, [])
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z_image_turbo_bf16.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["text"], "local Z-Image Turbo text to image")
+        self.assertEqual(prompt["6"]["class_type"], "ConditioningZeroOut")
+        self.assertEqual(prompt["8"]["inputs"]["cfg"], 1.0)
+        self.assertEqual(prompt["8"]["inputs"]["steps"], 8)
+        self.assertEqual(prompt["8"]["inputs"]["sampler_name"], "res_multistep")
+
+        ComfyHandler.reset(_zimage_object_info("zimage_turbo_t2i_i2i_img2img"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            destination = Path(tmp) / "zimage_turbo_i2i.png"
+            source.write_bytes(b"local source image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs.image = str(source)
+            inputs.seed = 1302
+            inputs.zimage_denoise = 0.35
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/zimage_turbo_t2i_i2i_img2img",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 1)
+        self.assertEqual(prompt["7"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["8"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["10"]["inputs"]["seed"], 1302)
+        self.assertEqual(prompt["10"]["inputs"]["steps"], 8)
+        self.assertEqual(prompt["10"]["inputs"]["cfg"], 1.0)
+        self.assertEqual(prompt["10"]["inputs"]["denoise"], 0.35)
         self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):

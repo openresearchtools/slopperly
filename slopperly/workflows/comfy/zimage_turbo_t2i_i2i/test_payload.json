@@ -1,0 +1,21 @@
+{
+  "prompt": "A fast clean local Z-Image Turbo smoke-test portrait.",
+  "negative_prompt": "",
+  "width": 1024,
+  "height": 1024,
+  "steps": 8,
+  "seed": 1301,
+  "zimage_cfg": 1.0,
+  "zimage_sampler": "res_multistep",
+  "zimage_scheduler": "simple",
+  "zimage_denoise": 1.0,
+  "zimage_model": "z_image_turbo_bf16.safetensors",
+  "zimage_text_encoder": "qwen_3_4b.safetensors",
+  "zimage_vae": "ae.safetensors",
+  "expected": {
+    "type": "image",
+    "width": 1024,
+    "height": 1024,
+    "readable": true
+  }
+}
