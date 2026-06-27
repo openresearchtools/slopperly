@@ -1,11 +1,22 @@
 # Slopperly local backend migration specification
 
- This document is the handoff target for the implementation agent. Read and update thsi everytime you work. All work must be in WIP branch and commited and pushed after each change block to have tracked reccords of changes if anything needs to be fixed or reverted. Always read this document and od not deviate, mark eacch line comleted and move to next one untill everything i steste dand complete, for tetsingyou are free to set up python environemnts comfy ui, download models, and test workflows you are creating. And exmaple working ltx 2.3 video generation 1080p 24fps 20s cpu/gpu weigth offload workflow for porting comfy ui use is in workflows folder. run vllm/llama/comfy etc tests on 4090 thats avaioable test them make sure when portign everythign works, functions must be live tested with real inputs/ artifacts for workflows! Be careful with text encoders, if they reasonably fit under 16gb vram plus cpu offloads etc, prefer real safetensors instead of ggufs unless ggufs are properly supported as an encoder for text in image/video workflows.
+This document is the handoff target for the implementation agent. Read and update this document every time you work.
+
+All work must be performed in the **WIP** branch and committed and pushed after each block of changes to maintain a complete history of tracked changes in case anything needs to be fixed or reverted.
+
+Always read this document before starting work and do not deviate from it. Mark each line as completed before moving on to the next one until everything is tested, complete, and production-ready.
+
+For testing, you are free to set up Python environments, ComfyUI, download required models, and test any workflows you create. An example of a working **LTX 2.3** video generation workflow (1080p, 24 FPS, 20 seconds, CPU/GPU weight offloading) for porting to ComfyUI is available in the `workflows` folder.
+
+Run and validate **vLLM**, **Llama**, **ComfyUI**, and related components on the available RTX 4090. When porting functionality, ensure everything works correctly. All functions and workflows must be live-tested using real inputs and generated artifacts.
+
+Be careful when selecting text encoders. If a text encoder can reasonably fit within 16 GB of VRAM with CPU offloading where appropriate, prefer the original **Safetensors** model over **GGUF**, unless GGUF is fully and properly supported as a text encoder for the specific image or video workflow.
+
 
 
 You are the lead implementation agent for the Palladium-to-Slopperly fork.
 
-Your task is to create a new local-first fork named Slopperly inside this repository. The original Palladium code must remain available as a reference, but the production Slopperly implementation must remove all external AI providers and route all generation, inference, speech, transcription, image, video, background removal, and workflow execution through local runtimes only.
+Your task is to build local ai fork of the Palladium. Slopperly implementation must remove all external AI providers and route all generation, inference, speech, transcription, image, video, background removal, and workflow execution through local runtimes only.
 
 This is not a prototype. Do not stub, mock, comment out, or cosmetically rename features. A feature is complete only when the existing UI button/flow still works end-to-end through the new local backend, or when you have documented the exact blocking reason with evidence and preserved a non-breaking UI state.
 
