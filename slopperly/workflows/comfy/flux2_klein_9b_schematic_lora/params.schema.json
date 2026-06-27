@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "workflow_id": "flux2_klein_9b_schematic_lora",
+  "description": "Patch schema for FLUX.2 Klein 9B base schematic LoRA image editing through local ComfyUI.",
+  "inputs": {
+    "flux2_klein_schematic_model": [
+      {
+        "node": "3",
+        "input": "unet_name"
+      }
+    ],
+    "flux2_klein_schematic_lora": [
+      {
+        "node": "4",
+        "input": "lora_name"
+      }
+    ],
+    "flux2_klein_schematic_lora_strength": [
+      {
+        "node": "4",
+        "input": "strength_model"
+      }
+    ],
+    "flux2_klein_schematic_text_encoder": [
+      {
+        "node": "5",
+        "input": "clip_name"
+      }
+    ],
+    "flux2_klein_schematic_clip_type": [
+      {
+        "node": "5",
+        "input": "type"
+      }
+    ],
+    "flux2_klein_schematic_vae": [
+      {
+        "node": "6",
+        "input": "vae_name"
+      }
+    ],
+    "prompt": [
+      {
+        "node": "7",
+        "input": "text"
+      }
+    ],
+    "schematic_negative_prompt": [
+      {
+        "node": "8",
+        "input": "text"
+      }
+    ],
+    "guidance": [
+      {
+        "node": "12",
+        "input": "cfg"
+      }
+    ],
+    "seed": [
+      {
+        "node": "13",
+        "input": "noise_seed"
+      }
+    ],
+    "flux2_klein_schematic_sampler": [
+      {
+        "node": "14",
+        "input": "sampler_name"
+      }
+    ],
+    "steps": [
+      {
+        "node": "15",
+        "input": "steps"
+      }
+    ],
+    "width": [
+      {
+        "node": "2",
+        "input": "width"
+      },
+      {
+        "node": "15",
+        "input": "width"
+      },
+      {
+        "node": "16",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "2",
+        "input": "height"
+      },
+      {
+        "node": "15",
+        "input": "height"
+      },
+      {
+        "node": "16",
+        "input": "height"
+      }
+    ],
+    "batch": [
+      {
+        "node": "16",
+        "input": "batch_size"
+      }
+    ]
+  },
+  "uploads": {
+    "image": [
+      {
+        "node": "1",
+        "input": "image",
+        "type": "input"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
+    "negative_prompt": "The current schematic UI has no negative prompt section. The workflow uses the fixed negative prompt from the upstream Comfy workflow.",
+    "resolution": "The plugin preserves the selected source image dimensions instead of exposing the general resolution picker."
+  },
+  "outputs": [
+    {
+      "node": "19",
+      "type": "image",
+      "extension": ".png",
+      "mime": "image/png"
+    }
+  ]
+}

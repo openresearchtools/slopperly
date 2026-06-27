@@ -516,6 +516,29 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 })
             if (
                 any(
+                    node.get("class_type") == "LoraLoaderModelOnly"
+                    and str((node.get("inputs") or {}).get("lora_name", "")).startswith("flux2-klein-schematic-")
+                    for node in RuntimeHandler.comfy_prompt.values()
+                    if isinstance(node, dict)
+                )
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "19": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_flux2_klein_9b_schematic_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if (
+                any(
                     node.get("class_type") == "UNETLoader"
                     and str((node.get("inputs") or {}).get("unet_name", "")).startswith("flux-2-klein-")
                     for node in RuntimeHandler.comfy_prompt.values()
@@ -1893,6 +1916,53 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[0])
         self.assertIn(b'filename="ref.png"', RuntimeHandler.comfy_uploads[1])
         self.assertIn("denoise/strength input", edit_inputs.usage_note)
+
+    def test_flux2_klein_schematic_uses_comfy_lora_plugin_path(self):
+        module = load_plugin_module("image", "flux2_klein_9b_schematic")
+        plugin = module.Flux2Klein9BSchematicPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local schematic source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="Generate an amodal segmentation mask of bicycle in the input image.",
+                image=str(source),
+                width=640,
+                height=480,
+                steps=20,
+                guidance=5.0,
+                seed=42011,
+                frames=1,
+            )
+            scene = SimpleNamespace(
+                klein_schematic_mode="AMODAL_SEG",
+                klein_schematic_target="bicycle",
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            RuntimeHandler.comfy_uploads = []
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                output = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(len(RuntimeHandler.comfy_uploads), 1)
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["3"]["inputs"]["unet_name"], "flux-2-klein-base-9b-fp8.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["lora_name"], "flux2-klein-schematic-amodal-segmentation-lora.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["strength_model"], 0.8)
+        self.assertEqual(prompt["5"]["inputs"]["clip_name"], "qwen_3_8b.safetensors")
+        self.assertEqual(prompt["6"]["inputs"]["vae_name"], "flux2-vae.safetensors")
+        self.assertEqual(prompt["7"]["inputs"]["text"], "Generate an amodal segmentation mask of bicycle in the input image.")
+        self.assertEqual(prompt["8"]["inputs"]["text"], "text, worst quality, blurry, ugly")
+        self.assertEqual(prompt["12"]["inputs"]["cfg"], 5.0)
+        self.assertEqual(prompt["13"]["inputs"]["noise_seed"], 42011)
+        self.assertEqual(prompt["15"]["inputs"]["steps"], 20)
+        self.assertEqual(prompt["15"]["inputs"]["width"], 640)
+        self.assertEqual(prompt["16"]["inputs"]["height"], 480)
+        self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[0])
 
     def test_google_nano_banana_alias_uses_local_qwen_workflow(self):
         module = load_plugin_module("image", "google_nano_banana")

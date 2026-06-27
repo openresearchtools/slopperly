@@ -336,6 +336,28 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 })
             if (
                 any(
+                    node.get("class_type") == "LoraLoaderModelOnly"
+                    and str((node.get("inputs") or {}).get("lora_name", "")).startswith("flux2-klein-schematic-")
+                    for node in ComfyHandler.last_prompt.values()
+                )
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "19": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_flux2_klein_9b_schematic_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if (
+                any(
                     node.get("class_type") == "UNETLoader"
                     and str((node.get("inputs") or {}).get("unet_name", "")).startswith("flux-2-klein-")
                     for node in ComfyHandler.last_prompt.values()
@@ -2173,6 +2195,68 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertNotIn("latent", prompt["28"]["inputs"])
         self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
         self.assertIn(b'filename="ref.png"', ComfyHandler.upload_bodies[1])
+
+    def test_flux2_klein_schematic_pack_patches_lora_graph(self):
+        ComfyHandler.reset(_flux2_klein_object_info("flux2_klein_9b_schematic_lora"))
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            destination = Path(tmp) / "flux2_klein_schematic.png"
+            source.write_bytes(b"local schematic source image")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="Generate a surface normal map of the input image.",
+                image=str(source),
+                width=640,
+                height=480,
+                batch=1,
+                seed=42012,
+                steps=20,
+                guidance=5.0,
+                flux2_klein_schematic_model="flux-2-klein-base-9b-fp8.safetensors",
+                flux2_klein_schematic_lora="flux2-klein-schematic-surface-normal-lora.safetensors",
+                flux2_klein_schematic_lora_strength=0.8,
+                flux2_klein_schematic_text_encoder="qwen_3_8b.safetensors",
+                flux2_klein_schematic_clip_type="flux2",
+                flux2_klein_schematic_vae="flux2-vae.safetensors",
+                flux2_klein_schematic_sampler="euler",
+                schematic_negative_prompt="text, worst quality, blurry, ugly",
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/flux2_klein_9b_schematic_lora",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(len(ComfyHandler.upload_bodies), 1)
+        self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["2"]["inputs"]["width"], 640)
+        self.assertEqual(prompt["2"]["inputs"]["height"], 480)
+        self.assertEqual(prompt["3"]["inputs"]["unet_name"], "flux-2-klein-base-9b-fp8.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["lora_name"], "flux2-klein-schematic-surface-normal-lora.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["strength_model"], 0.8)
+        self.assertEqual(prompt["5"]["inputs"]["clip_name"], "qwen_3_8b.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["type"], "flux2")
+        self.assertEqual(prompt["6"]["inputs"]["vae_name"], "flux2-vae.safetensors")
+        self.assertEqual(prompt["7"]["inputs"]["text"], "Generate a surface normal map of the input image.")
+        self.assertEqual(prompt["8"]["inputs"]["text"], "text, worst quality, blurry, ugly")
+        self.assertEqual(prompt["10"]["inputs"]["latent"], ["9", 0])
+        self.assertEqual(prompt["11"]["inputs"]["latent"], ["9", 0])
+        self.assertEqual(prompt["12"]["inputs"]["model"], ["4", 0])
+        self.assertEqual(prompt["12"]["inputs"]["cfg"], 5.0)
+        self.assertEqual(prompt["13"]["inputs"]["noise_seed"], 42012)
+        self.assertEqual(prompt["14"]["inputs"]["sampler_name"], "euler")
+        self.assertEqual(prompt["15"]["inputs"]["steps"], 20)
+        self.assertEqual(prompt["15"]["inputs"]["width"], 640)
+        self.assertEqual(prompt["16"]["inputs"]["height"], 480)
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
 
     def test_lumina2_pack_patches_t2i_graph(self):
         ComfyHandler.reset(_lumina_object_info())

@@ -1,0 +1,54 @@
+workflow_id: flux2_klein_9b_schematic_lora
+required_custom_nodes:
+  - comfyui core
+required_node_classes:
+  - LoadImage
+  - ImageScale
+  - UNETLoader
+  - LoraLoaderModelOnly
+  - CLIPLoader
+  - VAELoader
+  - CLIPTextEncode
+  - VAEEncode
+  - ReferenceLatent
+  - CFGGuider
+  - RandomNoise
+  - KSamplerSelect
+  - Flux2Scheduler
+  - EmptyFlux2LatentImage
+  - SamplerCustomAdvanced
+  - VAEDecode
+  - SaveImage
+model_files:
+  - source: https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9b-fp8
+    file: flux-2-klein-base-9b-fp8.safetensors
+    destination: models/diffusion_models/flux-2-klein-base-9b-fp8.safetensors
+  - source: https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-9b
+    file: split_files/text_encoders/qwen_3_8b.safetensors
+    destination: models/text_encoders/qwen_3_8b.safetensors
+  - source: https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-9b
+    file: split_files/vae/flux2-vae.safetensors
+    destination: models/vae/flux2-vae.safetensors
+  - source: https://huggingface.co/nomadoor/flux-2-klein-9B-schematic-lora
+    file: loras/flux2-klein-schematic-relative-depth-lora.safetensors
+    destination: models/loras/flux2-klein-schematic-relative-depth-lora.safetensors
+  - source: https://huggingface.co/nomadoor/flux-2-klein-9B-schematic-lora
+    file: loras/flux2-klein-schematic-surface-normal-lora.safetensors
+    destination: models/loras/flux2-klein-schematic-surface-normal-lora.safetensors
+  - source: https://huggingface.co/nomadoor/flux-2-klein-9B-schematic-lora
+    file: loras/flux2-klein-schematic-body-pose-lora.safetensors
+    destination: models/loras/flux2-klein-schematic-body-pose-lora.safetensors
+  - source: https://huggingface.co/nomadoor/flux-2-klein-9B-schematic-lora
+    file: loras/flux2-klein-schematic-full-pose-lora.safetensors
+    destination: models/loras/flux2-klein-schematic-full-pose-lora.safetensors
+  - source: https://huggingface.co/nomadoor/flux-2-klein-9B-schematic-lora
+    file: loras/flux2-klein-schematic-binary-segmentation-lora.safetensors
+    destination: models/loras/flux2-klein-schematic-binary-segmentation-lora.safetensors
+  - source: https://huggingface.co/nomadoor/flux-2-klein-9B-schematic-lora
+    file: loras/flux2-klein-schematic-amodal-segmentation-lora.safetensors
+    destination: models/loras/flux2-klein-schematic-amodal-segmentation-lora.safetensors
+supported_resolutions:
+  - source-image-dimensions
+artifact_contract:
+  type: image/png
+  validation: readable PNG with dimensions matching the source image

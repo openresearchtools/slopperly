@@ -1001,3 +1001,29 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Dynamic project LoRA injection remains unmapped in these workflow packs; the wrapper preserves the LoRA UI and records dynamic LoRA injection as a follow-up.
 - Masked inpaint remains blocked because the committed official Comfy graph is a reference-edit graph, not a mask workflow. The wrapper records this when `inputs.mode == "inpaint"`.
 - The official reference-edit graph does not expose a denoise/strength input. The image-strength UI remains visible and the wrapper records that limitation in `inputs.usage_note`.
+
+## 2026-06-27 FLUX.2 Klein 9B Schematic LoRA Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/image/flux2_klein_9b_schematic.py` now routes `nomadoor/flux-2-klein-9B-schematic-lora` through the local Comfy gateway instead of importing Torch/Diffusers/Transformers and downloading LoRAs through `hf_hub_download` at generation time.
+- The existing prompt, required image strip, schematic mode selector, segmentation target field, frames, steps, guidance, and seed UI sections remain present.
+- The wrapper maps `klein_schematic_mode` to one of the six committed schematic LoRA filenames and preserves real Blender PIL source dimensions while allowing path-based certification fixtures to use explicit requested dimensions.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/flux2_klein_9b_schematic_lora/` with editable/API workflow JSON, schema, model manifest, smoke payload, and README.
+- The workflow uses Comfy core `LoadImage`, `ImageScale`, `UNETLoader`, `LoraLoaderModelOnly`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `VAEEncode`, `ReferenceLatent`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, and `SaveImage`.
+- Registered `flux2_klein_9b_schematic_lora` in `slopperly/config/models.yaml` with legacy alias `nomadoor/flux-2-klein-9B-schematic-lora`, Hugging Face artifact source `black-forest-labs/FLUX.2-klein-base-9b-fp8`, auxiliary source `Comfy-Org/vae-text-encorder-for-flux-klein-9b` for `qwen_3_8b.safetensors` and `flux2-vae.safetensors`, and all six schematic LoRA files from `nomadoor/flux-2-klein-9B-schematic-lora`.
+
+### Verification
+
+- Integration coverage calls `Flux2Klein9BSchematicPlugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies selected LoRA patching, prompt/negative prompt patching, source image upload, base model/text encoder/VAE filenames, and PNG artifact collection.
+- Workflow-runner integration coverage verifies the committed schematic pack directly and collects a single PNG artifact from Comfy history outputs.
+- GPU certification coverage is registered in `tests/gpu/test_flux2_klein_schematic.py` and validates a 1024x1024 schematic PNG artifact when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with core FLUX.2 Klein/LoRA node classes, `flux-2-klein-base-9b-fp8.safetensors`, `qwen_3_8b.safetensors`, `flux2-vae.safetensors`, and the selected schematic LoRA file installed locally.
+- The upstream workflow uses a fixed negative prompt, `text, worst quality, blurry, ugly`; the current schematic UI does not expose a negative prompt section, so this remains recorded as a workflow-level constant rather than a user-editable field.

@@ -1,16 +1,19 @@
-"""Image → schematic map via FLUX.2 Klein 9B + mode-specific LoRA (depth, normal, pose, seg)."""
+"""Image to schematic maps via local ComfyUI FLUX.2 Klein 9B base LoRAs."""
 
-from ...models.base import ModelPlugin, InputSpec, UISection, ParamSpec, ModelInputs
-from ...utils.helpers import gfx_device, low_vram
+from ...models.base import ModelInputs, ModelPlugin, InputSpec, ParamSpec, UISection
+from ...slopperly.runtime.gateway import SlopperlyRuntimeGateway
+from ...utils.helpers import clean_filename, solve_path
 
+
+WORKFLOW_ID = "flux2_klein_9b_schematic_lora"
 _LORA_REPO = "nomadoor/flux-2-klein-9B-schematic-lora"
 _LORA_FILES = {
-    "DEPTH":      "loras/flux2-klein-schematic-relative-depth-lora.safetensors",
-    "NORMAL":     "loras/flux2-klein-schematic-surface-normal-lora.safetensors",
-    "BODY_POSE":  "loras/flux2-klein-schematic-body-pose-lora.safetensors",
-    "FULL_POSE":  "loras/flux2-klein-schematic-full-pose-lora.safetensors",
-    "BINARY_SEG": "loras/flux2-klein-schematic-binary-segmentation-lora.safetensors",
-    "AMODAL_SEG": "loras/flux2-klein-schematic-amodal-segmentation-lora.safetensors",
+    "DEPTH":      "flux2-klein-schematic-relative-depth-lora.safetensors",
+    "NORMAL":     "flux2-klein-schematic-surface-normal-lora.safetensors",
+    "BODY_POSE":  "flux2-klein-schematic-body-pose-lora.safetensors",
+    "FULL_POSE":  "flux2-klein-schematic-full-pose-lora.safetensors",
+    "BINARY_SEG": "flux2-klein-schematic-binary-segmentation-lora.safetensors",
+    "AMODAL_SEG": "flux2-klein-schematic-amodal-segmentation-lora.safetensors",
 }
 _TRIGGER_PROMPTS = {
     "DEPTH":      "Generate a relative depth map of the input image.",
@@ -20,12 +23,13 @@ _TRIGGER_PROMPTS = {
     "BINARY_SEG": "Generate a binary segmentation mask of {target} in the input image.",
     "AMODAL_SEG": "Generate an amodal segmentation mask of {target} in the input image.",
 }
+_FIXED_NEGATIVE = "text, worst quality, blurry, ugly"
 
 
 class Flux2Klein9BSchematicPlugin(ModelPlugin):
-    MODEL_ID     = "nomadoor/flux-2-klein-9B-schematic-lora"
+    MODEL_ID     = _LORA_REPO
     DISPLAY_NAME = "Image: FLUX.2 Klein 9B Schematic"
-    DESCRIPTION  = "Transform images into schematic maps via Klein 9B (depth, normal, pose, segmentation)"
+    DESCRIPTION  = "Transform images into schematic maps via local ComfyUI Klein 9B LoRAs"
     MODEL_TYPE   = "image"
     INPUTS       = InputSpec.PROMPT | InputSpec.IMAGE
     UI_SECTIONS  = [
@@ -33,19 +37,15 @@ class Flux2Klein9BSchematicPlugin(ModelPlugin):
         UISection.FRAMES, UISection.STEPS, UISection.GUIDANCE, UISection.SEED,
     ]
     PARAMS            = ParamSpec(steps=20, guidance=5.0)
-    REQUIRED_PACKAGES = ["torch", "diffusers", "transformers"]
+    REQUIRED_PACKAGES = []
     supports_inpaint  = False
     supports_img2img  = True
     requires_input_strip       = True
     requires_no_style          = True
     preserve_image_dimensions  = True
 
-    _BASE_PIPELINE = "ModelsLab/FLUX.2-klein-9B"
-    _TRANSFORMER   = "OzzyGT/flux2_klein_9B_bnb_4bit_transformer"
-    _TEXT_ENCODER  = "OzzyGT/flux2_klein_9B_bnb_4bit_text_encoder"
-
     def on_model_selected(self, scene, context):
-        mode   = getattr(scene, "klein_schematic_mode", "DEPTH")
+        mode   = self._mode(scene)
         target = (getattr(scene, "klein_schematic_target", "person") or "person").strip()
         trigger = _TRIGGER_PROMPTS[mode].format(target=target)
         current = scene.generate_movie_prompt or ""
@@ -56,51 +56,10 @@ class Flux2Klein9BSchematicPlugin(ModelPlugin):
             scene.generate_movie_prompt = trigger + (" " + current if current else "")
 
     def load(self, prefs, scene, **kw):
-        import torch
-        from diffusers import Flux2KleinPipeline, Flux2Transformer2DModel
-        from transformers import Qwen3ForCausalLM
-
-        _cache_dir = prefs.hf_cache_dir or None
-        mode = getattr(scene, "klein_schematic_mode", "DEPTH")
-        print(f"Loading {self.MODEL_ID} (schematic mode: {mode})…")
-
-        _lfo = prefs.local_files_only
-        try:
-            from transformers import BitsAndBytesConfig
-            _bnb4 = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)
-        except Exception:
-            _bnb4 = None
-        _bnb_kw = {"quantization_config": _bnb4} if _bnb4 is not None else {}
-        transformer = Flux2Transformer2DModel.from_pretrained(
-            self._TRANSFORMER, torch_dtype=torch.bfloat16, device_map="cpu", cache_dir=_cache_dir,
-            local_files_only=_lfo, **_bnb_kw,
-        )
-        text_encoder = Qwen3ForCausalLM.from_pretrained(
-            self._TEXT_ENCODER, torch_dtype=torch.bfloat16, device_map="cpu", cache_dir=_cache_dir,
-            local_files_only=_lfo, **_bnb_kw,
-        )
-        pipe = Flux2KleinPipeline.from_pretrained(
-            self._BASE_PIPELINE,
-            transformer=transformer, text_encoder=text_encoder,
-            torch_dtype=torch.bfloat16, cache_dir=_cache_dir, local_files_only=_lfo,
-        )
-        from huggingface_hub import hf_hub_download
-        lora_path = hf_hub_download(
-            repo_id=_LORA_REPO,
-            filename=_LORA_FILES[mode],
-            cache_dir=_cache_dir,
-            local_files_only=_lfo,
-        )
-        pipe.load_lora_weights(lora_path, adapter_name="schematic")
-        pipe.set_adapters(["schematic"], adapter_weights=[1.0])
-
-        if gfx_device == "mps":
-            pipe.to("mps")
-        else:
-            pipe.enable_model_cpu_offload()
-
-        return {"pipe": pipe, "converter": pipe, "refiner": None, "preprocessor": None,
-                "schematic_mode": mode}
+        return {
+            "gateway": SlopperlyRuntimeGateway(),
+            "last_model_card": self.MODEL_ID,
+        }
 
     def draw_custom_ui(self, col, context) -> bool:
         scene = context.scene
@@ -116,42 +75,49 @@ class Flux2Klein9BSchematicPlugin(ModelPlugin):
         return True
 
     def generate(self, pipe_obj, inputs: ModelInputs, scene, prefs):
-        import torch
-        from PIL import Image as _PIL
-
         if inputs.image is None:
             raise ValueError("FLUX.2 Klein Schematic requires an image strip as input.")
 
-        cached_mode  = pipe_obj.get("schematic_mode", "DEPTH")
-        current_mode = getattr(scene, "klein_schematic_mode", "DEPTH")
-        if cached_mode != current_mode:
-            print(
-                f"WARNING: Schematic mode changed from '{cached_mode}' to '{current_mode}' "
-                "since model was loaded — reload the model to apply the new LoRA."
-            )
+        gateway = pipe_obj.get("gateway") if isinstance(pipe_obj, dict) else None
+        if gateway is None:
+            gateway = SlopperlyRuntimeGateway()
 
-        img = inputs.image.convert("RGB")
-        w, h = img.size
-        src = img
+        width, height = self._input_dimensions(inputs)
+        inputs.width = width
+        inputs.height = height
+        inputs.flux2_klein_schematic_model = "flux-2-klein-base-9b-fp8.safetensors"
+        inputs.flux2_klein_schematic_lora = self._lora_file(scene)
+        inputs.flux2_klein_schematic_lora_strength = 0.8
+        inputs.flux2_klein_schematic_text_encoder = "qwen_3_8b.safetensors"
+        inputs.flux2_klein_schematic_clip_type = "flux2"
+        inputs.flux2_klein_schematic_vae = "flux2-vae.safetensors"
+        inputs.flux2_klein_schematic_sampler = "euler"
+        inputs.schematic_negative_prompt = _FIXED_NEGATIVE
 
-        seed = inputs.seed
-        generator = (
-            torch.Generator("cuda").manual_seed(seed)
-            if torch.cuda.is_available() and seed != 0 else None
+        self.set_phase(inputs, f"Generating with local ComfyUI {self.DISPLAY_NAME}")
+        filename = clean_filename(f"{inputs.seed}_flux2_klein_9b_schematic") or "flux2_klein_9b_schematic"
+        destination = solve_path(filename + ".png")
+        return gateway.run_comfy_workflow(
+            WORKFLOW_ID,
+            inputs,
+            scene,
+            prefs,
+            destination=destination,
+            timeout=float(getattr(prefs, "comfyui_timeout", 3600.0) or 3600.0),
         )
 
-        self.set_phase(inputs, "Generating")
-        result = pipe_obj["pipe"](
-            prompt=inputs.prompt,
-            image=src,
-            num_inference_steps=inputs.steps,
-            guidance_scale=inputs.guidance,
-            height=h,
-            width=w,
-            generator=generator,
-            callback_on_step_end=self.step_callback(inputs),
-        ).images[0]
+    @staticmethod
+    def _mode(scene) -> str:
+        mode = getattr(scene, "klein_schematic_mode", "DEPTH") if scene is not None else "DEPTH"
+        return mode if mode in _LORA_FILES else "DEPTH"
 
-        if result.size != (w, h):
-            result = result.resize((w, h), _PIL.LANCZOS)
-        return result
+    def _lora_file(self, scene) -> str:
+        return _LORA_FILES[self._mode(scene)]
+
+    @staticmethod
+    def _input_dimensions(inputs: ModelInputs) -> tuple[int, int]:
+        image = getattr(inputs, "image", None)
+        if hasattr(image, "size"):
+            width, height = image.size
+            return int(width), int(height)
+        return int(getattr(inputs, "width", 1024) or 1024), int(getattr(inputs, "height", 1024) or 1024)

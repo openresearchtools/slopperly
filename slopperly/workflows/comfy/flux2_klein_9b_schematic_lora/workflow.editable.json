@@ -1,0 +1,33 @@
+{
+  "workflow_id": "flux2_klein_9b_schematic_lora",
+  "source_template": "https://huggingface.co/nomadoor/flux-2-klein-9B-schematic-lora/blob/main/workflow/flux2-klein-base-9b-image-edit.json",
+  "format": "editable-reference",
+  "description": "Editable reference for the upstream FLUX.2 Klein 9B base schematic LoRA Comfy workflow. The production API graph expands the image-edit path into plain API nodes and patches the selected mode LoRA filename.",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "title": "Selected source image"
+    },
+    {
+      "id": 3,
+      "type": "UNETLoader",
+      "title": "FLUX.2 Klein base 9B FP8 model"
+    },
+    {
+      "id": 4,
+      "type": "LoraLoaderModelOnly",
+      "title": "Selected schematic LoRA"
+    },
+    {
+      "id": 10,
+      "type": "ReferenceLatent",
+      "title": "Positive source reference latent"
+    },
+    {
+      "id": 19,
+      "type": "SaveImage",
+      "title": "Slopperly PNG output"
+    }
+  ]
+}

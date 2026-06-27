@@ -1,0 +1,18 @@
+{
+  "prompt": "Generate a relative depth map of the input image.",
+  "image": "tests/fixtures/vsr_source.ppm",
+  "width": 8,
+  "height": 6,
+  "steps": 20,
+  "guidance": 5.0,
+  "seed": 42011,
+  "frames": 1,
+  "flux2_klein_schematic_model": "flux-2-klein-base-9b-fp8.safetensors",
+  "flux2_klein_schematic_lora": "flux2-klein-schematic-relative-depth-lora.safetensors",
+  "flux2_klein_schematic_lora_strength": 0.8,
+  "flux2_klein_schematic_text_encoder": "qwen_3_8b.safetensors",
+  "flux2_klein_schematic_clip_type": "flux2",
+  "flux2_klein_schematic_vae": "flux2-vae.safetensors",
+  "flux2_klein_schematic_sampler": "euler",
+  "schematic_negative_prompt": "text, worst quality, blurry, ugly"
+}

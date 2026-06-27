@@ -30,6 +30,7 @@ This matrix is the working replacement plan for production-visible functions.
 | `ideogram-ai/ideogram-4-nf4-diffusers` | Migrated wrapper, GPU/server test pending | ComfyUI | `ideogram4_t2i` |
 | `black-forest-labs/FLUX.2-klein-4B` | Migrated wrapper, GPU/server test pending | ComfyUI | `flux2_klein_4b_t2i_edit`, `flux2_klein_4b_t2i_edit_img2img` |
 | `ModelsLab/FLUX.2-klein-9B` | Migrated wrapper, GPU/server test pending | ComfyUI | `flux2_klein_9b_t2i_edit`, `flux2_klein_9b_t2i_edit_img2img` |
+| `nomadoor/flux-2-klein-9B-schematic-lora` | Migrated wrapper, GPU/server test pending | ComfyUI | `flux2_klein_9b_schematic_lora` |
 | `StemSplitter` | Migrated wrapper, GPU/server test pending | ComfyUI | `audio_stem_split_demucs` |
 | `MMAudio` | Migrated wrapper, GPU/server test pending | ComfyUI | `mmaudio_video_to_audio` |
 | `cocktailpeanut/stable-audio-3-medium-base` | Migrated wrapper, GPU/server test pending | ComfyUI | `stable_audio_3_medium_base` |
