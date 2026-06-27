@@ -160,3 +160,21 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - The installers were verified in dry-run/unit mode in this block; ComfyUI, vLLM, vLLM-Omni, and llama.cpp were not downloaded, installed, or launched.
 - No model artifacts or plugin-path GPU outputs were generated in this block.
+
+## 2026-06-27 Runtime supervisor preflight block
+
+### Launch Wiring Added
+
+- Updated the ComfyUI supervisor to launch from the owned installer layout: `.slopperly/runtimes/ComfyUI` with `.slopperly/runtimes/comfy-venv/bin/python`.
+- Added local URL parsing and executable preflight checks for ComfyUI, vLLM, vLLM-Omni, and llama.cpp supervisors.
+- Updated llama.cpp launch commands to include the required defaults: `--ctx-size 60000` and `--n-predict 30000`.
+- `start()` now refuses to spawn a runtime when required installed files are missing, surfacing a local runtime unavailable error instead of failing later with a vague subprocess issue.
+
+### Verification
+
+- Added supervisor unit tests for ComfyUI, vLLM, vLLM-Omni, and llama.cpp launch command construction and preflight behavior.
+
+### Blocked / Not Yet Certified
+
+- These tests do not start real runtime servers.
+- GPU artifact generation remains blocked until runtime installs, model downloads, plugin wrappers, and workflow packs are complete.
