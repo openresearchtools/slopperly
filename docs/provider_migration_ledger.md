@@ -217,3 +217,24 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 ### Blocked / Not Yet Certified
 
 - Registry validity does not certify model availability or runtime execution. Real downloads, server starts, and plugin-path GPU artifacts are still required.
+
+## 2026-06-27 Local plugin-path integration block
+
+### Integration Tests Added
+
+- Added `tests/integration/test_local_plugin_paths.py`.
+- The tests load selected plugin modules through a synthetic add-on package so Blender's `bpy` dependency is avoided while preserving each plugin's real class and `generate()` implementation.
+- Covered plugin paths:
+  - `MoviiGenRewriterPlugin.generate()` -> llama.cpp chat completions.
+  - `FasterWhisperTranscribePlugin.generate()` -> vLLM audio transcription and VSE text-strip insertion logic.
+  - `OmniVoicePlugin.generate()` -> vLLM-Omni speech.
+  - `MossTTSPlugin.generate()` -> vLLM-Omni speech.
+
+### Verification
+
+- Local fake OpenAI-compatible servers received the expected local runtime requests.
+- Tests assert llama.cpp context/token defaults, vLLM Whisper model selection, vLLM-Omni model IDs, reference audio/text mapping, and generated local audio file writes.
+
+### Blocked / Not Yet Certified
+
+- These are integration tests against local fake runtime servers. They do not start real llama.cpp, vLLM, or vLLM-Omni servers and do not produce GPU artifacts.
