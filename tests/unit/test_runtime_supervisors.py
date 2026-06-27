@@ -53,13 +53,15 @@ class RuntimeSupervisorTests(unittest.TestCase):
     def test_vllm_omni_launch_uses_local_openai_server(self):
         with tempfile.TemporaryDirectory() as tmp:
             venv = Path(tmp) / "vllm-omni-venv"
-            make_executable(venv / "bin/python")
+            make_executable(venv / "bin/vllm-omni")
             supervisor = VllmOmniSupervisor(venv=venv, url="http://127.0.0.1:8091")
             self.assertFalse([step for step in supervisor.preflight() if step.status == "BLOCKED"])
             command = supervisor.launch_command("k2-fsa/OmniVoice")
-        self.assertEqual(command[1:3], ["-m", "vllm_omni.entrypoints.openai.api_server"])
+        self.assertEqual(command[1:4], ["serve", "k2-fsa/OmniVoice", "--omni"])
         self.assertIn("k2-fsa/OmniVoice", command)
         self.assertIn("8091", command)
+        self.assertIn("--allowed-local-media-path", command)
+        self.assertIn("--download-dir", command)
 
     def test_llamacpp_launch_uses_context_and_token_defaults(self):
         with tempfile.TemporaryDirectory() as tmp:

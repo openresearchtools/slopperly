@@ -180,19 +180,25 @@ class LocalRuntimeClientTests(unittest.TestCase):
     def test_vllm_omni_speech_writes_binary_audio(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "voice.wav"
+            ref = Path(tmp) / "ref.wav"
+            _tiny_wav(ref)
             result = VllmOmniTtsClient(self.base_url).speech(
                 text="hello",
                 output_path=str(out),
                 model="k2-fsa/OmniVoice",
-                voice="default",
-                ref_audio="/tmp/ref.wav",
+                ref_audio=str(ref),
                 ref_text="hello",
                 speed=1.1,
+                seed=123,
+                extra_params={"num_step": 24, "guidance_scale": 1.8},
             )
             self.assertEqual(result, str(out))
             self.assertEqual(out.read_bytes(), RuntimeHandler.wav_bytes)
-        self.assertEqual(RuntimeHandler.last_json["ref_audio"], "/tmp/ref.wav")
+        self.assertTrue(RuntimeHandler.last_json["ref_audio"].startswith("data:audio/x-wav;base64,"))
         self.assertEqual(RuntimeHandler.last_json["speed"], 1.1)
+        self.assertEqual(RuntimeHandler.last_json["seed"], 123)
+        self.assertEqual(RuntimeHandler.last_json["extra_params"]["num_step"], 24)
+        self.assertEqual(RuntimeHandler.last_json["extra_params"]["guidance_scale"], 1.8)
 
     def test_vllm_omni_speech_writes_json_audio(self):
         with tempfile.TemporaryDirectory() as tmp:

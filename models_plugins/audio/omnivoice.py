@@ -4,6 +4,37 @@ from ...models.base import InputSpec, ModelInputs, ModelPlugin, ParamSpec, UISec
 from ...utils.helpers import clean_filename, solve_path
 from ...slopperly.runtime.vllm_omni.tts_client import VllmOmniTtsClient
 
+_LANGUAGE_FALLBACKS = {
+    "AUTO": None,
+    "": None,
+    "EN": "English",
+    "ZH": "Chinese",
+    "JA": "Japanese",
+    "KO": "Korean",
+    "ES": "Spanish",
+    "FR": "French",
+    "DE": "German",
+    "IT": "Italian",
+    "PT": "Portuguese",
+    "RU": "Russian",
+}
+
+
+def _language_name(value: str | None) -> str | None:
+    raw = (value or "AUTO").strip()
+    upper = raw.upper()
+    if upper in _LANGUAGE_FALLBACKS:
+        return _LANGUAGE_FALLBACKS[upper]
+    try:
+        from ...utils.omnivoice_langs import OMNIVOICE_LANG_ITEMS
+
+        for item in OMNIVOICE_LANG_ITEMS:
+            if item and item[0] == raw:
+                return item[1]
+    except Exception:
+        pass
+    return raw or None
+
 
 class OmniVoicePlugin(ModelPlugin):
     MODEL_ID = "OmniVoice"
@@ -28,12 +59,15 @@ class OmniVoicePlugin(ModelPlugin):
 
     def generate(self, pipe_obj, inputs: ModelInputs, scene, prefs) -> str:
         instruct = getattr(scene, "omnivoice_instruct", "").strip() or None
-        language = getattr(scene, "omnivoice_language", "AUTO")
-        ref_audio = inputs.audio_ref or None
-        ref_text = (inputs.text_ref or "").strip() or None
+        language = _language_name(getattr(scene, "omnivoice_language", "AUTO"))
+        ref_audio = inputs.audio_ref or getattr(scene, "ref_audio_path", "") or None
+        ref_text = (inputs.text_ref or getattr(scene, "ref_text", "") or "").strip() or None
         speed = inputs.speed if inputs.speed != 1.0 else None
-        lang_note = "" if language == "AUTO" else f"Language: {language}."
-        instructions = " ".join(x for x in (lang_note, instruct or "") if x).strip() or None
+        instructions = instruct
+        extra_params = {
+            "num_step": int(inputs.steps),
+            "guidance_scale": float(inputs.guidance),
+        }
 
         output_path = solve_path(clean_filename(str(inputs.seed) + "_" + inputs.prompt) + ".wav")
         self.set_phase(inputs, "Generating with vLLM-Omni")
@@ -41,11 +75,13 @@ class OmniVoicePlugin(ModelPlugin):
             text=inputs.prompt,
             output_path=output_path,
             model="k2-fsa/OmniVoice",
-            voice="default",
             ref_audio=ref_audio,
             ref_text=ref_text,
             speed=speed,
             instructions=instructions,
+            language=language,
+            seed=inputs.seed,
+            extra_params=extra_params,
         )
 
     def draw_custom_ui(self, col, context) -> bool:

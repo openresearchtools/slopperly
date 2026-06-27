@@ -16,9 +16,18 @@ from .tts_client import VllmOmniTtsClient
 
 
 class VllmOmniSupervisor:
-    def __init__(self, venv: str | Path = ".slopperly/vllm-omni-venv", url: str = "http://127.0.0.1:8091"):
+    def __init__(
+        self,
+        venv: str | Path = ".slopperly/vllm-omni-venv",
+        url: str = "http://127.0.0.1:8091",
+        *,
+        allowed_local_media_path: str | Path = ".",
+        download_dir: str | Path = ".slopperly/runtimes/vllm-omni",
+    ):
         self.venv = Path(venv)
         self.url = url
+        self.allowed_local_media_path = Path(allowed_local_media_path)
+        self.download_dir = Path(download_dir)
 
     def health(self) -> dict:
         return VllmOmniTtsClient(self.url).health()
@@ -27,22 +36,29 @@ class VllmOmniSupervisor:
     def python(self) -> Path:
         return self.venv / "bin" / "python"
 
+    @property
+    def vllm_omni(self) -> Path:
+        return self.venv / "bin" / "vllm-omni"
+
     def launch_command(self, model: str) -> list[str]:
         host, port = local_host_port(self.url, default_port=8091, label="vLLM-Omni")
         return [
-            str(self.python),
-            "-m",
-            "vllm_omni.entrypoints.openai.api_server",
+            str(self.vllm_omni),
+            "serve",
+            model,
+            "--omni",
             "--host",
             host,
             "--port",
             str(port),
-            "--model",
-            model,
+            "--allowed-local-media-path",
+            str(self.allowed_local_media_path.resolve()),
+            "--download-dir",
+            str(self.download_dir.resolve()),
         ]
 
     def preflight(self) -> list[InstallStep]:
-        return [executable_check(self.python, name="python")]
+        return [executable_check(self.vllm_omni, name="vllm-omni")]
 
     def start(self, model: str) -> subprocess.Popen:
         require_preflight(self.preflight())

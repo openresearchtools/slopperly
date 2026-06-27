@@ -552,7 +552,7 @@ class SEQUENCER_OT_generate_audio(Operator):
             else:
                 audio_ref = None
 
-            text_ref   = bpy.path.abspath(scene.ref_text) if getattr(scene, "ref_text", None) else ""
+            text_ref = getattr(scene, "ref_text", "") or ""
             if input_mode == "input_strips" and strip is not None and strip.type == "MOVIE":
                 video_path = bpy.path.abspath(strip.filepath)
             else:
@@ -1819,4 +1819,3 @@ class SEQUENCER_OT_strip_to_generatorAI(Operator):
         print("Processing finished.")
 
         return {"FINISHED"}
-

@@ -54,6 +54,10 @@ coverage.xml
 # Slopperly local runtime installs and generated media artifacts.
 .slopperly/runtimes/
 .slopperly/gpu-artifacts/
+.slopperly/model-cache/
+.slopperly/vllm-venv/
+.slopperly/vllm-omni-venv/
+.slopperly/*-install-manifest.json
 
 # Translations
 *.mo

@@ -17,6 +17,7 @@ from slopperly.runtime.llamacpp.install import (
 )
 from slopperly.runtime.vllm.install import install_vllm
 from slopperly.runtime.vllm_omni.install import install_vllm_omni
+from slopperly.runtime.vllm_omni.install import patch_omnivoice_sampling_controls
 
 
 class RuntimeInstallerTests(unittest.TestCase):
@@ -81,8 +82,38 @@ class RuntimeInstallerTests(unittest.TestCase):
                 dry_run=True,
             )
         details = "\n".join(step.detail for step in steps)
-        self.assertIn("vllm-omni", details)
+        names = {step.name for step in steps}
+        self.assertIn("vllm-omni==0.22.0", details)
+        self.assertIn("vllm==0.22.0", details)
+        self.assertIn("omnivoice-patch", names)
         self.assertIn("vllm-omni-install-manifest.json", details)
+
+    def test_vllm_omni_omnivoice_patch_maps_sampling_controls(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pipeline = (
+                Path(tmp)
+                / "vllm-omni-venv/lib/python3.12/site-packages/vllm_omni/diffusion/models/omnivoice/pipeline_omnivoice.py"
+            )
+            pipeline.parent.mkdir(parents=True)
+            pipeline.write_text(
+                '''        extra = req.sampling_params.extra_args or {}
+        seed = extra.get("seed", None)
+        tokens = self.generator(
+            input_ids=batch_input_ids,
+            num_step=self.num_step,
+            guidance_scale=self.guidance_scale,
+            seed=seed,
+        )
+''',
+                encoding="utf-8",
+            )
+            step = patch_omnivoice_sampling_controls(Path(tmp) / "vllm-omni-venv")
+            patched = pipeline.read_text(encoding="utf-8")
+        self.assertEqual(step.status, "PASS")
+        self.assertIn("num_step = int(extra.get(\"num_step\", self.num_step))", patched)
+        self.assertIn("guidance_scale = float(extra.get(\"guidance_scale\", self.guidance_scale))", patched)
+        self.assertIn("num_step=num_step", patched)
+        self.assertIn("guidance_scale=guidance_scale", patched)
 
     def test_llamacpp_selects_matching_archive_asset(self):
         release_data = {

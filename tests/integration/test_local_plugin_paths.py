@@ -1160,12 +1160,16 @@ class LocalPluginPathTests(unittest.TestCase):
         module = load_plugin_module("audio", "omnivoice")
         plugin = module.OmniVoicePlugin()
         with tempfile.TemporaryDirectory() as tmp:
+            ref = Path(tmp) / "ref.wav"
+            _tiny_wav(ref)
             module.solve_path = lambda filename: str(Path(tmp) / filename)
             inputs = self.base.ModelInputs(
                 prompt="hello from the local runtime",
-                audio_ref="/tmp/ref.wav",
+                audio_ref=str(ref),
                 text_ref="hello",
                 speed=1.2,
+                steps=24,
+                guidance=1.8,
                 seed=123,
             )
             scene = SimpleNamespace(omnivoice_instruct="warm narrator", omnivoice_language="EN")
@@ -1178,20 +1182,26 @@ class LocalPluginPathTests(unittest.TestCase):
         payload = RuntimeHandler.speech_payloads[-1]
         self.assertEqual(payload["model"], "k2-fsa/OmniVoice")
         self.assertEqual(payload["input"], "hello from the local runtime")
-        self.assertEqual(payload["ref_audio"], "/tmp/ref.wav")
+        self.assertTrue(payload["ref_audio"].startswith("data:audio/x-wav;base64,"))
         self.assertEqual(payload["ref_text"], "hello")
         self.assertEqual(payload["speed"], 1.2)
+        self.assertEqual(payload["language"], "English")
+        self.assertEqual(payload["seed"], 123)
+        self.assertEqual(payload["extra_params"]["num_step"], 24)
+        self.assertEqual(payload["extra_params"]["guidance_scale"], 1.8)
         self.assertIn("warm narrator", payload["instructions"])
 
     def test_moss_generate_uses_vllm_omni_plugin_path(self):
         module = load_plugin_module("audio", "moss_tts")
         plugin = module.MossTTSPlugin()
         with tempfile.TemporaryDirectory() as tmp:
+            ref = Path(tmp) / "speaker.wav"
+            _tiny_wav(ref)
             module.solve_path = lambda filename: str(Path(tmp) / filename)
             inputs = self.base.ModelInputs(prompt="local moss voice", seed=321)
             scene = SimpleNamespace(
                 moss_model_variant="nano",
-                moss_ref_audio_path="/tmp/speaker.wav",
+                moss_ref_audio_path=str(ref),
                 moss_language="EN",
                 moss_duration_tokens=128,
                 moss_max_new_tokens=1024,
@@ -1207,7 +1217,7 @@ class LocalPluginPathTests(unittest.TestCase):
 
         payload = RuntimeHandler.speech_payloads[-1]
         self.assertEqual(payload["model"], "OpenMOSS-Team/MOSS-TTS-Nano")
-        self.assertEqual(payload["ref_audio"], "/tmp/speaker.wav")
+        self.assertTrue(payload["ref_audio"].startswith("data:audio/x-wav;base64,"))
         self.assertIn("duration_tokens=128", payload["instructions"])
 
     def test_faster_whisper_generate_uses_vllm_plugin_path(self):

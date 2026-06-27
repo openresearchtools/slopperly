@@ -1,0 +1,32 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/omnivoice_vllm_omni/omnivoice_manifest.json",
+  "command": "pytest tests/gpu/test_vllm_omni_tts.py::test_vllm_omni_tts --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-27T17:10:51+00:00",
+  "logical_name": "omnivoice_vllm_omni",
+  "metadata": {
+    "model": "k2-fsa/OmniVoice",
+    "runtime_url": "http://127.0.0.1:8091"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "clone": {
+      "channels": 1,
+      "duration": 4.92,
+      "format": "WAV",
+      "kind": "audio",
+      "rms": 2472.5453814020925,
+      "sample_rate": 24000
+    },
+    "plain": {
+      "channels": 1,
+      "duration": 2.96,
+      "format": "WAV",
+      "kind": "audio",
+      "rms": 3985.2982825841727,
+      "sample_rate": 24000
+    }
+  }
+}
