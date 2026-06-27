@@ -1,6 +1,22 @@
 # Slopperly local backend migration specification
 
-Status: implementation specification and research map, not a completed GPU test report. It is based on the uploaded repository wip branch inspected on 2026-06-27 and current upstream documentation/repositories checked the same day. This document is the handoff target for the implementation agent. All work must be in WIP branch and commited and pushed after each change block to have tracked reccords of changes if anything needs to be fixed or reverted. Always read this document and od not deviate, mark eacch line comleted and move to next one untill everything i steste dand complete, for tetsingyou are free to set up python environemnts comfy ui, download models, and test workflows you are creating. And exmaple working ltx 2.3 video generation 1080p 24fps 20s cpu/gpu weigth offload workflow for porting comfy ui use is in workflows folder
+ This document is the handoff target for the implementation agent. Read and update thsi everytime you work. All work must be in WIP branch and commited and pushed after each change block to have tracked reccords of changes if anything needs to be fixed or reverted. Always read this document and od not deviate, mark eacch line comleted and move to next one untill everything i steste dand complete, for tetsingyou are free to set up python environemnts comfy ui, download models, and test workflows you are creating. And exmaple working ltx 2.3 video generation 1080p 24fps 20s cpu/gpu weigth offload workflow for porting comfy ui use is in workflows folder. run vllm/llama/comfy etc tests on 4090 thats avaioable test them make sure when portign everythign works, functions must be live tested with real inputs/ artifacts for workflows! Be careful with text encoders, if they reasonably fit under 16gb vram plus cpu offloads etc, prefer real safetensors instead of ggufs unless ggufs are properly supported as an encoder for text in image/video workflows.
+
+
+You are the lead implementation agent for the Palladium-to-Slopperly fork.
+
+Your task is to create a new local-first fork named Slopperly inside this repository. The original Palladium code must remain available as a reference, but the production Slopperly implementation must remove all external AI providers and route all generation, inference, speech, transcription, image, video, background removal, and workflow execution through local runtimes only.
+
+This is not a prototype. Do not stub, mock, comment out, or cosmetically rename features. A feature is complete only when the existing UI button/flow still works end-to-end through the new local backend, or when you have documented the exact blocking reason with evidence and preserved a non-breaking UI state.
+
+Primary goal:
+Port Palladium into Slopperly as a local-only Ubuntu x64 CUDA application using only these AI execution backends:
+1. llama.cpp for direct chat, prompt enhancement, planning, metadata generation, and other low-latency or long-context text inference OpenAI-compatible text, multimodal,
+2. vLLM and vLLM-Omni for local  speech-to-text, and text-to-speech voice cloning, etc etc.
+3. ComfyUI for image, video, image-editing, video-editing, frame interpolation, background removal, and node-graph workflows.
+4. Blender only where the existing app already uses or requires Blender-style 3D/render logic.
+
+No OpenAI, Anthropic, Gemini, Replicate, ElevenLabs, Runway, Stability hosted APIs, cloud Comfy services, hosted Hugging Face inference APIs, or other external inference providers may remain in the production Slopperly path. Hugging Face may be used only as a model artifact source for local download/cache.
 
 ## 0. Non-negotiable behavior
 
