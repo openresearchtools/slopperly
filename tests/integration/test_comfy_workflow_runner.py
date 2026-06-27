@@ -122,6 +122,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
             source = Path(tmp) / "source.png"
             destination = Path(tmp) / "result.mp4"
             source.write_bytes(b"local image fixture bytes")
+            phases = []
+            progress = []
             inputs = SimpleNamespace(
                 prompt="local image to video",
                 neg_prompt="static",
@@ -132,6 +134,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 fps=24,
                 strength=0.65,
                 seed=12345,
+                phase_fn=phases.append,
+                progress_fn=lambda step, total: progress.append((step, total)),
             )
 
             result = self.gateway.run_comfy_workflow(
@@ -146,6 +150,20 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
             self.assertEqual(result, str(destination))
             self.assertEqual(destination.read_bytes(), ComfyHandler.video_bytes)
 
+        self.assertEqual(progress, [(1, 5), (2, 5), (3, 5), (4, 5), (5, 5)])
+        self.assertEqual(
+            phases,
+            [
+                "Preparing Comfy workflow ltx23_i2v",
+                "Patching Comfy workflow parameters",
+                "Checking Comfy workflow nodes",
+                "Uploading Comfy workflow inputs",
+                "Queueing Comfy workflow",
+                "Waiting for Comfy workflow output",
+                "Collecting Comfy workflow artifacts",
+                "Comfy workflow complete",
+            ],
+        )
         prompt = ComfyHandler.last_prompt
         self.assertEqual(prompt["7"]["inputs"]["image"], "uploaded_source.png")
         self.assertEqual(prompt["11"]["inputs"]["text"], "local image to video")

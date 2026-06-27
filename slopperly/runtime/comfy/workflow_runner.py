@@ -116,6 +116,18 @@ class ComfyWorkflowRunner:
         }
 
     @staticmethod
+    def _set_phase(inputs, label: str) -> None:
+        phase_fn = getattr(inputs, "phase_fn", None)
+        if phase_fn is not None:
+            phase_fn(label)
+
+    @staticmethod
+    def _set_progress(inputs, step: int, total: int) -> None:
+        progress_fn = getattr(inputs, "progress_fn", None)
+        if progress_fn is not None:
+            progress_fn(step, total)
+
+    @staticmethod
     def _media_input_values(inputs) -> dict:
         return {
             "image": getattr(inputs, "image", None),
@@ -181,19 +193,33 @@ class ComfyWorkflowRunner:
         destination: str | None = None,
         timeout: float = 3600.0,
     ):
+        total_steps = 5
+        self._set_phase(inputs, f"Preparing Comfy workflow {pack.name}")
         workflow, schema = self.validate_pack(pack)
+        self._set_progress(inputs, 1, total_steps)
+        self._set_phase(inputs, "Patching Comfy workflow parameters")
         workflow = self.patched_workflow(workflow, schema, inputs, scene)
+        self._set_phase(inputs, "Checking Comfy workflow nodes")
         self.validate_runtime_nodes(workflow)
+        self._set_progress(inputs, 2, total_steps)
+        self._set_phase(inputs, "Uploading Comfy workflow inputs")
         temp_paths = self.patch_media_uploads(workflow, schema, inputs)
+        self._set_progress(inputs, 3, total_steps)
         try:
+            self._set_phase(inputs, "Queueing Comfy workflow")
             prompt_id = self.client.queue_prompt(workflow)
+            self._set_progress(inputs, 4, total_steps)
+            self._set_phase(inputs, "Waiting for Comfy workflow output")
             history = self.client.wait_for_history(prompt_id, timeout=timeout)
+            self._set_phase(inputs, "Collecting Comfy workflow artifacts")
             outputs = self._collect_outputs(history, destination=destination)
         finally:
             for temp_path in temp_paths:
                 temp_path.unlink(missing_ok=True)
         if not outputs:
             raise WorkflowValidationError(f"Comfy workflow {pack.name!r} completed with no file outputs")
+        self._set_progress(inputs, total_steps, total_steps)
+        self._set_phase(inputs, "Comfy workflow complete")
         return outputs[0] if len(outputs) == 1 else outputs
 
     def _collect_outputs(self, history: dict, *, destination: str | None = None) -> list[str]:

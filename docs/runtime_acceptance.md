@@ -20,7 +20,7 @@
 - Runtime supervisors now build local-only launch commands from the owned install layout and preflight required executables/files before starting a server.
 - `python -m slopperly.audit.model_registry` validates registry fields, download modes, Hugging Face artifact sources, required files, and GPU validation command declarations.
 - `python tests/integration/test_local_plugin_paths.py` exercises selected `ModelPlugin.generate()` paths against local fake OpenAI-compatible runtime servers.
-- `python tests/integration/test_comfy_workflow_runner.py` exercises the committed LTX 2.3 Comfy workflow pack against a local fake Comfy server, including `/object_info` node checks, input-image upload, API graph patching, queue submission, history polling, and output collection.
+- `python tests/integration/test_comfy_workflow_runner.py` exercises the committed LTX 2.3 Comfy workflow pack against a local fake Comfy server, including `/object_info` node checks, input-image upload, API graph patching, queue submission, history polling, output collection, and existing queue phase/progress callbacks.
 
 ## Current Blocks
 

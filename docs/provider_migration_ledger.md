@@ -185,6 +185,7 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - The Comfy workflow runner now calls local Comfy `/object_info` before queueing and blocks workflows when required API graph node classes are missing.
 - Workflow-pack schemas can now declare uploaded media inputs. The LTX 2.3 I2V pack maps the selected image strip to Comfy `/upload/image`, then patches the returned upload filename into its `LoadImage` node.
+- The Comfy workflow runner now reports coarse queue phases and progress ticks through `ModelInputs.phase_fn` and `ModelInputs.progress_fn`.
 - The workflow-pack audit now validates both scalar input mappings and upload mappings against exact node IDs and input names.
 
 ### Verification
