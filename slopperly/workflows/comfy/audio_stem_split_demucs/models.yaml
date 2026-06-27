@@ -1,0 +1,37 @@
+workflow_id: audio_stem_split_demucs
+task: audio_stem_split
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui_core
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    classes:
+      - LoadAudio
+      - SaveAudio
+  - id: audio_separation
+    repo: https://github.com/christian-byrne/audio-separation-nodes-comfyui.git
+    commit: ac339561973f0c1e56db2f9d40f11b0fddda6763
+    classes:
+      - AudioSeparation
+model_files:
+  torchaudio_hub_checkpoints:
+    - hdemucs_high_trained.pt
+  slopperly_artifact_source:
+    repo: paobukaidecha/hdemucs_high_trained
+    file: hdemucs_high_trained.pt
+  torchaudio_asset_key: models/hdemucs_high_trained.pt
+supported_profiles:
+  - input: audio
+    output: flac
+    stems:
+      - bass
+      - drums
+      - other
+      - vocals
+    sample_rate: 44100
+artifact_contract:
+  output_type: audio_stems
+  validation:
+    - four audio files are returned
+    - each file is ffprobe-readable or WAV-readable
+    - each duration matches source duration within tolerance

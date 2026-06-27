@@ -26,6 +26,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
     upload_bodies = []
     request_order = []
     video_bytes = b"fake mp4 bytes from local comfy"
+    audio_bytes = b"RIFF$\x00\x00\x00WAVEfmt "
 
     def log_message(self, *args):
         pass
@@ -59,6 +60,52 @@ class ComfyHandler(BaseHTTPRequestHandler):
             return self._json(self.object_info_payload)
         if parsed.path == "/history/prompt-1":
             ComfyHandler.request_order.append("/history")
+            if any(
+                node.get("class_type") == "AudioSeparation"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "3": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_stem_bass_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            },
+                            "4": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_stem_drums_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            },
+                            "5": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_stem_other_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            },
+                            "6": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_stem_vocals_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            },
+                        }
+                    }
+                })
             if any(
                 node.get("class_type") == "Florence2Run"
                 for node in ComfyHandler.last_prompt.values()
@@ -95,6 +142,8 @@ class ComfyHandler(BaseHTTPRequestHandler):
             })
         if parsed.path == "/view":
             ComfyHandler.request_order.append("/view")
+            if "stem_" in parsed.query:
+                return self._binary(self.audio_bytes, "audio/flac")
             return self._binary(self.video_bytes)
         self.send_response(404)
         self.end_headers()
@@ -108,6 +157,8 @@ class ComfyHandler(BaseHTTPRequestHandler):
             upload_count = len(ComfyHandler.upload_bodies)
             if self.path == "/upload/video":
                 name = "uploaded_video.mp4" if upload_count == 1 else f"uploaded_video_{upload_count}.mp4"
+            elif b".wav\"" in body or b".flac\"" in body or b".mp3\"" in body:
+                name = "uploaded_audio.wav" if upload_count == 1 else f"uploaded_audio_{upload_count}.wav"
             else:
                 name = "uploaded_source.png" if upload_count == 1 else f"uploaded_source_{upload_count}.png"
             return self._json({"name": name, "subfolder": "", "type": "input"})
@@ -131,6 +182,15 @@ def _ltx23_object_info() -> dict:
 def _florence2_object_info() -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy/florence2_caption_ocr/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _stem_split_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/audio_stem_split_demucs/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -275,6 +335,41 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
         self.assertEqual(prompt["3"]["inputs"]["task"], "more_detailed_caption")
         self.assertEqual(prompt["3"]["inputs"]["seed"], 123)
+
+    def test_audio_stem_split_pack_uploads_audio_and_collects_four_outputs(self):
+        ComfyHandler.reset(_stem_split_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "song.wav"
+            source.write_bytes(b"local wav fixture bytes")
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(audio_ref=str(source))
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/audio_stem_split_demucs",
+                    inputs,
+                    SimpleNamespace(),
+                    timeout=2,
+                )
+
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 4)
+        self.assertEqual([Path(path).name for path in result], [
+            "slopperly_stem_bass_00001_.flac",
+            "slopperly_stem_drums_00001_.flac",
+            "slopperly_stem_other_00001_.flac",
+            "slopperly_stem_vocals_00001_.flac",
+        ])
+        for path in result:
+            self.assertEqual(Path(path).read_bytes(), ComfyHandler.audio_bytes)
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["inputs"]["audio"], "uploaded_audio.wav")
+        self.assertEqual(prompt["2"]["class_type"], "AudioSeparation")
+        self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
+        self.assertEqual(prompt["4"]["inputs"]["audio"], ["2", 1])
+        self.assertEqual(prompt["5"]["inputs"]["audio"], ["2", 2])
+        self.assertEqual(prompt["6"]["inputs"]["audio"], ["2", 3])
+        self.assertIn(b'name="image"; filename="song.wav"', ComfyHandler.upload_bodies[0])
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):
         with tempfile.TemporaryDirectory() as tmp:

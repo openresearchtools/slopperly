@@ -17,5 +17,6 @@ This matrix is the working replacement plan for production-visible functions.
 | `ZhengPeng7/BiRefNet_HR` | Migrated wrapper, GPU/server test pending | ComfyUI | `birefnet_rmbg` |
 | `nvidia/maxine-vsr` | Migrated wrapper, GPU/server test pending | ComfyUI | `local_image_vsr_upscale` |
 | `nvidia/maxine-vsr-video` | Migrated wrapper, GPU/server test pending | ComfyUI | `local_video_vsr_upscale` |
+| `StemSplitter` | Migrated wrapper, GPU/server test pending | ComfyUI | `audio_stem_split_demucs` |
 
 Entries are complete only after the corresponding GPU artifact test produces a real artifact through the addon plugin path.

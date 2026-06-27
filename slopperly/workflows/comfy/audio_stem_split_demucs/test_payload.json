@@ -1,0 +1,13 @@
+{
+  "audio_ref": "tests/fixtures/stem_split_source.wav",
+  "stem_split_chunk_fade_shape": "linear",
+  "stem_split_chunk_length": 10.0,
+  "stem_split_chunk_overlap": 0.1,
+  "expected_stems": [
+    "vocals",
+    "drums",
+    "bass",
+    "other"
+  ],
+  "expected_duration_seconds": 1.0
+}

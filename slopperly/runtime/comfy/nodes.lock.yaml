@@ -11,6 +11,8 @@ comfyui:
     - ImageUpscaleWithModel
     - ImageScale
     - SaveImage
+    - LoadAudio
+    - SaveAudio
 custom_nodes:
   - id: comfyui_gguf
     repo: https://github.com/city96/ComfyUI-GGUF.git
@@ -82,13 +84,13 @@ custom_nodes:
     install_command: pip install -r requirements.txt
     python_extras: []
     required_node_classes:
-      - Audio Separation
-      - Audio Combine
-      - Audio Crop
-      - Audio Tempo Match
-      - Audio Speed Shift
-      - Audio Get Tempo
-      - Audio Video Combine
+      - AudioSeparation
+      - AudioCombine
+      - AudioCrop
+      - AudioTempoMatch
+      - AudioSpeedShift
+      - AudioGetTempo
+      - AudioVideoCombine
   - id: chatterbox
     repo: https://github.com/filliptm/ComfyUI_Fill-ChatterBox.git
     commit: 596850bc61665e9318914841b41ee4154253f020

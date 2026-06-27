@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "workflow_id": "audio_stem_split_demucs",
+  "description": "Patch schema for local four-stem Hybrid Demucs separation through ComfyUI.",
+  "inputs": {
+    "stem_split_chunk_fade_shape": [
+      {
+        "node": "2",
+        "input": "chunk_fade_shape"
+      }
+    ],
+    "stem_split_chunk_length": [
+      {
+        "node": "2",
+        "input": "chunk_length"
+      }
+    ],
+    "stem_split_chunk_overlap": [
+      {
+        "node": "2",
+        "input": "chunk_overlap"
+      }
+    ]
+  },
+  "uploads": {
+    "audio_ref": [
+      {
+        "node": "1",
+        "input": "audio",
+        "type": "input",
+        "endpoint": "/upload/image",
+        "form_field": "image"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "stem_split_model": "The committed Comfy workflow uses Torchaudio HDEMUCS_HIGH_MUSDB_PLUS and produces bass, drums, other, and vocals. The old htdemucs_6s option is blocked until a certified Comfy six-stem graph exists.",
+    "stem_split_guitar": "Guitar is included in the other stem for this Hybrid Demucs workflow.",
+    "stem_split_piano": "Piano is included in the other stem for this Hybrid Demucs workflow."
+  },
+  "output": {
+    "nodes": {
+      "bass": "3",
+      "drums": "4",
+      "other": "5",
+      "vocals": "6"
+    },
+    "type": "audio/flac",
+    "contract": "Return four audio artifacts keyed as bass, drums, other, and vocals with durations matching the source audio."
+  }
+}

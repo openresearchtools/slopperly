@@ -821,3 +821,14 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: `python -m pytest tests/unit` passes 40 tests.
 - Evidence: `python -m slopperly.audit.workflow_packs` validates 5 committed Comfy workflow packs including `local_video_vsr_upscale`.
 - Still blocked: real RTX 4090 local video VSR artifact certification requires owned ComfyUI running with VideoHelperSuite, core upscale nodes, and `RealESRGAN_x4.pth` installed in `models/upscale_models/`.
+
+### 2026-06-27 Stem Splitter Comfy workflow block
+
+- Completed: `audio/stem_split.py` now routes the legacy `StemSplitter` plugin through the local Comfy workflow gateway instead of direct `demucs_onnx` execution in the add-on process.
+- Completed: The dedicated `sequencer.stem_split` operator now renders the selected strip to WAV and calls `StemSplitterPlugin.generate()`, preserving the existing stem insertion behavior while using the same local runtime path.
+- Completed: `audio_stem_split_demucs` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, README, and a 1-second 44.1 kHz stereo WAV fixture.
+- Completed: Comfy core audio nodes `LoadAudio` and `SaveAudio` are asserted in `slopperly/runtime/comfy/nodes.lock.yaml`, and the audio-separation node pack lock now records exact Comfy class keys such as `AudioSeparation`.
+- Completed: `audio_stem_split_demucs` is registered in `slopperly/config/models.yaml` with legacy alias `StemSplitter` and artifact source `paobukaidecha/hdemucs_high_trained`, file `hdemucs_high_trained.pt`.
+- Evidence: integration coverage calls `StemSplitterPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies `LoadAudio -> AudioSeparation -> SaveAudio`, four audio outputs, and the existing `MULTI_STEM` result shape.
+- Evidence: workflow-runner integration coverage verifies the committed audio pack uploads the WAV fixture and collects four Comfy audio artifacts.
+- Still blocked: real RTX 4090 stem split artifact certification requires owned ComfyUI running with core audio nodes, the pinned audio-separation node pack, and the Hybrid Demucs checkpoint pre-cached locally for Torchaudio.

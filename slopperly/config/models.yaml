@@ -187,6 +187,35 @@ models:
     workflows:
       - local_video_vsr_upscale
       - video/maxine_vsr_video.py
+  - logical_name: audio_stem_split_demucs
+    legacy_aliases:
+      - StemSplitter
+    task: audio_stem_split
+    runtime: comfy
+    model_source: https://huggingface.co/paobukaidecha/hdemucs_high_trained
+    download_mode: hf_file
+    local_cache_path: models/torchaudio/hdemucs_high_trained.pt
+    required_files:
+      - hdemucs_high_trained.pt
+    required_node_pack: comfyui core audio + audio_separation
+    supported_resolutions: []
+    supported_fps: []
+    context_limits: {}
+    default_parameters:
+      stems:
+        - bass
+        - drums
+        - other
+        - vocals
+      chunk_fade_shape: linear
+      chunk_length: 10.0
+      chunk_overlap: 0.1
+      torchaudio_asset_key: models/hdemucs_high_trained.pt
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_stem_split.py --device cuda
+    workflows:
+      - audio_stem_split_demucs
+      - audio/stem_split.py
   - logical_name: llamacpp_prompt_rewriter
     legacy_aliases:
       - ZuluVision/MoviiGen1.1_Prompt_Rewriter

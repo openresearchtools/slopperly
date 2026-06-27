@@ -514,3 +514,31 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - Real RTX 4090 artifact certification was not run in this block.
 - Certification requires owned ComfyUI, the pinned RMBG node pack, and the `BiRefNet-HR` model files in the local model cache.
+
+## 2026-06-27 Stem Splitter Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/audio/stem_split.py` now routes the legacy `StemSplitter` model path through the local Comfy gateway instead of direct `demucs_onnx` execution in the add-on process.
+- The dedicated `sequencer.stem_split` operator now calls `StemSplitterPlugin.generate()` with a rendered WAV input, so it uses the same local Comfy workflow path rather than bypassing the plugin dispatch seam.
+- The existing selected-audio behavior and `MULTI_STEM:` result shape are preserved for queue insertion. The local workflow emits four stems and the wrapper filters to the selected checkboxes.
+- The old six-stem `htdemucs_6s` option is blocked with a concrete diagnostic because the pinned Comfy node exposes only bass, drums, other, and vocals.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/audio_stem_split_demucs/` with editable/API workflow JSON, schema, model manifest, test payload, and README.
+- The workflow uses Comfy core `LoadAudio` and `SaveAudio`, plus `AudioSeparation` from `christian-byrne/audio-separation-nodes-comfyui` pinned at `ac339561973f0c1e56db2f9d40f11b0fddda6763`.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` with core audio node classes and the exact class keys exposed by the pinned audio-separation node pack.
+- Registered `audio_stem_split_demucs` in `slopperly/config/models.yaml` with legacy alias `StemSplitter` and Hugging Face artifact mirror `paobukaidecha/hdemucs_high_trained`, file `hdemucs_high_trained.pt`.
+- Added `tests/fixtures/stem_split_source.wav`, a 1-second 44.1 kHz stereo WAV fixture for real artifact certification.
+
+### Verification
+
+- Integration coverage calls `StemSplitterPlugin.load()` and `generate()` against a loopback fake Comfy server under the local-network guard and verifies `LoadAudio -> AudioSeparation -> SaveAudio` patching plus four audio artifact outputs.
+- Workflow-runner integration coverage verifies the committed `audio_stem_split_demucs` pack uploads WAV input through Comfy's local upload endpoint and collects four audio outputs.
+- GPU certification coverage is registered in `tests/gpu/test_stem_split.py` and validates the four returned stem artifacts when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI, core audio nodes, the pinned audio-separation custom node pack, and the `hdemucs_high_trained.pt` checkpoint pre-cached locally for Torchaudio Hybrid Demucs.

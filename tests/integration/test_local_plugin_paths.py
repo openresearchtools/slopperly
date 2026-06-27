@@ -129,12 +129,64 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "BiRefNetRMBG": {},
                 "DownloadAndLoadFlorence2Model": {},
                 "Florence2Run": {},
+                "LoadAudio": {},
+                "AudioSeparation": {},
+                "SaveAudio": {},
             })
         if self.path.startswith("/view"):
             if ".mp4" in self.path:
                 return self._binary(self.mp4_bytes, "video/mp4")
+            if ".flac" in self.path or ".wav" in self.path:
+                return self._binary(self.wav_bytes, "audio/wav")
             return self._binary(self.png_bytes, "image/png")
         if self.path == "/history/prompt-1":
+            if any(
+                node.get("class_type") == "AudioSeparation"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "3": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_stem_bass_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            },
+                            "4": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_stem_drums_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            },
+                            "5": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_stem_other_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            },
+                            "6": {
+                                "audio": [
+                                    {
+                                        "filename": "slopperly_stem_vocals_00001_.flac",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            },
+                        }
+                    }
+                })
             if any(
                 node.get("class_type") == "BiRefNetRMBG"
                 for node in RuntimeHandler.comfy_prompt.values()
@@ -274,6 +326,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
             RuntimeHandler.comfy_uploads.append(body)
             if self.path == "/upload/video":
                 return self._json({"name": "uploaded_video.mp4", "subfolder": "", "type": "input"})
+            if b".wav\"" in body or b".flac\"" in body or b".mp3\"" in body:
+                return self._json({"name": "uploaded_audio.wav", "subfolder": "", "type": "input"})
             return self._json({"name": "uploaded_source.png", "subfolder": "", "type": "input"})
         if self.path == "/prompt":
             RuntimeHandler.comfy_prompt = json.loads(body.decode("utf-8"))["prompt"]
@@ -559,6 +613,45 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["5"]["inputs"]["format"], "video/h264-mp4")
         self.assertEqual(prompt["5"]["inputs"]["audio"], ["1", 2])
         self.assertIn(b'name="video"; filename="clip.mp4"', RuntimeHandler.comfy_uploads[-1])
+
+    def test_stem_split_uses_comfy_plugin_path(self):
+        module = load_plugin_module("audio", "stem_split")
+        plugin = module.StemSplitterPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            wav_path = Path(tmp) / "song.wav"
+            _tiny_wav(wav_path)
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(
+                stem_split_model="htdemucs_ft",
+                stem_split_vocals=True,
+                stem_split_drums=True,
+                stem_split_bass=True,
+                stem_split_other=True,
+                stem_split_guitar=False,
+                stem_split_piano=False,
+            )
+            inputs = self.base.ModelInputs(audio_ref=str(wav_path))
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, scene)
+                result = plugin.generate(pipe, inputs, scene, prefs)
+
+            self.assertTrue(result.startswith(module._MULTI_STEM_PREFIX))
+            stems = json.loads(result[len(module._MULTI_STEM_PREFIX):])
+            self.assertEqual(list(stems), ["vocals", "drums", "bass", "other"])
+            for stem_path in stems.values():
+                self.assertEqual(Path(stem_path).read_bytes(), RuntimeHandler.wav_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["1"]["class_type"], "LoadAudio")
+        self.assertEqual(prompt["1"]["inputs"]["audio"], "uploaded_audio.wav")
+        self.assertEqual(prompt["2"]["class_type"], "AudioSeparation")
+        self.assertEqual(prompt["3"]["inputs"]["audio"], ["2", 0])
+        self.assertEqual(prompt["4"]["inputs"]["audio"], ["2", 1])
+        self.assertEqual(prompt["5"]["inputs"]["audio"], ["2", 2])
+        self.assertEqual(prompt["6"]["inputs"]["audio"], ["2", 3])
+        self.assertIn(b'name="image"; filename="song.wav"', RuntimeHandler.comfy_uploads[-1])
 
     def test_marlin_video_captions_uses_vllm_vlm_plugin_path(self):
         module = load_plugin_module("text", "marlin_video_captions")

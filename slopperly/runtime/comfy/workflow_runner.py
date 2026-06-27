@@ -431,7 +431,7 @@ class ComfyWorkflowRunner:
         results: list[str] = []
         for node_out in (history.get("outputs") or {}).values():
             self._collect_text_outputs(node_out, results, output_root, destination)
-            for kind in ("images", "videos", "gifs", "audio"):
+            for kind in ("images", "videos", "gifs", "audio", "audios"):
                 for item in node_out.get(kind, []) or []:
                     filename = item.get("filename")
                     if not filename:
@@ -442,6 +442,7 @@ class ComfyWorkflowRunner:
                         item.get("type", "output"),
                     )
                     out_path = Path(destination) if destination and not results else output_root / filename
+                    out_path.parent.mkdir(parents=True, exist_ok=True)
                     out_path.write_bytes(blob)
                     results.append(str(out_path))
         if destination and results and results[0] != destination:

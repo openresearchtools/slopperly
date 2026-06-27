@@ -54,6 +54,7 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertIn(("birefnet_rmbg", "PLAN"), statuses)
         self.assertIn(("local_image_vsr_upscale", "PLAN"), statuses)
         self.assertIn(("local_video_vsr_upscale", "PLAN"), statuses)
+        self.assertIn(("audio_stem_split_demucs", "PLAN"), statuses)
         self.assertIn(("llamacpp_prompt_rewriter", "PLAN"), statuses)
         self.assertIn(("omnivoice_vllm_omni", "PLAN"), statuses)
         self.assertIn(("moss_tts_nano_vllm_omni", "PLAN"), statuses)

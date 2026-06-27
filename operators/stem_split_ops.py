@@ -1,10 +1,15 @@
-"""Stem splitter: separate a SOUND/MOVIE strip into individual stems via demucs-onnx."""
+"""Stem splitter operator backed by the local Comfy Demucs plugin path."""
 
+import json
 import threading
+from types import SimpleNamespace
+
 import bpy
 from bpy.types import Operator
 
-from ..utils.helpers import find_first_empty_channel, solve_path, render_strip_to_wav
+from ..models.base import ModelInputs
+from ..models_plugins.audio.stem_split import StemSplitterPlugin, _MULTI_STEM_PREFIX
+from ..utils.helpers import ADDON_ID, find_first_empty_channel, render_strip_to_wav
 
 STEM_NAMES_4 = ["vocals", "drums", "bass", "other"]
 STEM_NAMES_6 = ["vocals", "drums", "bass", "other", "guitar", "piano"]
@@ -13,41 +18,34 @@ _state = {
     "running": False,
     "phase": "",
     "progress": 0.0,
-    "stems_data": None,
+    "stem_paths": None,
     "error": None,
 }
 
 
-def _insert_stems(ctx, stems_dict):
-    import soundfile as sf
-
+def _insert_stem_paths(ctx, stem_paths):
     scene       = ctx["scene"]
     frame_start = ctx["frame_start"]
     frame_end   = ctx["frame_end"]
     src_channel = ctx["src_channel"]
     strip_name  = ctx["strip_name"]
     selected    = ctx["selected"]
-    audio_path  = ctx["audio_path"]
-
-    try:
-        sr = sf.info(audio_path).samplerate
-    except Exception:
-        sr = 44100
 
     next_min_ch = src_channel + 1
     ed = scene.sequence_editor
 
     for stem_name in selected:
-        arr      = stems_dict[stem_name]          # shape: (channels, samples) float32
-        out_path = solve_path(f"{stem_name}_{strip_name}.wav")
-        sf.write(out_path, arr.T, sr)             # .T → (samples, channels)
+        out_path = stem_paths.get(stem_name)
+        if not out_path:
+            print(f"[Stem Splitter] Missing local Comfy output for '{stem_name}'")
+            continue
 
         ch = find_first_empty_channel(frame_start, frame_end)
         ch = max(ch, next_min_ch)
         next_min_ch = ch + 1
 
         ed.strips.new_sound(
-            name=stem_name,
+            name=f"{stem_name} | {strip_name}",
             filepath=out_path,
             channel=ch,
             frame_start=frame_start,
@@ -61,7 +59,7 @@ def _insert_stems(ctx, stems_dict):
 
 
 class SEQUENCER_OT_stem_split(Operator):
-    """Separate the active audio/video strip into individual stems via demucs-onnx"""
+    """Separate the active audio/video strip into individual stems via local ComfyUI"""
 
     bl_idname  = "sequencer.stem_split"
     bl_label   = "Split Stems"
@@ -79,6 +77,12 @@ class SEQUENCER_OT_stem_split(Operator):
     def invoke(self, context, event):
         scene   = context.scene
         model   = scene.stem_split_model
+        if model == "htdemucs_6s":
+            self.report(
+                {"ERROR"},
+                "Six-stem splitting is blocked until a pinned local Comfy workflow is certified.",
+            )
+            return {"CANCELLED"}
         all_stems = STEM_NAMES_6 if model == "htdemucs_6s" else STEM_NAMES_4
         selected  = [s for s in all_stems if getattr(scene, f"stem_split_{s}")]
         if not selected:
@@ -90,13 +94,19 @@ class SEQUENCER_OT_stem_split(Operator):
         scene   = context.scene
         strip   = scene.sequence_editor.active_strip
         model   = scene.stem_split_model
+        if model == "htdemucs_6s":
+            self.report(
+                {"ERROR"},
+                "Six-stem splitting is blocked until a pinned local Comfy workflow is certified.",
+            )
+            return {"CANCELLED"}
         all_stems = STEM_NAMES_6 if model == "htdemucs_6s" else STEM_NAMES_4
         selected  = [s for s in all_stems if getattr(scene, f"stem_split_{s}")]
 
-        _state.update(running=True, phase="Rendering strip to WAV…", progress=0.0,
-                      stems_data=None, error=None)
+        _state.update(running=True, phase="Rendering strip to WAV...", progress=0.0,
+                      stem_paths=None, error=None)
 
-        # Pre-render on main thread — handles trimming, effects, any format
+        # Pre-render on main thread: handles trimming, effects, any format.
         audio_path = render_strip_to_wav(context, strip)
         if not audio_path:
             _state["running"] = False
@@ -117,55 +127,49 @@ class SEQUENCER_OT_stem_split(Operator):
             "strip_name":  strip_name,
             "selected":    selected,
         }
+        scene_snapshot = SimpleNamespace(
+            stem_split_model=model,
+            stem_split_vocals=getattr(scene, "stem_split_vocals", True),
+            stem_split_drums=getattr(scene, "stem_split_drums", True),
+            stem_split_bass=getattr(scene, "stem_split_bass", True),
+            stem_split_other=getattr(scene, "stem_split_other", True),
+            stem_split_guitar=getattr(scene, "stem_split_guitar", False),
+            stem_split_piano=getattr(scene, "stem_split_piano", False),
+            stem_split_chunk_fade_shape=getattr(scene, "stem_split_chunk_fade_shape", "linear"),
+            stem_split_chunk_length=getattr(scene, "stem_split_chunk_length", 10.0),
+            stem_split_chunk_overlap=getattr(scene, "stem_split_chunk_overlap", 0.1),
+        )
+        addon_prefs = context.preferences.addons[ADDON_ID].preferences
+        prefs_snapshot = SimpleNamespace(
+            comfyui_url=getattr(addon_prefs, "comfyui_url", "http://127.0.0.1:8188"),
+            comfyui_timeout=getattr(addon_prefs, "comfyui_timeout", 3600.0),
+        )
 
         context.window_manager.progress_begin(0, 100)
 
         def _worker():
             try:
-                import tqdm.std as _tqdm_std
-                _orig_init   = _tqdm_std.tqdm.__init__
-                _orig_update = _tqdm_std.tqdm.update
-                _bars: dict  = {}
+                def _progress(step, total):
+                    _state["progress"] = (float(step) / float(total)) if total else 0.0
 
-                def _p_init(self2, *a, **kw):
-                    _orig_init(self2, *a, **kw)
-                    if not getattr(self2, "disable", False):
-                        _bars[id(self2)] = [self2.n or 0, self2.total or 0]
+                def _phase(label):
+                    _state["phase"] = label
 
-                def _p_update(self2, n=1):
-                    result = _orig_update(self2, n)
-                    entry  = _bars.get(id(self2))
-                    if entry is not None:
-                        entry[0] = self2.n or 0
-                        entry[1] = self2.total or 0
-                    total_b = sum(v[1] for v in _bars.values() if v[1] > 0)
-                    done_b  = sum(v[0] for v in _bars.values())
-                    _state["progress"] = (done_b / total_b) if total_b > 0 else 0.0
-                    return result
-
-                _tqdm_std.tqdm.__init__ = _p_init
-                _tqdm_std.tqdm.update   = _p_update
-
-                try:
-                    _state["phase"] = "Downloading model (first run only)…"
-                    from demucs_onnx import separate
-                    _state["phase"] = "Separating stems…"
-                    # Pass stems=None to run the full model; filter by selected
-                    # after — specialist-per-stem breaks guitar/piano on htdemucs_6s.
-                    all_stems = separate(
-                        audio_path,
-                        model=model,
-                        stems=None,
-                        providers="auto",
-                        progress=True,
+                inputs = ModelInputs(
+                    audio_ref=audio_path,
+                    progress_fn=_progress,
+                    phase_fn=_phase,
+                )
+                inputs.output_basename = strip_name
+                plugin = StemSplitterPlugin()
+                pipe_obj = plugin.load(prefs_snapshot, scene_snapshot)
+                result = plugin.generate(pipe_obj, inputs, scene_snapshot, prefs_snapshot)
+                if not result.startswith(_MULTI_STEM_PREFIX):
+                    raise RuntimeError(
+                        "Local Comfy stem splitter returned an unexpected result shape."
                     )
-                    # Keep only what the user asked for
-                    stems = {k: v for k, v in all_stems.items() if k in selected}
-                    _state["stems_data"] = stems
-                    _state["progress"]   = 1.0
-                finally:
-                    _tqdm_std.tqdm.__init__ = _orig_init
-                    _tqdm_std.tqdm.update   = _orig_update
+                _state["stem_paths"] = json.loads(result[len(_MULTI_STEM_PREFIX):])
+                _state["progress"] = 1.0
 
             except Exception as exc:
                 import traceback
@@ -193,7 +197,7 @@ class SEQUENCER_OT_stem_split(Operator):
                     print(f"[Stem Splitter] Error:\n{_state['error']}")
                     return None
 
-                _insert_stems(_ctx, _state["stems_data"])
+                _insert_stem_paths(_ctx, _state["stem_paths"] or {})
             except Exception as exc:
                 print(f"[Stem Splitter] Timer error: {exc}")
             return None
