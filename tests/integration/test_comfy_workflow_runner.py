@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from slopperly.audit.network_guard import local_only_network
 from slopperly.runtime.errors import WorkflowValidationError
 from slopperly.runtime.gateway import SlopperlyRuntimeGateway
 
@@ -138,14 +139,15 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 progress_fn=lambda step, total: progress.append((step, total)),
             )
 
-            result = self.gateway.run_comfy_workflow(
-                "ltx23_i2v",
-                inputs,
-                SimpleNamespace(),
-                SimpleNamespace(comfyui_url=self.base_url),
-                destination=str(destination),
-                timeout=2,
-            )
+            with local_only_network():
+                result = self.gateway.run_comfy_workflow(
+                    "ltx23_i2v",
+                    inputs,
+                    SimpleNamespace(),
+                    SimpleNamespace(comfyui_url=self.base_url),
+                    destination=str(destination),
+                    timeout=2,
+                )
 
             self.assertEqual(result, str(destination))
             self.assertEqual(destination.read_bytes(), ComfyHandler.video_bytes)
@@ -192,13 +194,14 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
             inputs = SimpleNamespace(image=str(source))
 
             with self.assertRaises(WorkflowValidationError) as raised:
-                self.gateway.run_comfy_workflow(
-                    "ltx23_i2v",
-                    inputs,
-                    SimpleNamespace(),
-                    SimpleNamespace(comfyui_url=self.base_url),
-                    timeout=2,
-                )
+                with local_only_network():
+                    self.gateway.run_comfy_workflow(
+                        "ltx23_i2v",
+                        inputs,
+                        SimpleNamespace(),
+                        SimpleNamespace(comfyui_url=self.base_url),
+                        timeout=2,
+                    )
 
         self.assertIn("missing required workflow node classes", str(raised.exception))
         self.assertEqual(ComfyHandler.upload_bodies, [])

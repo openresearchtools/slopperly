@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from slopperly.audit.network_guard import local_only_network
+
 TEST_PACKAGE = "slopperly_plugin_test"
 
 
@@ -196,7 +198,8 @@ class LocalPluginPathTests(unittest.TestCase):
         inputs = self.base.ModelInputs(prompt="a lonely robot in a train station")
         prefs = SimpleNamespace(llamacpp_url=self.base_url, llamacpp_text_model="local-qwen")
 
-        result = plugin.generate(None, inputs, SimpleNamespace(), prefs)
+        with local_only_network():
+            result = plugin.generate(None, inputs, SimpleNamespace(), prefs)
 
         self.assertIn("wide shot", result)
         self.assertEqual(RuntimeHandler.chat_payload["model"], "local-qwen")
@@ -219,7 +222,8 @@ class LocalPluginPathTests(unittest.TestCase):
             scene = SimpleNamespace(omnivoice_instruct="warm narrator", omnivoice_language="EN")
             prefs = SimpleNamespace(vllm_omni_url=self.base_url)
 
-            output = plugin.generate(None, inputs, scene, prefs)
+            with local_only_network():
+                output = plugin.generate(None, inputs, scene, prefs)
             self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
 
         payload = RuntimeHandler.speech_payloads[-1]
@@ -248,7 +252,8 @@ class LocalPluginPathTests(unittest.TestCase):
             )
             prefs = SimpleNamespace(vllm_omni_url=self.base_url)
 
-            output = plugin.generate(None, inputs, scene, prefs)
+            with local_only_network():
+                output = plugin.generate(None, inputs, scene, prefs)
             self.assertEqual(Path(output).read_bytes(), RuntimeHandler.wav_bytes)
 
         payload = RuntimeHandler.speech_payloads[-1]
@@ -276,7 +281,8 @@ class LocalPluginPathTests(unittest.TestCase):
             )
             prefs = SimpleNamespace(vllm_url=self.base_url)
 
-            plugin.generate(None, inputs, scene, prefs)
+            with local_only_network():
+                plugin.generate(None, inputs, scene, prefs)
 
         self.assertIn(b"openai/whisper-large-v3-turbo", RuntimeHandler.transcription_body)
         self.assertEqual(len(editor.created), 2)

@@ -232,6 +232,24 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 
 - This block adds shared timing logic only. LTX lipsync/dialogue workflows and Wan 16 fps to 24 fps workflows still need to integrate it into their local Comfy plugin paths and pass real MP4 artifact validation.
 
+## 2026-06-27 Runtime local-network guard block
+
+### Runtime Audit Helper Added
+
+- Added `slopperly.audit.network_guard.local_only_network()`, a test-time socket guard that allows localhost/loopback runtimes and blocks non-local TCP connections before they leave the process.
+- Wrapped current fake-server integration tests for llama.cpp, vLLM, vLLM-Omni, and Comfy gateway paths with the guard.
+- This gives the eventual GPU artifact tests the required runtime no-cloud mechanism after model artifacts are downloaded.
+
+### Verification
+
+- `python tests/unit/test_network_guard.py`
+- `python tests/integration/test_local_plugin_paths.py`
+- `python tests/integration/test_comfy_workflow_runner.py`
+
+### Blocked / Not Yet Certified
+
+- Real GPU artifact tests have not yet run under the guard. Final runtime no-cloud acceptance still requires the full artifact suite with network restricted after local model downloads.
+
 ## 2026-06-27 Model artifact registry explicitness block
 
 ### Registry Tightened
