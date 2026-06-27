@@ -488,6 +488,26 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "CheckpointLoaderSimple"
+                and (node.get("inputs") or {}).get("ckpt_name") == "lumina_2.safetensors"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "8": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_lumina2_00001_.png",
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             return self._json({
                 "prompt-1": {
                     "outputs": {
@@ -522,6 +542,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
                 or "anima" in parsed.query
                 or "ernie_image" in parsed.query
                 or "krea2" in parsed.query
+                or "lumina2" in parsed.query
             ):
                 return self._binary(self.image_bytes, "image/png")
             return self._binary(self.video_bytes)
@@ -680,6 +701,15 @@ def _ernie_object_info(workflow_id: str) -> dict:
 def _krea_object_info(workflow_id: str) -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy" / workflow_id / "workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
+def _lumina_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/lumina2_t2i/workflow.api.json").read_text(
             encoding="utf-8"
         )
     )
@@ -1895,6 +1925,56 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["8"]["inputs"]["seed"], 4201)
         self.assertEqual(prompt["8"]["inputs"]["steps"], 8)
         self.assertEqual(prompt["8"]["inputs"]["cfg"], 1.0)
+
+    def test_lumina2_pack_patches_t2i_graph(self):
+        ComfyHandler.reset(_lumina_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "lumina2.png"
+            runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+            inputs = SimpleNamespace(
+                prompt="local Lumina workflow render",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                batch=1,
+                seed=5101,
+                steps=30,
+                guidance=4.0,
+                lumina_checkpoint="lumina_2.safetensors",
+                lumina_system_prompt="superior",
+                lumina_shift=6.0,
+                lumina_sampler="res_multistep",
+                lumina_scheduler="simple",
+                lumina_denoise=1.0,
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/lumina2_t2i",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(ComfyHandler.upload_bodies, [])
+        self.assertEqual(prompt["1"]["inputs"]["ckpt_name"], "lumina_2.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["shift"], 6.0)
+        self.assertEqual(prompt["3"]["class_type"], "CLIPTextEncodeLumina2")
+        self.assertEqual(prompt["3"]["inputs"]["system_prompt"], "superior")
+        self.assertEqual(prompt["3"]["inputs"]["user_prompt"], "local Lumina workflow render")
+        self.assertEqual(prompt["4"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["5"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["5"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["6"]["inputs"]["seed"], 5101)
+        self.assertEqual(prompt["6"]["inputs"]["steps"], 30)
+        self.assertEqual(prompt["6"]["inputs"]["cfg"], 4.0)
+        self.assertEqual(prompt["6"]["inputs"]["sampler_name"], "res_multistep")
+        self.assertEqual(prompt["6"]["inputs"]["scheduler"], "simple")
 
     def test_indexed_multi_image_uploads_patch_distinct_nodes(self):
         with tempfile.TemporaryDirectory() as tmp:

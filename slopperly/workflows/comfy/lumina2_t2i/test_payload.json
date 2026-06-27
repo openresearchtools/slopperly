@@ -1,0 +1,11 @@
+{
+  "prompt": "a local Lumina-Image 2.0 render of a compact workstation, natural window light",
+  "negative_prompt": "text, watermark, low quality",
+  "width": 1024,
+  "height": 1024,
+  "frames": 1,
+  "steps": 30,
+  "guidance": 4.0,
+  "seed": 510101,
+  "batch": 1
+}

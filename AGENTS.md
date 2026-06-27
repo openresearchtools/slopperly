@@ -987,3 +987,15 @@ The following upstream sources are the factual basis for this spec:
 - Evidence: workflow-runner integration coverage verifies both committed Krea packs directly, and `tests/gpu/test_krea2.py` now performs base/Turbo text-to-image plugin-path certification attempts.
 - Still blocked: real RTX 4090 certification requires owned ComfyUI with core Krea node classes and the Krea diffusion/text encoder/VAE files installed locally.
 - Still blocked: arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the wrappers preserve the LoRA UI and record custom LoRA injection as a follow-up rather than loading placeholder filenames.
+
+### 2026-06-27 Lumina Image 2.0 Comfy workflow block
+
+- Completed: `image/lumina2.py` now routes `Alpha-VLLM/Lumina-Image-2.0` through the local Comfy workflow gateway instead of direct Torch/Diffusers `Lumina2Pipeline` execution and generation-time Hugging Face loading in the add-on process.
+- Completed: the existing prompt, negative prompt, resolution, frames, steps, guidance, and seed UI sections remain present.
+- Completed: `lumina2_t2i` workflow pack is committed with API/editable workflow JSON, schema, model manifest, smoke payload, and README.
+- Completed: the workflow uses official Comfy core Lumina nodes/classes: `CheckpointLoaderSimple`, `ModelSamplingAuraFlow`, `CLIPTextEncodeLumina2`, `CLIPTextEncode`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
+- Completed: `slopperly/config/models.yaml` now records exact local artifact source `Comfy-Org/Lumina_Image_2.0_Repackaged` with `all_in_one/lumina_2.safetensors` installed as `models/checkpoints/lumina_2.safetensors`.
+- Completed: `slopperly/runtime/comfy/nodes.lock.yaml` now asserts the pinned core `CLIPTextEncodeLumina2` node used by the Lumina workflow.
+- Evidence: integration coverage calls `Lumina2Plugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching.
+- Evidence: workflow-runner integration coverage verifies the committed Lumina pack directly, and `tests/gpu/test_lumina2.py` now performs a text-to-image plugin-path certification attempt.
+- Still blocked: real RTX 4090 certification requires owned ComfyUI with core Lumina node classes and `lumina_2.safetensors` installed locally in `models/checkpoints/`.

@@ -26,6 +26,7 @@ This matrix is the working replacement plan for production-visible functions.
 | `baidu/ERNIE-Image-Turbo` | Migrated wrapper, GPU/server test pending | ComfyUI | `ernie_image_turbo_t2i` |
 | `ethanfel/Krea-2-Base-Diffusers` | Migrated wrapper, GPU/server test pending | ComfyUI | `krea2_base_t2i` |
 | `OzzyGT/Krea_2_Turbo_sdnq_dynamic_8bit` | Migrated wrapper, GPU/server test pending | ComfyUI | `krea2_turbo_t2i` |
+| `Alpha-VLLM/Lumina-Image-2.0` | Migrated wrapper, GPU/server test pending | ComfyUI | `lumina2_t2i` |
 | `StemSplitter` | Migrated wrapper, GPU/server test pending | ComfyUI | `audio_stem_split_demucs` |
 | `MMAudio` | Migrated wrapper, GPU/server test pending | ComfyUI | `mmaudio_video_to_audio` |
 | `cocktailpeanut/stable-audio-3-medium-base` | Migrated wrapper, GPU/server test pending | ComfyUI | `stable_audio_3_medium_base` |

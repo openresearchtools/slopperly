@@ -1,0 +1,25 @@
+workflow_id: lumina2_t2i
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui
+    repo: https://github.com/comfyanonymous/ComfyUI.git
+    commit: 603d891eaf045d726d9c23276b4428daf2977624
+    node_classes:
+      - CheckpointLoaderSimple
+      - ModelSamplingAuraFlow
+      - CLIPTextEncodeLumina2
+      - CLIPTextEncode
+      - EmptySD3LatentImage
+      - KSampler
+      - VAEDecode
+      - SaveImage
+model_files:
+  - source: https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/resolve/main/all_in_one/lumina_2.safetensors
+    target: models/checkpoints/lumina_2.safetensors
+supported_resolutions:
+  - 1024x1024
+  - 1280x720
+  - 720x1280
+artifact_contract:
+  type: image/png
+  validator: PIL readable image; dimensions match requested width and height.

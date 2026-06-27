@@ -893,3 +893,28 @@ The aliases remain registered so saved projects can resolve the old model IDs, b
 - Certification requires owned ComfyUI running with core Krea node classes, `krea2_raw_fp8_scaled.safetensors`, `krea2_turbo_fp8_scaled.safetensors`, `qwen3vl_4b_fp8_scaled.safetensors`, and `qwen_image_vae.safetensors` installed locally.
 - Krea 2 Turbo negative prompts are deliberately unmapped because the official Comfy Turbo graph uses `ConditioningZeroOut`; the wrapper records this in `inputs.usage_note` when a negative prompt is supplied.
 - Arbitrary project LoRA injection is not dynamically mapped in these workflow packs yet; the wrappers preserve the LoRA UI and record custom LoRA injection as a follow-up rather than loading placeholder filenames.
+
+## 2026-06-27 Lumina Image 2.0 Comfy workflow block
+
+### Production Path Migrated
+
+- `models_plugins/image/lumina2.py` now routes `Alpha-VLLM/Lumina-Image-2.0` through the local Comfy gateway instead of importing Torch/Diffusers and running `Lumina2Pipeline` in the add-on process.
+- The existing prompt, negative prompt, resolution, frames, steps, guidance, and seed UI sections remain present.
+
+### Workflow And Registry Added
+
+- Added `slopperly/workflows/comfy/lumina2_t2i/` with editable/API workflow JSON, schema, model manifest, smoke payload, and README.
+- The workflow uses Comfy core `CheckpointLoaderSimple`, `ModelSamplingAuraFlow`, `CLIPTextEncodeLumina2`, `CLIPTextEncode`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
+- Registered `lumina2_t2i` in `slopperly/config/models.yaml` with legacy alias `Alpha-VLLM/Lumina-Image-2.0`, Hugging Face artifact source `Comfy-Org/Lumina_Image_2.0_Repackaged`, and exact file mapping for `all_in_one/lumina_2.safetensors`.
+- Updated `slopperly/runtime/comfy/nodes.lock.yaml` to assert `CLIPTextEncodeLumina2` from pinned Comfy core.
+
+### Verification
+
+- Integration coverage calls `Lumina2Plugin.load()`/`generate()` against a loopback fake Comfy server under the local-network guard and verifies text-to-image graph patching.
+- Workflow-runner integration coverage verifies the committed Lumina pack directly and collects a single PNG artifact from Comfy history outputs.
+- GPU certification coverage is registered in `tests/gpu/test_lumina2.py` and validates a text-to-image PNG artifact when real ComfyUI/model artifacts are available.
+
+### Blocked / Not Yet Certified
+
+- Real RTX 4090 artifact certification was not run in this block.
+- Certification requires owned ComfyUI running with core Lumina node classes and `lumina_2.safetensors` installed in `models/checkpoints/`.

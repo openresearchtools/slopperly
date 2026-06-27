@@ -144,6 +144,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "ModelSamplingAuraFlow": {},
                 "CheckpointLoaderSimple": {},
                 "CLIPLoader": {},
+                "CLIPTextEncodeLumina2": {},
                 "CLIPTextEncode": {},
                 "EmptyFlux2LatentImage": {},
                 "TextGenerate": {},
@@ -646,6 +647,27 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "images": [
                                     {
                                         "filename": filename,
+                                        "subfolder": "",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "CheckpointLoaderSimple"
+                and (node.get("inputs") or {}).get("ckpt_name") == "lumina_2.safetensors"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "8": {
+                                "images": [
+                                    {
+                                        "filename": "slopperly_lumina2_00001_.png",
                                         "subfolder": "",
                                         "type": "output",
                                     }
@@ -1549,6 +1571,46 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["8"]["inputs"]["steps"], 8)
         self.assertEqual(prompt["8"]["inputs"]["cfg"], 1.0)
         self.assertIn("negative prompt field is preserved", inputs.usage_note)
+
+    def test_lumina2_uses_comfy_t2i_plugin_path(self):
+        module = load_plugin_module("image", "lumina2")
+        plugin = module.Lumina2Plugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            inputs = self.base.ModelInputs(
+                prompt="local Lumina text to image",
+                neg_prompt="text, watermark",
+                width=1024,
+                height=1024,
+                steps=30,
+                guidance=4.0,
+                seed=5101,
+                frames=1,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(RuntimeHandler.comfy_uploads, [])
+        self.assertEqual(prompt["1"]["inputs"]["ckpt_name"], "lumina_2.safetensors")
+        self.assertEqual(prompt["2"]["class_type"], "ModelSamplingAuraFlow")
+        self.assertEqual(prompt["2"]["inputs"]["shift"], 6.0)
+        self.assertEqual(prompt["3"]["class_type"], "CLIPTextEncodeLumina2")
+        self.assertEqual(prompt["3"]["inputs"]["system_prompt"], "superior")
+        self.assertEqual(prompt["3"]["inputs"]["user_prompt"], "local Lumina text to image")
+        self.assertEqual(prompt["4"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["5"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["5"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["6"]["inputs"]["seed"], 5101)
+        self.assertEqual(prompt["6"]["inputs"]["steps"], 30)
+        self.assertEqual(prompt["6"]["inputs"]["cfg"], 4.0)
+        self.assertEqual(prompt["6"]["inputs"]["sampler_name"], "res_multistep")
+        self.assertEqual(prompt["6"]["inputs"]["scheduler"], "simple")
 
     def test_google_nano_banana_alias_uses_local_qwen_workflow(self):
         module = load_plugin_module("image", "google_nano_banana")

@@ -1,0 +1,7 @@
+{
+  "source": "https://comfyanonymous.github.io/ComfyUI_examples/lumina2/",
+  "template_reference": "https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/blob/main/example%20workflow/lumina2_basic_example.json",
+  "node_source": "https://github.com/comfyanonymous/ComfyUI/blob/603d891eaf045d726d9c23276b4428daf2977624/comfy_extras/nodes_lumina2.py",
+  "note": "Editable source is the official Lumina Image 2.0 Comfy example. The production API workflow uses the pinned core CLIPTextEncodeLumina2 node instead of baking the system prompt into the positive text string.",
+  "workflow_id": "lumina2_t2i"
+}
