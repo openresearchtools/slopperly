@@ -1,0 +1,21 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/local_image_vsr_upscale/local_image_vsr.png",
+  "command": "pytest tests/gpu/test_local_image_vsr_upscale.py::test_local_image_vsr_upscale --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T17:03:44+00:00",
+  "logical_name": "local_image_vsr_upscale",
+  "metadata": {
+    "runtime_url": "http://127.0.0.1:8190",
+    "source_image": "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "alpha": false,
+    "format": "PNG",
+    "height": 24,
+    "kind": "image",
+    "width": 32
+  }
+}
