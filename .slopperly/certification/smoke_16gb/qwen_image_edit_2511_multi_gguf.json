@@ -1,0 +1,47 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/qwen_image_edit_2511_multi_gguf/qwen_image_edit_manifest.json",
+  "command": "pytest tests/gpu/test_qwen_image_edit_2511.py::test_qwen_image_edit_2511_one_ref_and_three_ref --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T06:23:55+00:00",
+  "logical_name": "qwen_image_edit_2511_multi_gguf",
+  "metadata": {
+    "artifacts": {
+      "one_ref": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/qwen_image_edit_2511_multi_gguf/qwen_image_edit_one_ref.png",
+      "three_ref": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/qwen_image_edit_2511_multi_gguf/qwen_image_edit_three_ref.png"
+    },
+    "references": {
+      "one_ref": [
+        "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm"
+      ],
+      "three_ref": [
+        "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
+        "/home/user/Documents/Slopperly/tests/fixtures/birefnet_source.ppm",
+        "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm"
+      ]
+    },
+    "runtime_url": "http://127.0.0.1:8190",
+    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/qwen_image_edit_2511_multi_gguf/workflow.api.json"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "cases": {
+      "one_ref": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      },
+      "three_ref": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      }
+    },
+    "kind": "manifest"
+  }
+}
