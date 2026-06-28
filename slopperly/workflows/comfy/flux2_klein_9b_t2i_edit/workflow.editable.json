@@ -2,12 +2,12 @@
   "workflow_id": "flux2_klein_9b_t2i_edit",
   "source_template": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_flux2_text_to_image_9b.json",
   "format": "editable-reference",
-  "description": "Editable reference for the official FLUX.2 Klein 9B text-to-image template family. The production graph uses the distilled 9B FP8 file to preserve the existing 4-step plugin profile.",
+  "description": "Editable reference for the official FLUX.2 Klein 9B text-to-image template family. The production graph uses the Q5 GGUF backbone to satisfy the Slopperly GGUF policy while preserving the existing 4-step plugin profile.",
   "nodes": [
     {
       "id": 1,
-      "type": "UNETLoader",
-      "title": "FLUX.2 Klein 9B FP8 model"
+      "type": "UnetLoaderGGUF",
+      "title": "FLUX.2 Klein 9B Q5 GGUF model"
     },
     {
       "id": 2,

@@ -11,8 +11,8 @@
     },
     {
       "id": 3,
-      "type": "UNETLoader",
-      "title": "FLUX.2 Klein 9B FP8 model"
+      "type": "UnetLoaderGGUF",
+      "title": "FLUX.2 Klein 9B Q5 GGUF model"
     },
     {
       "id": 9,

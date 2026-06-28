@@ -5,11 +5,12 @@ Routes the existing `Flux2Klein9BPlugin.generate()` image edit path through loca
 ## Required Nodes
 
 - ComfyUI core at the pinned Slopperly commit.
-- Node classes: `LoadImage`, `ImageScale`, `UNETLoader`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `VAEEncode`, `ReferenceLatent`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, `SaveImage`.
+- ComfyUI-GGUF at the pinned Slopperly commit.
+- Node classes: `LoadImage`, `ImageScale`, `UnetLoaderGGUF`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `VAEEncode`, `ReferenceLatent`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, `SaveImage`.
 
 ## Model Files
 
-- `models/diffusion_models/flux-2-klein-9b-fp8.safetensors` from `titomatus0203/flux-2-klein-9b-fp8`.
+- `models/diffusion_models/flux-2-klein-9b-Q5_K_M.gguf` from `unsloth/FLUX.2-klein-9B-GGUF`.
 - `models/text_encoders/qwen_3_8b_fp8mixed.safetensors` from `Comfy-Org/vae-text-encorder-for-flux-klein-9b`.
 - `models/vae/full_encoder_small_decoder.safetensors` from `black-forest-labs/FLUX.2-small-decoder`.
 

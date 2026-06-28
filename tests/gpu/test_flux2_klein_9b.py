@@ -70,6 +70,11 @@ def test_flux2_klein_9b_t2i_and_edit(
             },
             "references": edit.get("references", []),
             "edit_usage_note": edit.get("usage_note", ""),
+            "model_files": {
+                "gguf": "flux-2-klein-9b-Q5_K_M.gguf",
+                "text_encoder": "qwen_3_8b_fp8mixed.safetensors",
+                "vae": "full_encoder_small_decoder.safetensors",
+            },
         },
     )
 
