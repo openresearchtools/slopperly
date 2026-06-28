@@ -1,11 +1,15 @@
 workflow_id: anima_t2i_i2i
 runtime: comfy
 required_custom_nodes:
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    commit: fcf3c4c98baf3a6f78f5200b73d86436931c43fb
+    node_classes:
+      - UnetLoaderGGUF
   - id: comfyui
     repo: https://github.com/comfyanonymous/ComfyUI.git
     commit: 603d891eaf045d726d9c23276b4428daf2977624
     node_classes:
-      - UNETLoader
       - CLIPLoader
       - VAELoader
       - CLIPTextEncode
@@ -14,8 +18,8 @@ required_custom_nodes:
       - VAEDecode
       - SaveImage
 model_files:
-  - source: https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/diffusion_models/anima-preview3-base.safetensors
-    target: models/diffusion_models/anima-preview3-base.safetensors
+  - source: https://huggingface.co/Bedovyy/Anima-GGUF/resolve/main/anima-preview3-base-Q5_K_M.gguf
+    target: models/diffusion_models/anima-preview3-base-Q5_K_M.gguf
   - source: https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/text_encoders/qwen_3_06b_base.safetensors
     target: models/text_encoders/qwen_3_06b_base.safetensors
   - source: https://huggingface.co/circlestone-labs/Anima/resolve/main/split_files/vae/qwen_image_vae.safetensors

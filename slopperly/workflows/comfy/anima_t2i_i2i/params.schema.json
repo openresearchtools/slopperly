@@ -1,7 +1,7 @@
 {
   "version": 1,
   "workflow_id": "anima_t2i_i2i",
-  "description": "Patch schema for Anima Preview 3 text-to-image through Comfy core nodes.",
+  "description": "Patch schema for Anima Preview 3 text-to-image through ComfyUI-GGUF plus Comfy core nodes.",
   "inputs": {
     "prompt": [
       {

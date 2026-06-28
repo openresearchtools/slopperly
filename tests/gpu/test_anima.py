@@ -55,6 +55,11 @@ def test_anima_t2i_and_i2i(gpu_cert, plugin_loader, base_models, repo_root):
                 "t2i": t2i["workflow_pack"],
                 "img2img": i2i["workflow_pack"],
             },
+            "model_files": {
+                "gguf": "anima-preview3-base-Q5_K_M.gguf",
+                "text_encoder": "qwen_3_06b_base.safetensors",
+                "vae": "qwen_image_vae.safetensors",
+            },
             "artifacts": {
                 "t2i": t2i["artifact"],
                 "img2img": i2i["artifact"],

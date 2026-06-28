@@ -14,7 +14,7 @@ class AnimaPlugin(ModelPlugin):
     MODEL_ID     = "mrfatso/anima-preview3-diffusers"
     DISPLAY_NAME = "Image: Anima"
     MODEL_TYPE   = "image"
-    DESCRIPTION  = "Anime-style generation via Anima with txt2img, img2img, and LoRA support"
+    DESCRIPTION  = "Anime-style generation via local Anima Q5 GGUF with txt2img, img2img, and LoRA support"
 
     INPUTS       = InputSpec.PROMPT | InputSpec.NEG_PROMPT | InputSpec.IMAGE | InputSpec.LORA
     UI_SECTIONS  = [
@@ -64,7 +64,7 @@ class AnimaPlugin(ModelPlugin):
                 "ComfyUI LoraLoaderModelOnly.",
             )
 
-        inputs.anima_model = "anima-preview3-base.safetensors"
+        inputs.anima_model = "anima-preview3-base-Q5_K_M.gguf"
         inputs.anima_text_encoder = "qwen_3_06b_base.safetensors"
         inputs.anima_clip_type = "stable_diffusion"
         inputs.anima_vae = "qwen_image_vae.safetensors"

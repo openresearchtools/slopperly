@@ -1,12 +1,17 @@
 {
   "artifact": ".slopperly/gpu-artifacts/smoke_16gb/anima_t2i_i2i/anima_manifest.json",
   "command": "pytest tests/gpu/test_anima.py::test_anima_t2i_and_i2i --device cuda --profile smoke_16gb",
-  "generated_at_utc": "2026-06-27T20:06:33+00:00",
+  "generated_at_utc": "2026-06-28T09:30:15+00:00",
   "logical_name": "anima_t2i_i2i",
   "metadata": {
     "artifacts": {
       "img2img": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/anima_t2i_i2i/anima_i2i.png",
       "t2i": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/anima_t2i_i2i/anima_t2i.png"
+    },
+    "model_files": {
+      "gguf": "anima-preview3-base-Q5_K_M.gguf",
+      "text_encoder": "qwen_3_06b_base.safetensors",
+      "vae": "qwen_image_vae.safetensors"
     },
     "runtime_url": "http://127.0.0.1:8190",
     "source": "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",

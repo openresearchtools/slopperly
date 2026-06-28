@@ -1,6 +1,6 @@
 # anima_t2i_i2i_img2img
 
-Local ComfyUI img2img workflow pack for the existing `mrfatso/anima-preview3-diffusers` Anima plugin.
+Local ComfyUI img2img workflow pack for the existing `mrfatso/anima-preview3-diffusers` Anima plugin, using the Q5 GGUF Anima Preview 3 backbone through ComfyUI-GGUF.
 
 ## Existing Addon Function
 
@@ -11,7 +11,7 @@ Local ComfyUI img2img workflow pack for the existing `mrfatso/anima-preview3-dif
 
 ## Required Nodes
 
-- `UNETLoader`
+- `UnetLoaderGGUF`
 - `CLIPLoader`
 - `VAELoader`
 - `LoadImage`
@@ -22,15 +22,15 @@ Local ComfyUI img2img workflow pack for the existing `mrfatso/anima-preview3-dif
 - `VAEDecode`
 - `SaveImage`
 
-These are ComfyUI core node classes from pinned ComfyUI commit `603d891eaf045d726d9c23276b4428daf2977624`.
+`UnetLoaderGGUF` comes from the pinned ComfyUI-GGUF node pack. The remaining nodes are ComfyUI core node classes from pinned ComfyUI commit `603d891eaf045d726d9c23276b4428daf2977624`.
 
 ## Model Files
 
-- `models/diffusion_models/anima-preview3-base.safetensors`
+- `models/diffusion_models/anima-preview3-base-Q5_K_M.gguf`
 - `models/text_encoders/qwen_3_06b_base.safetensors`
 - `models/vae/qwen_image_vae.safetensors`
 
-The files are sourced from `circlestone-labs/Anima`, using the official Anima Preview template assets so the old preview3 plugin is not silently replaced by the newer base-v1 model.
+The GGUF backbone is sourced from `Bedovyy/Anima-GGUF`. The text encoder and VAE are sourced from `circlestone-labs/Anima`, preserving the Anima Preview 3 family instead of replacing it with an unrelated model.
 
 ## UI Parameter Mapping
 
