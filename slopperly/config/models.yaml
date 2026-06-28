@@ -887,6 +887,72 @@ models:
     workflows:
       - ltx23_t2v
       - video/ltx2.py
+  - logical_name: ltx23_extend_staged_q5_gguf
+    legacy_aliases:
+      - LTX-2.3 Extend Staged
+    task: video_extend
+    runtime: comfy
+    model_source: https://huggingface.co/unsloth/LTX-2.3-GGUF
+    download_mode: hf_file
+    local_cache_path: models/unet/ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf
+    required_files:
+      - path: distilled-1.1/ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf
+        target: ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf
+    auxiliary_sources:
+      - id: ltx23_extend_gemma3_fp4_text_encoder
+        model_source: https://huggingface.co/inflatebot/LTX23-gemma-3-12b-it-orthogonal-reflection-bounded-ablation-v4-fp4_mixed
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors
+        required_files:
+          - path: gemma-3-12b-it-orthogonal-reflection-bounded-ablation-v4-12B-fp4_mixed.safetensors
+            target: gemma_3_12B_it_fp4_mixed.safetensors
+      - id: ltx23_extend_distilled_connector
+        model_source: https://huggingface.co/unsloth/LTX-2.3-GGUF
+        download_mode: hf_file
+        local_cache_path: models/text_encoders/ltx-2.3-22b-distilled_embeddings_connectors.safetensors
+        required_files:
+          - path: text_encoders/ltx-2.3-22b-distilled_embeddings_connectors.safetensors
+            target: ltx-2.3-22b-distilled_embeddings_connectors.safetensors
+      - id: ltx23_extend_distilled_video_vae
+        model_source: https://huggingface.co/unsloth/LTX-2.3-GGUF
+        download_mode: hf_file
+        local_cache_path: models/vae/ltx-2.3-22b-distilled_video_vae.safetensors
+        required_files:
+          - path: vae/ltx-2.3-22b-distilled_video_vae.safetensors
+            target: ltx-2.3-22b-distilled_video_vae.safetensors
+      - id: ltx23_extend_distilled_audio_vae
+        model_source: https://huggingface.co/unsloth/LTX-2.3-GGUF
+        download_mode: hf_file
+        local_cache_path: models/vae/ltx-2.3-22b-distilled_audio_vae.safetensors
+        required_files:
+          - path: vae/ltx-2.3-22b-distilled_audio_vae.safetensors
+            target: ltx-2.3-22b-distilled_audio_vae.safetensors
+      - id: ltx23_extend_distilled_lora
+        model_source: https://huggingface.co/Lightricks/LTX-2.3
+        download_mode: hf_file
+        local_cache_path: models/loras/ltx-2.3-22b-distilled-lora-384.safetensors
+        required_files:
+          - ltx-2.3-22b-distilled-lora-384.safetensors
+    required_node_pack: comfyui_gguf + multigpu + comfyui core LTX + video_helper_suite
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
+    supported_resolutions:
+      - 1280x704
+    supported_fps:
+      - 24
+    default_parameters:
+      fps: 24
+      extension_frames: 17
+      steps: manual_sigmas_8
+      guidance: basic_guider
+      strength: 0.7
+      sampler: euler_ancestral_cfg_pp
+    minimum_vram_gb: 16
+    validation_command: pytest tests/gpu/test_ltx23_extend_staged.py --device cuda
+    workflows:
+      - ltx23_extend_staged
+      - video/ltx23_extend.py
   - logical_name: vllm_whisper_large_v3_turbo_stt
     legacy_aliases:
       - faster-whisper-transcribe

@@ -1,0 +1,19 @@
+{
+  "prompt": "A cinematic local LTX extension tail continuing from the final frame of the source clip.",
+  "negative_prompt": "static pose, frozen frame, low quality, flicker, watermark",
+  "width": 1280,
+  "height": 720,
+  "frames": 17,
+  "fps": 24,
+  "strength": 0.7,
+  "seed": 230521,
+  "input_video": "tests/fixtures/video_vsr_source.mp4",
+  "input_image": "extracted by the plugin from the source video tail frame",
+  "expected": {
+    "type": "video",
+    "extension": ".mp4",
+    "fps": 24,
+    "width": 1280,
+    "height": 704
+  }
+}
