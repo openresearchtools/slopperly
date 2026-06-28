@@ -4,7 +4,7 @@ Local ComfyUI text-to-image workflow pack for the existing `baidu/ERNIE-Image-Tu
 
 ## Required Nodes
 
-- `UNETLoader`
+- `UnetLoaderGGUF`
 - `CLIPLoader`
 - `VAELoader`
 - `TextGenerate`
@@ -17,9 +17,9 @@ Local ComfyUI text-to-image workflow pack for the existing `baidu/ERNIE-Image-Tu
 
 ## Model Files
 
-Download from `Comfy-Org/ERNIE-Image`:
+Download the Q5 diffusion backbone from `unsloth/ERNIE-Image-Turbo-GGUF`; shared text encoder, prompt enhancer, and VAE files come from `Comfy-Org/ERNIE-Image`:
 
-- `diffusion_models/ernie-image-turbo.safetensors` -> `models/diffusion_models/ernie-image-turbo.safetensors`
+- `ernie-image-turbo-Q5_K_M.gguf` -> `models/diffusion_models/ernie-image-turbo-Q5_K_M.gguf`
 - `text_encoders/ministral-3-3b.safetensors` -> `models/text_encoders/ministral-3-3b.safetensors`
 - `text_encoders/ernie-image-prompt-enhancer.safetensors` -> `models/text_encoders/ernie-image-prompt-enhancer.safetensors`
 - `vae/flux2-vae.safetensors` -> `models/vae/flux2-vae.safetensors`
@@ -31,6 +31,7 @@ Download from `Comfy-Org/ERNIE-Image`:
 - steps, guidance, seed -> `KSampler.steps`, `.cfg`, `.seed`
 - sampler, scheduler, denoise -> fixed local ERNIE Turbo defaults from the wrapper
 - negative prompt -> preserved in the UI and recorded as unmapped because the official Turbo graph uses `ConditioningZeroOut`
+- ERNIE Turbo Q5 GGUF model file -> node `1`, input `unet_name`
 
 ## Output Contract
 
@@ -44,6 +45,6 @@ pytest tests/gpu/test_ernie.py --device cuda
 
 ## Expected Validation
 
-- `/object_info` contains all required core node classes.
+- `/object_info` contains all required core and ComfyUI-GGUF node classes.
 - Plugin `generate()` queues this API workflow through `SlopperlyRuntimeGateway`.
 - The returned PNG is readable and matches the requested dimensions.

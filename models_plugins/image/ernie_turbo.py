@@ -47,7 +47,7 @@ class ErnieTurboPlugin(ModelPlugin):
         use_pe = bool((pipe_obj or {}).get("use_pe", self.USE_PROMPT_ENHANCER))
         _prepare_ernie_inputs(
             inputs,
-            model_name="ernie-image-turbo.safetensors",
+            model_name="ernie-image-turbo-Q5_K_M.gguf",
             use_prompt_enhancer=use_pe,
         )
         if inputs.neg_prompt:

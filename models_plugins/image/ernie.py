@@ -47,7 +47,7 @@ class ErniePlugin(ModelPlugin):
         use_pe = bool((pipe_obj or {}).get("use_pe", self.USE_PROMPT_ENHANCER))
         _prepare_ernie_inputs(
             inputs,
-            model_name="ernie-image.safetensors",
+            model_name="ernie-image-Q5_K_M.gguf",
             use_prompt_enhancer=use_pe,
         )
         stem = clean_filename((inputs.prompt or "ernie_image")[:40]) or "ernie_image"

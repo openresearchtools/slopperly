@@ -1,5 +1,5 @@
 {
   "source": "Comfy-Org workflow_templates image_ernie_image.json",
   "workflow_id": "ernie_image_t2i",
-  "note": "API graph expanded from the official ERNIE-Image text-to-image template and keeps the local TextGenerate prompt enhancer."
+  "note": "API graph expanded from the official ERNIE-Image text-to-image template, using a Q5 GGUF diffusion backbone through ComfyUI-GGUF while keeping the local TextGenerate prompt enhancer."
 }

@@ -1,9 +1,8 @@
 {
   "1": {
-    "class_type": "UNETLoader",
+    "class_type": "UnetLoaderGGUF",
     "inputs": {
-      "unet_name": "ernie-image-turbo.safetensors",
-      "weight_dtype": "default"
+      "unet_name": "ernie-image-turbo-Q5_K_M.gguf"
     }
   },
   "2": {

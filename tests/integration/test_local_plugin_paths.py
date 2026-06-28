@@ -866,7 +866,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
-                node.get("class_type") == "UNETLoader"
+                node.get("class_type") == "UnetLoaderGGUF"
                 and str((node.get("inputs") or {}).get("unet_name", "")).startswith("ernie-image")
                 for node in RuntimeHandler.comfy_prompt.values()
                 if isinstance(node, dict)
@@ -1825,7 +1825,8 @@ class LocalPluginPathTests(unittest.TestCase):
 
         prompt = RuntimeHandler.comfy_prompts[-1]
         self.assertEqual(RuntimeHandler.comfy_uploads, [])
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image-Q5_K_M.gguf")
         self.assertEqual(prompt["2"]["inputs"]["clip_name"], "ministral-3-3b.safetensors")
         self.assertEqual(prompt["2"]["inputs"]["type"], "flux2")
         self.assertEqual(prompt["3"]["inputs"]["vae_name"], "flux2-vae.safetensors")
@@ -1867,7 +1868,8 @@ class LocalPluginPathTests(unittest.TestCase):
 
         prompt = RuntimeHandler.comfy_prompts[-1]
         self.assertEqual(RuntimeHandler.comfy_uploads, [])
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image-turbo.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image-turbo-Q5_K_M.gguf")
         self.assertIn("local ERNIE Turbo text to image", prompt["5"]["inputs"]["prompt"])
         self.assertEqual(prompt["5"]["inputs"]["sampling_mode"], "on")
         self.assertEqual(prompt["5"]["inputs"]["sampling_mode.seed"], 3201)

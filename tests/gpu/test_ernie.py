@@ -21,6 +21,7 @@ def test_ernie_image_t2i(gpu_cert, plugin_loader, base_models, repo_root):
         guidance=4.0,
         seed=310101,
         filename="ernie_image_t2i.png",
+        gguf_filename="ernie-image-Q5_K_M.gguf",
     )
 
 
@@ -40,6 +41,7 @@ def test_ernie_image_turbo_t2i(gpu_cert, plugin_loader, base_models, repo_root):
         guidance=1.0,
         seed=320101,
         filename="ernie_image_turbo_t2i.png",
+        gguf_filename="ernie-image-turbo-Q5_K_M.gguf",
     )
 
 
@@ -59,6 +61,7 @@ def _run_ernie_case(
     guidance,
     seed,
     filename,
+    gguf_filename,
 ):
     gpu_cert.require_cuda(logical_name)
     runtime_url = gpu_cert.require_runtime(logical_name, "comfyui", paths=("/object_info",))
@@ -103,5 +106,6 @@ def _run_ernie_case(
             "runtime_url": runtime_url,
             "workflow_pack": str(workflow_pack),
             "result_path": str(result_path),
+            "model_files": {"gguf": gguf_filename},
         },
     )

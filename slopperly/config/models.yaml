@@ -974,12 +974,12 @@ models:
       - baidu/ERNIE-Image
     task: image_t2i
     runtime: comfy
-    model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
+    model_source: https://huggingface.co/unsloth/ERNIE-Image-GGUF
     download_mode: hf_file
-    local_cache_path: models/diffusion_models/ernie-image.safetensors
+    local_cache_path: models/diffusion_models/ernie-image-Q5_K_M.gguf
     required_files:
-      - path: diffusion_models/ernie-image.safetensors
-        target: ernie-image.safetensors
+      - path: ernie-image-Q5_K_M.gguf
+        target: ernie-image-Q5_K_M.gguf
     auxiliary_sources:
       - id: ernie_text_encoder
         model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
@@ -1002,18 +1002,17 @@ models:
         required_files:
           - path: vae/flux2-vae.safetensors
             target: flux2-vae.safetensors
-    required_node_pack: comfyui core ernie image
+    required_node_pack: comfyui core ernie image + comfyui_gguf
     certification_requirements:
       gguf_backbone_required: true
-      primary_backbone_format: safetensors
-      next_action: install and wire an ERNIE Image GGUF backbone if one is adopted, then rerun plugin-path artifact certification.
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
       - 1280x720
       - 720x1280
     context_limits: {}
     default_parameters:
-      diffusion_model: ernie-image.safetensors
+      diffusion_model: ernie-image-Q5_K_M.gguf
       text_encoder: ministral-3-3b.safetensors
       prompt_enhancer: ernie-image-prompt-enhancer.safetensors
       clip_type: flux2
@@ -1033,12 +1032,12 @@ models:
       - baidu/ERNIE-Image-Turbo
     task: image_t2i
     runtime: comfy
-    model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
+    model_source: https://huggingface.co/unsloth/ERNIE-Image-Turbo-GGUF
     download_mode: hf_file
-    local_cache_path: models/diffusion_models/ernie-image-turbo.safetensors
+    local_cache_path: models/diffusion_models/ernie-image-turbo-Q5_K_M.gguf
     required_files:
-      - path: diffusion_models/ernie-image-turbo.safetensors
-        target: ernie-image-turbo.safetensors
+      - path: ernie-image-turbo-Q5_K_M.gguf
+        target: ernie-image-turbo-Q5_K_M.gguf
     auxiliary_sources:
       - id: ernie_turbo_text_encoder
         model_source: https://huggingface.co/Comfy-Org/ERNIE-Image
@@ -1061,18 +1060,17 @@ models:
         required_files:
           - path: vae/flux2-vae.safetensors
             target: flux2-vae.safetensors
-    required_node_pack: comfyui core ernie image
+    required_node_pack: comfyui core ernie image + comfyui_gguf
     certification_requirements:
       gguf_backbone_required: true
-      primary_backbone_format: safetensors
-      next_action: install and wire an ERNIE Turbo GGUF backbone if one is adopted, then rerun plugin-path artifact certification.
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
       - 1280x720
       - 720x1280
     context_limits: {}
     default_parameters:
-      diffusion_model: ernie-image-turbo.safetensors
+      diffusion_model: ernie-image-turbo-Q5_K_M.gguf
       text_encoder: ministral-3-3b.safetensors
       prompt_enhancer: ernie-image-prompt-enhancer.safetensors
       clip_type: flux2

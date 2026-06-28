@@ -651,14 +651,14 @@ class ComfyHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
-                node.get("class_type") == "UNETLoader"
+                node.get("class_type") == "UnetLoaderGGUF"
                 and str((node.get("inputs") or {}).get("unet_name", "")).startswith("ernie-image")
                 for node in ComfyHandler.last_prompt.values()
             ):
                 unet_name = next(
                     str((node.get("inputs") or {}).get("unet_name", ""))
                     for node in ComfyHandler.last_prompt.values()
-                    if node.get("class_type") == "UNETLoader"
+                    if node.get("class_type") == "UnetLoaderGGUF"
                 )
                 filename = (
                     "slopperly_ernie_image_turbo_00001_.png"
@@ -2154,7 +2154,7 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 steps=50,
                 guidance=4.0,
                 seed=3101,
-                ernie_model="ernie-image.safetensors",
+                ernie_model="ernie-image-Q5_K_M.gguf",
                 ernie_text_encoder="ministral-3-3b.safetensors",
                 ernie_prompt_enhancer="ernie-image-prompt-enhancer.safetensors",
                 ernie_clip_type="flux2",
@@ -2190,7 +2190,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
 
         prompt = ComfyHandler.last_prompt
         self.assertEqual(ComfyHandler.upload_bodies, [])
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image-Q5_K_M.gguf")
         self.assertEqual(prompt["2"]["inputs"]["clip_name"], "ministral-3-3b.safetensors")
         self.assertEqual(prompt["2"]["inputs"]["type"], "flux2")
         self.assertEqual(prompt["3"]["inputs"]["vae_name"], "flux2-vae.safetensors")
@@ -2214,7 +2215,7 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             destination = Path(tmp) / "ernie_turbo.png"
             runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
-            inputs.ernie_model = "ernie-image-turbo.safetensors"
+            inputs.ernie_model = "ernie-image-turbo-Q5_K_M.gguf"
             inputs.ernie_prompt_request = "enhance local ERNIE turbo prompt"
             inputs.seed = 3201
             inputs.steps = 8
@@ -2234,7 +2235,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
             self.assertEqual(destination.read_bytes(), ComfyHandler.image_bytes)
 
         prompt = ComfyHandler.last_prompt
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image-turbo.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ernie-image-turbo-Q5_K_M.gguf")
         self.assertEqual(prompt["5"]["inputs"]["prompt"], "enhance local ERNIE turbo prompt")
         self.assertEqual(prompt["5"]["inputs"]["sampling_mode"], "on")
         self.assertEqual(prompt["5"]["inputs"]["sampling_mode.seed"], 3201)
