@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 from slopperly.doctor import run_checks, selected_runtimes
 from slopperly.audit.model_registry import validate_model_registry
 from slopperly.models.download import (
+    download_artifact_entry,
     download_models,
     hf_file_source_and_target,
     huggingface_repo_id,
@@ -88,6 +89,8 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertIn(("birefnet_rmbg", "PLAN"), statuses)
         self.assertIn(("local_image_vsr_upscale", "PLAN"), statuses)
         self.assertIn(("local_video_vsr_upscale", "PLAN"), statuses)
+        self.assertIn(("nucleus_image_t2i", "PLAN"), statuses)
+        self.assertIn(("nucleus_image_t2i:nucleus_image_fp8", "PLAN"), statuses)
         self.assertIn(("audio_stem_split_demucs", "PLAN"), statuses)
         self.assertIn(("mmaudio_video_to_audio", "PLAN"), statuses)
         self.assertIn(("mmaudio_video_to_audio:bigvgan_44k", "PLAN"), statuses)
@@ -121,6 +124,44 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertTrue(mocked.call_args.kwargs["dry_run"])
         self.assertTrue(mocked.call_args.kwargs["accept_licenses"])
+
+    def test_snapshot_download_passes_allow_and_ignore_patterns(self):
+        calls = []
+
+        def fake_snapshot_download(**kwargs):
+            calls.append(kwargs)
+            destination = Path(kwargs["local_dir"])
+            destination.mkdir(parents=True, exist_ok=True)
+            (destination / "model_index.json").write_text("{}", encoding="utf-8")
+
+        entry = {
+            "model_source": "https://huggingface.co/NucleusAI/Nucleus-Image",
+            "download_mode": "hf_snapshot",
+            "local_cache_path": "models/diffusers/nucleus_image_base",
+            "required_files": ["model_index.json"],
+            "allow_patterns": ["*.json"],
+            "ignore_patterns": ["transformer/diffusion_pytorch_model*.safetensors"],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.dict(
+                sys.modules,
+                {"huggingface_hub": types.SimpleNamespace(snapshot_download=fake_snapshot_download)},
+            ):
+                results = download_artifact_entry(
+                    entry=entry,
+                    name="nucleus_image_t2i",
+                    cache_root=Path(tmp),
+                    profile="smoke_16gb",
+                    accept_licenses=True,
+                    dry_run=False,
+                )
+
+        self.assertEqual([result.status for result in results], ["PASS"])
+        self.assertEqual(calls[0]["allow_patterns"], ["*.json"])
+        self.assertEqual(
+            calls[0]["ignore_patterns"],
+            ["transformer/diffusion_pytorch_model*.safetensors"],
+        )
 
     def test_moss_download_postprocess_points_config_to_local_tokenizer(self):
         with tempfile.TemporaryDirectory() as tmp:

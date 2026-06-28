@@ -7,8 +7,8 @@
   "guidance": 8.0,
   "seed": 530101,
   "nucleus_model_id": "NucleusAI/Nucleus-Image",
-  "nucleus_model_path": ".slopperly/model-cache/models/diffusers/nucleus_image_base",
-  "nucleus_fp8_patch_path": ".slopperly/model-cache/models/diffusers/nucleus_image_fp8/moe_fp8_patch.py",
-  "nucleus_fp8_weights_path": ".slopperly/model-cache/models/diffusers/nucleus_image_fp8/Nucleus-Image-FP8.safetensors",
+  "nucleus_model_path": "models/diffusers/nucleus_image_base",
+  "nucleus_fp8_patch_path": "models/diffusers/nucleus_image_fp8/moe_fp8_patch.py",
+  "nucleus_fp8_weights_path": "models/diffusers/nucleus_image_fp8/Nucleus-Image-FP8.safetensors",
   "nucleus_local_files_only": true
 }

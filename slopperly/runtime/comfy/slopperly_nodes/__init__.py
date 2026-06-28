@@ -66,15 +66,22 @@ class SlopperlyDiffusersImageGenerate:
             device = "cuda" if torch.cuda.is_available() else "cpu"
             generator = torch.Generator(device=device).manual_seed(int(seed))
 
-        result = pipe(
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            num_inference_steps=int(steps),
-            guidance_scale=float(guidance),
-            height=int(height),
-            width=int(width),
-            generator=generator,
-        ).images[0]
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        try:
+            result = pipe(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                num_inference_steps=int(steps),
+                guidance_scale=float(guidance),
+                height=int(height),
+                width=int(width),
+                generator=generator,
+            ).images[0]
+        finally:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
         image = result.convert("RGB")
         array = np.asarray(image, dtype=np.float32) / 255.0
@@ -118,14 +125,34 @@ class SlopperlyDiffusersImageGenerate:
             local_files_only=bool(local_files_only),
         )
         if torch.cuda.is_available():
-            try:
-                pipe.enable_model_cpu_offload()
-            except Exception:
-                pipe.to("cuda")
+            _enable_low_vram_offload(pipe)
+            print(
+                "SlopperlyDiffusersImageGenerate: "
+                f"enabled {getattr(pipe, '_slopperly_offload_mode', 'unknown')} offload"
+            )
         else:
             pipe.to("cpu")
         cls._pipeline_cache[key] = pipe
         return pipe
+
+
+def _enable_low_vram_offload(pipe: Any) -> None:
+    """Prefer leaf-level offload for Nucleus' large Qwen3-VL text encoder."""
+    try:
+        pipe.enable_sequential_cpu_offload()
+        pipe._slopperly_offload_mode = "sequential_cpu"
+        return
+    except Exception as sequential_error:
+        try:
+            pipe.enable_model_cpu_offload()
+            pipe._slopperly_offload_mode = "model_cpu"
+            return
+        except Exception as model_error:
+            pipe._slopperly_offload_mode = (
+                f"cuda_fallback_after_offload_errors: "
+                f"{type(sequential_error).__name__}; {type(model_error).__name__}"
+            )
+            pipe.to("cuda")
 
 
 def _import_patch_module(path: Path):

@@ -18,12 +18,13 @@ Local ComfyUI text-to-image workflow pack for the existing `NucleusAI/Nucleus-Im
 
 ## Model Files
 
-- `models/diffusers/nucleus_image_base/model_index.json` and the rest of the local snapshot for `NucleusAI/Nucleus-Image`
+- `models/diffusers/nucleus_image_base/model_index.json`, scheduler, processor, text encoder, VAE, and transformer config files from `NucleusAI/Nucleus-Image`
 - `models/diffusers/nucleus_image_fp8/moe_fp8_patch.py`
 - `models/diffusers/nucleus_image_fp8/Nucleus-Image-FP8.safetensors`
 - `models/diffusers/nucleus_image_fp8/config.json`
 
 Hugging Face is used only as a model artifact source. The workflow sets `local_files_only` to true during generation.
+The base snapshot intentionally excludes the original transformer weight shards because the Slopperly node injects the pinned FP8 transformer weights instead.
 
 ## UI Parameter Mapping
 

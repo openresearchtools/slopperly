@@ -1,0 +1,28 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/nucleus_image_t2i/nucleus_image_t2i.png",
+  "command": "pytest tests/gpu/test_nucleus_image.py::test_nucleus_image_t2i --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T20:11:13+00:00",
+  "logical_name": "nucleus_image_t2i",
+  "metadata": {
+    "model_files": {
+      "base_snapshot": "/home/user/Documents/Slopperly/.slopperly/runtimes/ComfyUI/models/diffusers/nucleus_image_base",
+      "fp8_patch": "/home/user/Documents/Slopperly/.slopperly/runtimes/ComfyUI/models/diffusers/nucleus_image_fp8/moe_fp8_patch.py",
+      "fp8_weights": "/home/user/Documents/Slopperly/.slopperly/runtimes/ComfyUI/models/diffusers/nucleus_image_fp8/Nucleus-Image-FP8.safetensors"
+    },
+    "offload_strategy": "sequential_cpu_preferred",
+    "result_path": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/nucleus_image_t2i/nucleus_image_t2i.png",
+    "runtime_url": "http://127.0.0.1:8190",
+    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/nucleus_image_t2i/workflow.api.json"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "alpha": false,
+    "format": "PNG",
+    "height": 1024,
+    "kind": "image",
+    "width": 1024
+  }
+}

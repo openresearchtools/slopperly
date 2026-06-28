@@ -15,8 +15,25 @@ model_files:
   - source: https://huggingface.co/NucleusAI/Nucleus-Image
     download_mode: hf_snapshot
     target: models/diffusers/nucleus_image_base
+    ignore_patterns:
+      - transformer/diffusion_pytorch_model*.safetensors
+      - transformer/diffusion_pytorch_model.safetensors.index.json
     required_files:
       - model_index.json
+      - scheduler/scheduler_config.json
+      - processor/config.json
+      - processor/tokenizer.json
+      - processor/tokenizer_config.json
+      - processor/vocab.json
+      - text_encoder/config.json
+      - text_encoder/model-00001-of-00004.safetensors
+      - text_encoder/model-00002-of-00004.safetensors
+      - text_encoder/model-00003-of-00004.safetensors
+      - text_encoder/model-00004-of-00004.safetensors
+      - text_encoder/model.safetensors.index.json
+      - transformer/config.json
+      - vae/config.json
+      - vae/diffusion_pytorch_model.safetensors
   - source: https://huggingface.co/D-Squarius-Green-Jr/Nucleus-Image-FP8/resolve/main/moe_fp8_patch.py
     target: models/diffusers/nucleus_image_fp8/moe_fp8_patch.py
   - source: https://huggingface.co/D-Squarius-Green-Jr/Nucleus-Image-FP8/resolve/main/Nucleus-Image-FP8.safetensors

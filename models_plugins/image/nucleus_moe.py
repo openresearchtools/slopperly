@@ -8,7 +8,7 @@ from ...utils.helpers import clean_filename, solve_path
 
 
 WORKFLOW_ID = "nucleus_image_t2i"
-MODEL_CACHE_DIR = ".slopperly/model-cache"
+OWNED_COMFY_CACHE_DIR = ".slopperly/runtimes/ComfyUI"
 
 
 class NucleusMoEPlugin(ModelPlugin):
@@ -75,4 +75,4 @@ def _model_cache_root(prefs) -> Path:
     configured = getattr(prefs, "slopperly_model_cache", "") or ""
     if configured:
         return Path(configured).expanduser().resolve()
-    return (Path(__file__).resolve().parents[2] / MODEL_CACHE_DIR).resolve()
+    return (Path(__file__).resolve().parents[2] / OWNED_COMFY_CACHE_DIR).resolve()

@@ -53,5 +53,11 @@ def test_nucleus_image_t2i(gpu_cert, plugin_loader, base_models, repo_root):
             "runtime_url": runtime_url,
             "workflow_pack": str(workflow_pack),
             "result_path": str(result_path),
+            "offload_strategy": "sequential_cpu_preferred",
+            "model_files": {
+                "base_snapshot": getattr(inputs, "nucleus_model_path", ""),
+                "fp8_patch": getattr(inputs, "nucleus_fp8_patch_path", ""),
+                "fp8_weights": getattr(inputs, "nucleus_fp8_weights_path", ""),
+            },
         },
     )
