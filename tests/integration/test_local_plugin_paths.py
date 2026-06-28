@@ -2505,7 +2505,8 @@ class LocalPluginPathTests(unittest.TestCase):
 
             t2i_prompt = RuntimeHandler.comfy_prompts[-1]
             self.assertEqual(RuntimeHandler.comfy_uploads, [])
-            self.assertEqual(t2i_prompt["1"]["inputs"]["unet_name"], "flux-2-klein-4b-fp8.safetensors")
+            self.assertEqual(t2i_prompt["1"]["class_type"], "UnetLoaderGGUF")
+            self.assertEqual(t2i_prompt["1"]["inputs"]["unet_name"], "flux-2-klein-4b-Q5_K_M.gguf")
             self.assertEqual(t2i_prompt["2"]["inputs"]["clip_name"], "qwen_3_4b.safetensors")
             self.assertEqual(t2i_prompt["2"]["inputs"]["type"], "flux2")
             self.assertEqual(t2i_prompt["3"]["inputs"]["vae_name"], "flux2-vae.safetensors")
@@ -2579,6 +2580,8 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(len(RuntimeHandler.comfy_uploads), 2)
         self.assertEqual(edit_prompt["1"]["inputs"]["image"], "uploaded_source.png")
         self.assertEqual(edit_prompt["19"]["inputs"]["image"], "uploaded_source_2.png")
+        self.assertEqual(edit_prompt["3"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(edit_prompt["3"]["inputs"]["unet_name"], "flux-2-klein-4b-Q5_K_M.gguf")
         self.assertEqual(edit_prompt["2"]["inputs"]["width"], 1024)
         self.assertEqual(edit_prompt["14"]["inputs"]["steps"], 4)
         self.assertEqual(edit_prompt["12"]["inputs"]["noise_seed"], 42005)

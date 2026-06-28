@@ -68,7 +68,7 @@ class Flux2Klein4BPlugin(ModelPlugin):
         if gateway is None:
             gateway = SlopperlyRuntimeGateway()
 
-        inputs.flux2_klein_model = "flux-2-klein-4b-fp8.safetensors"
+        inputs.flux2_klein_model = "flux-2-klein-4b-Q5_K_M.gguf"
         inputs.flux2_klein_text_encoder = "qwen_3_4b.safetensors"
         inputs.flux2_klein_clip_type = "flux2"
         inputs.flux2_klein_vae = "flux2-vae.safetensors"

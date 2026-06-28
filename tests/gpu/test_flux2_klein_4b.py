@@ -68,6 +68,11 @@ def test_flux2_klein_4b_t2i_and_edit(
                 "t2i": t2i["artifact"],
                 "edit": edit["artifact"],
             },
+            "model_files": {
+                "gguf": "flux-2-klein-4b-Q5_K_M.gguf",
+                "text_encoder": "qwen_3_4b.safetensors",
+                "vae": "flux2-vae.safetensors",
+            },
             "references": edit.get("references", []),
             "edit_usage_note": edit.get("usage_note", ""),
         },

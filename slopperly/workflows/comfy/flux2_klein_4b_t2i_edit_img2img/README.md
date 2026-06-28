@@ -5,11 +5,12 @@ Routes the existing `Flux2Klein4BPlugin.generate()` image edit path through loca
 ## Required Nodes
 
 - ComfyUI core at the pinned Slopperly commit.
-- Node classes: `LoadImage`, `ImageScale`, `UNETLoader`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `VAEEncode`, `ReferenceLatent`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, `SaveImage`.
+- ComfyUI-GGUF with `UnetLoaderGGUF`.
+- Node classes: `LoadImage`, `ImageScale`, `UnetLoaderGGUF`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `ConditioningZeroOut`, `VAEEncode`, `ReferenceLatent`, `CFGGuider`, `RandomNoise`, `KSamplerSelect`, `Flux2Scheduler`, `EmptyFlux2LatentImage`, `SamplerCustomAdvanced`, `VAEDecode`, `SaveImage`.
 
 ## Model Files
 
-- `models/diffusion_models/flux-2-klein-4b-fp8.safetensors` from `black-forest-labs/FLUX.2-klein-4b-fp8`.
+- `models/diffusion_models/flux-2-klein-4b-Q5_K_M.gguf` from `unsloth/FLUX.2-klein-4B-GGUF`.
 - `models/text_encoders/qwen_3_4b.safetensors` from `Comfy-Org/vae-text-encorder-for-flux-klein-4b`.
 - `models/vae/flux2-vae.safetensors` from `Comfy-Org/flux2-dev`.
 
