@@ -8,6 +8,15 @@ from ...utils.helpers import clean_filename, find_strip_by_name, get_strip_path,
 WORKFLOW_ID = "omnigen_v1_multi_image"
 
 
+def _prompt_mentions_image(prompt: str, idx: int) -> bool:
+    markers = (
+        f"image_{idx}",
+        f"image{idx}",
+        f"<|image_{idx}|>",
+    )
+    return any(marker in prompt for marker in markers)
+
+
 class OmniGenPlugin(ModelPlugin):
     MODEL_ID     = "Shitao/OmniGen-v1-diffusers"
     DISPLAY_NAME = "Image: OmniGen (multi-image)"
@@ -67,13 +76,15 @@ class OmniGenPlugin(ModelPlugin):
                     if not image_path:
                         raise ValueError(f"OmniGen could not resolve strip path for {strip_name!r}.")
                     images[idx - 1] = image_path
-                    prompt += f" <img><|image_{idx}|></img> "
+                    if not _prompt_mentions_image(prompt, idx):
+                        prompt += f" image_{idx} "
 
         inputs.prompt = prompt.strip()
         inputs.images = images
         inputs.image_prompts = image_prompts
         inputs.omnigen_img_guidance_scale = float(getattr(scene, "img_guidance_scale", 1.6) or 1.6)
-        inputs.omnigen_use_input_image_size_as_output = any(images)
+        reference_count = sum(1 for image in images if image)
+        inputs.omnigen_use_input_image_size_as_output = reference_count == 1
         inputs.omnigen_model_precision = getattr(scene, "omnigen_model_precision", "Auto") or "Auto"
         inputs.omnigen_memory_management = getattr(
             scene,

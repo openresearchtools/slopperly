@@ -1,0 +1,26 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/omnigen_v1_multi_image/omnigen_multi_image.png",
+  "command": "pytest tests/gpu/test_omnigen.py::test_omnigen_multi_image_plugin_path --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T21:46:44+00:00",
+  "logical_name": "omnigen_v1_multi_image",
+  "metadata": {
+    "references": [
+      "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
+      "/home/user/Documents/Slopperly/tests/fixtures/birefnet_source.ppm",
+      "/home/user/Documents/Slopperly/tests/fixtures/florence2_caption.png"
+    ],
+    "runtime_url": "http://127.0.0.1:8190",
+    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/omnigen_v1_multi_image/workflow.api.json"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "alpha": false,
+    "format": "PNG",
+    "height": 512,
+    "kind": "image",
+    "width": 512
+  }
+}

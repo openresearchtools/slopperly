@@ -12,6 +12,13 @@ from slopperly.runtime.comfy import install as comfy_install_module
 from slopperly.runtime.comfy.install import (
     disable_foundation1_object_info_autodownload,
     install_comfy,
+    patch_omnigen_cache_api,
+    patch_omnigen_cache_first_pass_return,
+    patch_omnigen_memory_priority_load,
+    patch_omnigen_pipeline_local_vae,
+    patch_omnigen_phi3_transformer_api,
+    patch_omnigen_transformers_cache_import,
+    prepare_omnigen_local_only,
     patch_comfyui_gguf_ideogram4_arch,
 )
 from slopperly.runtime.llamacpp.install import (
@@ -39,6 +46,7 @@ class RuntimeInstallerTests(unittest.TestCase):
         self.assertIn("custom_nodes", details)
         self.assertIn("slopperly_nodes", details)
         self.assertIn("object_info local-only", details)
+        self.assertIn("OmniGen code", details)
         self.assertIn("install-manifest.json", details)
 
     def test_comfy_install_report_only_does_not_mutate_runtime(self):
@@ -108,6 +116,387 @@ class RuntimeInstallerTests(unittest.TestCase):
         self.assertIn("class ModelIdeogram4(ModelTemplate):", patched_convert)
         self.assertIn("embed_image_indicator.weight", patched_convert)
         self.assertIn("ModelIdeogram4", patched_convert)
+
+    def test_omnigen_patch_installs_code_and_disables_first_run_downloads(self):
+        source = '''class ailab_OmniGen:
+    def _ensure_code_exists(self):
+        """Ensure OmniGen code exists, download from GitHub if not"""
+        try:
+            if not osp.exists(Paths.OMNIGEN_CODE_DIR):
+                print("Downloading OmniGen code from GitHub...")
+                base_url = "https://raw.githubusercontent.com/VectorSpaceLab/OmniGen/main/OmniGen/"
+                requests.get(base_url + "model.py")
+        except Exception as e:
+            raise RuntimeError(f"Failed to download OmniGen code: {str(e)}")
+
+    def _ensure_model_exists(self, model_precision=None):
+        """Ensure model file exists, download if not"""
+        if not osp.exists(Paths.MODEL_FILE_FP16):
+            snapshot_download(repo_id="silveroxides/OmniGen-V1")
+
+    def _setup_temp_dir(self):
+        pass
+
+    def _get_pipeline(self, model_precision, keep_in_vram):
+        try:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            try:
+                pipe = self.OmniGenPipeline.from_pretrained(Paths.OMNIGEN_DIR)
+                # Move to device safely
+                try:
+                    original_pipe = pipe
+                    pipe = pipe.to(device)
+                    if pipe is None:
+                        print("Warning: Pipeline.to(device) returned None, using original pipeline")
+                        pipe = original_pipe
+                        if hasattr(pipe, 'text_encoder'):
+                            pipe.text_encoder = pipe.text_encoder.to(device)
+                        if hasattr(pipe, 'unet'):
+                            pipe.unet = pipe.unet.to(device)
+                        if hasattr(pipe, 'vae'):
+                            pipe.vae = pipe.vae.to(device)
+                except Exception as device_error:
+                    print(f"Warning: Error moving pipeline to device: {device_error}")
+                    pipe = original_pipe
+                return pipe
+            except Exception:
+                raise
+        except Exception:
+            raise
+
+    def generation(self, preset_prompt, model_precision, prompt, memory_management, num_inference_steps, guidance_scale,
+            img_guidance_scale, max_input_image_size, separate_cfg_infer,
+            use_input_image_size_as_output, width, height, seed,
+            image_1=None, image_2=None, image_3=None):
+        keep_in_vram = (memory_management == "Speed Priority")
+        offload_model = (memory_management == "Memory Priority")
+        pipe = self._get_pipeline(model_precision, keep_in_vram)
+        return pipe
+'''
+
+        class FakeResponse:
+            def __init__(self, body: bytes):
+                self.body = body
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return self.body
+
+        def fake_urlopen(url, timeout=60):
+            if str(url).endswith("/transformer.py"):
+                return FakeResponse(
+                    b'''class Phi3Transformer:
+    def forward(self, inputs_embeds=None, attention_mask=None, position_ids=None, past_key_values=None,
+        output_attentions=False, use_cache=True, cache_position=None, offload_model=False):
+        hidden_states = inputs_embeds
+
+        # decoder layers
+        all_hidden_states = () if output_hidden_states else None
+        all_self_attns = () if output_attentions else None
+        next_decoder_cache = None
+
+        for decoder_layer in self.layers:
+            if self.gradient_checkpointing and self.training:
+                pass
+            else:
+                if offload_model and not self.training:
+                    self.get_offlaod_layer(layer_idx, device=inputs_embeds.device)
+                layer_outputs = decoder_layer(
+                    hidden_states,
+                    attention_mask=attention_mask,
+                    position_ids=position_ids,
+                    past_key_value=past_key_values,
+                    output_attentions=output_attentions,
+                    use_cache=use_cache,
+                    cache_position=cache_position,
+                )
+
+            hidden_states = layer_outputs[0]
+
+            if use_cache:
+                next_decoder_cache = layer_outputs[2 if output_attentions else 1]
+
+            if output_attentions:
+                all_self_attns += (layer_outputs[1],)
+        return hidden_states
+'''
+                )
+            if str(url).endswith("/pipeline.py"):
+                return FakeResponse(
+                    b'''class OmniGenPipeline:
+    @classmethod
+    def from_pretrained(cls, model_name, vae_path: str=None):
+        if os.path.exists(os.path.join(model_name, "vae")):
+            vae = AutoencoderKL.from_pretrained(os.path.join(model_name, "vae"))
+        elif vae_path is not None:
+            vae = AutoencoderKL.from_pretrained(vae_path).to(device)
+        else:
+            logger.info(f"No VAE found in {model_name}, downloading stabilityai/sdxl-vae from HF")
+            vae = AutoencoderKL.from_pretrained("stabilityai/sdxl-vae").to(device)
+        return cls(vae)
+'''
+                )
+            if str(url).endswith("/scheduler.py"):
+                return FakeResponse(
+                    b'''from transformers.cache_utils import Cache, DynamicCache, OffloadedCache
+
+class OmniGenCache(DynamicCache):
+    def __init__(self, num_tokens_for_img: int, offload_kv_cache: bool=False) -> None:
+        super().__init__()
+        self.original_device = []
+        self.prefetch_stream = torch.cuda.Stream()
+        self.num_tokens_for_img = num_tokens_for_img
+        self.offload_kv_cache = offload_kv_cache
+
+    def prefetch_layer(self, layer_idx: int):
+        pass
+
+    def update(self, key_states, value_states, layer_idx, cache_kwargs=None):
+        if len(self.key_cache) < layer_idx:
+            raise ValueError("OffloadedCache does not support model usage where layers are skipped. Use DynamicCache.")
+        elif len(self.key_cache) == layer_idx:
+            # only cache the states for condition tokens
+            key_states = key_states[..., :-(self.num_tokens_for_img+1), :]
+            value_states = value_states[..., :-(self.num_tokens_for_img+1), :]
+
+             # Update the number of seen tokens
+            if layer_idx == 0:
+                self._seen_tokens += key_states.shape[-2]
+
+            self.key_cache.append(key_states)
+            self.value_cache.append(value_states)
+            self.original_device.append(key_states.device)
+            if self.offload_kv_cache:
+                self.evict_previous_layer(layer_idx)
+            return self.key_cache[layer_idx], self.value_cache[layer_idx]
+        else:
+            return key_states, value_states
+'''
+                )
+            return FakeResponse(b"# pinned omnigen code\n")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            node_path = Path(tmp) / "omnigen"
+            node_path.mkdir()
+            script = node_path / "AILab_OmniGen.py"
+            script.write_text(source, encoding="utf-8")
+            with patch("slopperly.runtime.comfy.install.urllib.request.urlopen", side_effect=fake_urlopen) as mocked:
+                steps = prepare_omnigen_local_only(node_path, dry_run=False)
+            patched = script.read_text(encoding="utf-8")
+            code_dir = node_path / "OmniGen"
+            model_code_exists = (code_dir / "model.py").is_file()
+            manifest_exists = (code_dir / ".slopperly_code_commit").is_file()
+
+        self.assertFalse([step for step in steps if step.status == "BLOCKED"])
+        self.assertGreaterEqual(mocked.call_count, 1)
+        self.assertTrue(model_code_exists)
+        self.assertTrue(manifest_exists)
+        self.assertIn("Slopperly local-only OmniGen dependency guard", patched)
+        self.assertIn("OmniGen FP16 model is not installed", patched)
+        self.assertNotIn("requests.get(base_url", patched)
+        self.assertNotIn('repo_id="silveroxides/OmniGen-V1"', patched)
+
+    def test_omnigen_transformers_cache_patch_removes_stale_import(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            scheduler = Path(tmp) / "scheduler.py"
+            scheduler.write_text(
+                "from transformers.cache_utils import Cache, DynamicCache, OffloadedCache\n",
+                encoding="utf-8",
+            )
+            step = patch_omnigen_transformers_cache_import(scheduler, dry_run=False)
+            patched = scheduler.read_text(encoding="utf-8")
+
+        self.assertEqual(step.status, "PASS")
+        self.assertIn("from transformers.cache_utils import Cache, DynamicCache", patched)
+        self.assertIn("Slopperly removed stale OffloadedCache import", patched)
+        self.assertNotIn("OffloadedCache", patched.splitlines()[0])
+
+    def test_omnigen_cache_api_patch_restores_legacy_storage(self):
+        source = '''class OmniGenCache(DynamicCache):
+    def __init__(self, num_tokens_for_img: int, offload_kv_cache: bool=False) -> None:
+        super().__init__()
+        self.original_device = []
+        self.prefetch_stream = torch.cuda.Stream()
+        self.num_tokens_for_img = num_tokens_for_img
+        self.offload_kv_cache = offload_kv_cache
+
+    def prefetch_layer(self, layer_idx: int):
+        pass
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            scheduler = Path(tmp) / "scheduler.py"
+            scheduler.write_text(source, encoding="utf-8")
+            step = patch_omnigen_cache_api(scheduler, dry_run=False)
+            patched = scheduler.read_text(encoding="utf-8")
+
+        self.assertEqual(step.status, "PASS")
+        self.assertIn("Slopperly OmniGen cache API compatibility guard", patched)
+        self.assertIn("self.key_cache = []", patched)
+        self.assertIn("self.value_cache = []", patched)
+        self.assertIn("self._seen_tokens = 0", patched)
+        self.assertIn("def __len__(self):", patched)
+        self.assertIn("return len(self.key_cache)", patched)
+
+    def test_omnigen_cache_first_pass_patch_returns_full_states(self):
+        source = '''class OmniGenCache(DynamicCache):
+    def update(self, key_states, value_states, layer_idx, cache_kwargs=None):
+        if len(self.key_cache) < layer_idx:
+            raise ValueError("OffloadedCache does not support model usage where layers are skipped. Use DynamicCache.")
+        elif len(self.key_cache) == layer_idx:
+            # only cache the states for condition tokens
+            key_states = key_states[..., :-(self.num_tokens_for_img+1), :]
+            value_states = value_states[..., :-(self.num_tokens_for_img+1), :]
+
+             # Update the number of seen tokens
+            if layer_idx == 0:
+                self._seen_tokens += key_states.shape[-2]
+
+            self.key_cache.append(key_states)
+            self.value_cache.append(value_states)
+            self.original_device.append(key_states.device)
+            if self.offload_kv_cache:
+                self.evict_previous_layer(layer_idx)
+            return self.key_cache[layer_idx], self.value_cache[layer_idx]
+        else:
+            return key_states, value_states
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            scheduler = Path(tmp) / "scheduler.py"
+            scheduler.write_text(source, encoding="utf-8")
+            step = patch_omnigen_cache_first_pass_return(scheduler, dry_run=False)
+            patched = scheduler.read_text(encoding="utf-8")
+
+        self.assertEqual(step.status, "PASS")
+        self.assertIn("Slopperly OmniGen first-pass cache return guard", patched)
+        self.assertIn("cache_key_states = key_states", patched)
+        self.assertIn("self.key_cache.append(cache_key_states)", patched)
+        self.assertIn("return key_states, value_states", patched)
+
+    def test_omnigen_memory_priority_patch_defers_initial_cuda_move(self):
+        source = '''class ailab_OmniGen:
+    def _get_pipeline(self, model_precision, keep_in_vram):
+        try:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            try:
+                pipe = self.OmniGenPipeline.from_pretrained(Paths.OMNIGEN_DIR)
+                # Move to device safely
+                try:
+                    original_pipe = pipe
+                    pipe = pipe.to(device)
+                    if pipe is None:
+                        print("Warning: Pipeline.to(device) returned None, using original pipeline")
+                        pipe = original_pipe
+                        if hasattr(pipe, 'text_encoder'):
+                            pipe.text_encoder = pipe.text_encoder.to(device)
+                        if hasattr(pipe, 'unet'):
+                            pipe.unet = pipe.unet.to(device)
+                        if hasattr(pipe, 'vae'):
+                            pipe.vae = pipe.vae.to(device)
+                except Exception as device_error:
+                    print(f"Warning: Error moving pipeline to device: {device_error}")
+                    pipe = original_pipe
+                return pipe
+            except Exception:
+                raise
+        except Exception:
+            raise
+
+    def generation(self, preset_prompt, model_precision, prompt, memory_management, num_inference_steps, guidance_scale,
+            img_guidance_scale, max_input_image_size, separate_cfg_infer,
+            use_input_image_size_as_output, width, height, seed,
+            image_1=None, image_2=None, image_3=None):
+        keep_in_vram = (memory_management == "Speed Priority")
+        offload_model = (memory_management == "Memory Priority")
+        pipe = self._get_pipeline(model_precision, keep_in_vram)
+        return pipe
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            node = Path(tmp) / "AILab_OmniGen.py"
+            node.write_text(source, encoding="utf-8")
+            step = patch_omnigen_memory_priority_load(node, dry_run=False)
+            patched = node.read_text(encoding="utf-8")
+
+        self.assertEqual(step.status, "PASS")
+        self.assertIn("Slopperly memory-priority OmniGen load guard", patched)
+        self.assertIn("initial_device_move=not offload_model", patched)
+        self.assertIn("deferred OmniGen CUDA load", patched)
+
+    def test_omnigen_pipeline_vae_patch_rejects_download_fallback(self):
+        source = '''class OmniGenPipeline:
+    @classmethod
+    def from_pretrained(cls, model_name, vae_path: str=None):
+        if os.path.exists(os.path.join(model_name, "vae")):
+            vae = AutoencoderKL.from_pretrained(os.path.join(model_name, "vae"))
+        elif vae_path is not None:
+            vae = AutoencoderKL.from_pretrained(vae_path).to(device)
+        else:
+            logger.info(f"No VAE found in {model_name}, downloading stabilityai/sdxl-vae from HF")
+            vae = AutoencoderKL.from_pretrained("stabilityai/sdxl-vae").to(device)
+        return cls(vae)
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            pipeline = Path(tmp) / "pipeline.py"
+            pipeline.write_text(source, encoding="utf-8")
+            step = patch_omnigen_pipeline_local_vae(pipeline, dry_run=False)
+            patched = pipeline.read_text(encoding="utf-8")
+
+        self.assertEqual(step.status, "PASS")
+        self.assertIn("Slopperly local-only OmniGen VAE guard", patched)
+        self.assertNotIn("stabilityai/sdxl-vae", patched.split("raise RuntimeError", 1)[0])
+
+    def test_omnigen_phi3_transformer_patch_adds_position_embeddings(self):
+        source = '''class Phi3Transformer:
+    def forward(self, inputs_embeds=None, attention_mask=None, position_ids=None, past_key_values=None,
+        output_attentions=False, use_cache=True, cache_position=None, offload_model=False):
+        hidden_states = inputs_embeds
+
+        # decoder layers
+        all_hidden_states = () if output_hidden_states else None
+        all_self_attns = () if output_attentions else None
+        next_decoder_cache = None
+
+        for decoder_layer in self.layers:
+            if self.gradient_checkpointing and self.training:
+                pass
+            else:
+                if offload_model and not self.training:
+                    self.get_offlaod_layer(layer_idx, device=inputs_embeds.device)
+                layer_outputs = decoder_layer(
+                    hidden_states,
+                    attention_mask=attention_mask,
+                    position_ids=position_ids,
+                    past_key_value=past_key_values,
+                    output_attentions=output_attentions,
+                    use_cache=use_cache,
+                    cache_position=cache_position,
+                )
+
+            hidden_states = layer_outputs[0]
+
+            if use_cache:
+                next_decoder_cache = layer_outputs[2 if output_attentions else 1]
+
+            if output_attentions:
+                all_self_attns += (layer_outputs[1],)
+        return hidden_states
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            transformer = Path(tmp) / "transformer.py"
+            transformer.write_text(source, encoding="utf-8")
+            step = patch_omnigen_phi3_transformer_api(transformer, dry_run=False)
+            patched = transformer.read_text(encoding="utf-8")
+
+        self.assertEqual(step.status, "PASS")
+        self.assertIn("Slopperly Phi3 decoder API compatibility guard", patched)
+        self.assertIn("position_embeddings = self.rotary_emb", patched)
+        self.assertIn("past_key_values=past_key_values", patched)
+        self.assertIn("position_embeddings=position_embeddings", patched)
+        self.assertIn("isinstance(layer_outputs, tuple)", patched)
 
     def test_vllm_install_dry_run_records_audio_extra(self):
         with tempfile.TemporaryDirectory() as tmp:

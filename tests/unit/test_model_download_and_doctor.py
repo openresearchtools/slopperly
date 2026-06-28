@@ -21,6 +21,7 @@ from slopperly.models.download import (
     main as download_main,
     mirror_torchaudio_asset,
     normalize_kontext_relight_lora,
+    patch_omnigen_phi3_config,
     rewrite_moss_tts_nano_config,
 )
 
@@ -106,6 +107,7 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertIn(("moss_tts_nano_vllm_omni", "PLAN"), statuses)
         self.assertIn(("moss_tts_nano_vllm_omni:moss_audio_tokenizer_nano", "PLAN"), statuses)
         self.assertIn(("moss_tts_nano_vllm_omni:moss_local_tokenizer_config", "PLAN"), statuses)
+        self.assertIn(("omnigen_v1_multi_image:omnigen_phi3_rope_config", "PLAN"), statuses)
         self.assertFalse([result for result in results if result.status == "BLOCKED"])
 
     def test_download_report_only_uses_dry_run(self):
@@ -196,6 +198,32 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
 
             self.assertEqual(result.status, "PASS")
             self.assertIn(str(tokenizer_dir.resolve()), config_path.read_text(encoding="utf-8"))
+
+    def test_omnigen_download_postprocess_patches_phi3_rope_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_root = Path(tmp)
+            entry = {
+                "logical_name": "omnigen_v1_multi_image",
+                "local_cache_path": "models/LLM/OmniGen-v1",
+            }
+            model_dir = cache_root / entry["local_cache_path"]
+            model_dir.mkdir(parents=True)
+            config_path = model_dir / "config.json"
+            config_path.write_text(
+                '{"original_max_position_embeddings": 4096, "rope_scaling": {"type": "su"}}',
+                encoding="utf-8",
+            )
+
+            result = patch_omnigen_phi3_config(
+                entry=entry,
+                name="omnigen_v1_multi_image",
+                cache_root=cache_root,
+                dry_run=False,
+            )
+            patched = config_path.read_text(encoding="utf-8")
+
+        self.assertEqual(result.status, "PASS")
+        self.assertIn('"original_max_position_embeddings": 4096', patched)
 
     def test_kontext_relight_lora_postprocess_strips_comfy_prefix(self):
         class FakeSafeOpen:

@@ -26,6 +26,11 @@ def test_omnigen_multi_image_plugin_path(gpu_cert, plugin_loader, base_models, r
         repo_root / "tests" / "fixtures" / "birefnet_source.ppm",
         "second OmniGen reference image fixture",
     )
+    third = gpu_cert.require_file(
+        LOGICAL_NAME,
+        repo_root / "tests" / "fixtures" / "florence2_caption.png",
+        "third OmniGen reference image fixture",
+    )
 
     module = plugin_loader("image", "omnigen")
     plugin = module.OmniGenPlugin()
@@ -36,13 +41,14 @@ def test_omnigen_multi_image_plugin_path(gpu_cert, plugin_loader, base_models, r
         sequence_editor=SimpleNamespace(strips=[
             SimpleNamespace(name="first", type="IMAGE", filepath=str(first)),
             SimpleNamespace(name="second", type="IMAGE", filepath=str(second)),
+            SimpleNamespace(name="third", type="IMAGE", filepath=str(third)),
         ]),
         omnigen_prompt_1="Create a crisp studio object image using image_1",
         omnigen_prompt_2=", borrowing the color palette from image_2",
-        omnigen_prompt_3="",
+        omnigen_prompt_3=", and placing the local-test typography from image_3",
         omnigen_strip_1="first",
         omnigen_strip_2="second",
-        omnigen_strip_3="",
+        omnigen_strip_3="third",
         img_guidance_scale=1.6,
     )
     inputs = base_models.ModelInputs(
@@ -73,6 +79,6 @@ def test_omnigen_multi_image_plugin_path(gpu_cert, plugin_loader, base_models, r
         metadata={
             "runtime_url": runtime_url,
             "workflow_pack": str(workflow_pack),
-            "references": [str(first), str(second)],
+            "references": [str(first), str(second), str(third)],
         },
     )

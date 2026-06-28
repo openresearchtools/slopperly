@@ -33,6 +33,7 @@ LUMINA2_INTERMEDIATE_GGUF = "models/diffusion_models/lumina_2_model-BF16.gguf"
 LUMINA2_Q5_GGUF = "models/diffusion_models/lumina_2_model-Q5_K_M.gguf"
 LUMINA2_LLAMA_CPP_TAG = "b3962"
 LUMINA2_LLAMA_CPP_REPO = "https://github.com/ggerganov/llama.cpp"
+OMNIGEN_LOGICAL_NAME = "omnigen_v1_multi_image"
 
 
 @dataclass
@@ -234,6 +235,76 @@ def rewrite_moss_tts_nano_config(
     data[MOSS_AUDIO_TOKENIZER_CONFIG_KEY] = desired
     model_config.write_text(json.dumps(data, indent=2, sort_keys=False) + "\n", encoding="utf-8")
     return DownloadResult("PASS", name, "MOSS config updated to local audio tokenizer", str(model_config))
+
+
+def patch_omnigen_phi3_config(
+    *,
+    entry: dict,
+    name: str,
+    cache_root: Path,
+    dry_run: bool,
+) -> DownloadResult | None:
+    if str(entry.get("logical_name") or "") != OMNIGEN_LOGICAL_NAME:
+        return None
+
+    postprocess_name = f"{name}:omnigen_phi3_rope_config"
+    config_path = snapshot_path(cache_root, entry) / "config.json"
+    if dry_run:
+        return DownloadResult(
+            "PLAN",
+            postprocess_name,
+            "would mirror top-level original_max_position_embeddings into OmniGen rope_scaling",
+            str(config_path),
+        )
+    if not config_path.is_file():
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            f"OmniGen config is missing: {config_path}",
+            str(config_path),
+        )
+    try:
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            f"could not read OmniGen config: {exc}",
+            str(config_path),
+        )
+
+    rope_scaling = data.get("rope_scaling")
+    original = data.get("original_max_position_embeddings")
+    if not isinstance(rope_scaling, dict):
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            "OmniGen config rope_scaling is missing or invalid",
+            str(config_path),
+        )
+    if not isinstance(original, int) or original <= 0:
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            "OmniGen config top-level original_max_position_embeddings is missing or invalid",
+            str(config_path),
+        )
+    if rope_scaling.get("original_max_position_embeddings") == original:
+        return DownloadResult(
+            "PASS",
+            postprocess_name,
+            "OmniGen Phi3 rope config already compatible with current transformers",
+            str(config_path),
+        )
+
+    rope_scaling["original_max_position_embeddings"] = original
+    config_path.write_text(json.dumps(data, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+    return DownloadResult(
+        "PASS",
+        postprocess_name,
+        "OmniGen Phi3 rope config updated for current transformers",
+        str(config_path),
+    )
 
 
 def normalize_kontext_relight_lora(
@@ -759,6 +830,14 @@ def download_models(
                 )
             )
         postprocess = rewrite_moss_tts_nano_config(
+            entry=entry,
+            name=str(name),
+            cache_root=cache_root,
+            dry_run=dry_run,
+        )
+        if postprocess:
+            results.append(postprocess)
+        postprocess = patch_omnigen_phi3_config(
             entry=entry,
             name=str(name),
             cache_root=cache_root,
