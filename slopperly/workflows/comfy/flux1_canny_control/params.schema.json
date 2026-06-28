@@ -93,12 +93,6 @@
         "input": "unet_name"
       }
     ],
-    "flux1_canny_weight_dtype": [
-      {
-        "node": "4",
-        "input": "weight_dtype"
-      }
-    ],
     "flux1_canny_vae": [
       {
         "node": "5",
@@ -136,7 +130,6 @@
   "unmapped_ui_parameters": {
     "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
     "image_strength": "The upstream FLUX.1 Canny Comfy graph uses InstructPixToPixConditioning and exposes no conditioning-strength input.",
-    "lora": "Project LoRA UI is preserved, but arbitrary project LoRA injection is not dynamically mapped in this certified graph yet.",
     "negative_prompt": "The current FLUX Canny plugin does not expose a negative prompt section; the workflow patches an empty negative conditioning string."
   },
   "outputs": [

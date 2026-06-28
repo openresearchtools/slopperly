@@ -57,6 +57,9 @@ def test_flux1_canny_control(gpu_cert, plugin_loader, base_models, repo_root):
             "workflow_pack": str(workflow_pack),
             "result_path": str(result_path),
             "source": str(source),
+            "model_files": {
+                "gguf": "flux1-canny-dev-fp16-Q5_0-GGUF.gguf",
+            },
         },
     )
 
@@ -113,5 +116,8 @@ def test_flux1_depth_control(gpu_cert, plugin_loader, base_models, repo_root):
             "workflow_pack": str(workflow_pack),
             "result_path": str(result_path),
             "source": str(source),
+            "model_files": {
+                "gguf": "flux1-depth-dev-fp16-Q5_0-GGUF.gguf",
+            },
         },
     )

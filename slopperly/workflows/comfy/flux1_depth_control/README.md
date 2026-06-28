@@ -14,7 +14,7 @@ Local ComfyUI Depth-control workflow pack for the existing `romanfratric234/FLUX
 - `LoadImage`
 - `ImageScale`
 - `DepthAnythingV2Preprocessor`
-- `UNETLoader`
+- `UnetLoaderGGUF`
 - `LoraLoaderModelOnly`
 - `VAELoader`
 - `DualCLIPLoader`
@@ -25,18 +25,18 @@ Local ComfyUI Depth-control workflow pack for the existing `romanfratric234/FLUX
 - `VAEDecode`
 - `SaveImage`
 
-`DepthAnythingV2Preprocessor` is from pinned `Fannovel16/comfyui_controlnet_aux` commit `e8b689a513c3e6b63edc44066560ca5919c0576e`. The other nodes are ComfyUI core node classes from pinned ComfyUI commit `603d891eaf045d726d9c23276b4428daf2977624`.
+`UnetLoaderGGUF` is from pinned `city96/ComfyUI-GGUF`. `DepthAnythingV2Preprocessor` is from pinned `Fannovel16/comfyui_controlnet_aux` commit `e8b689a513c3e6b63edc44066560ca5919c0576e`. The other nodes are ComfyUI core node classes from pinned ComfyUI commit `603d891eaf045d726d9c23276b4428daf2977624`.
 
 ## Model Files
 
-- `models/diffusion_models/flux1-dev.safetensors`
+- `models/diffusion_models/flux1-depth-dev-fp16-Q5_0-GGUF.gguf`
 - `models/loras/flux1-depth-dev-lora.safetensors`
 - `models/text_encoders/clip_l.safetensors`
 - `models/text_encoders/t5xxl_fp16.safetensors`
 - `models/vae/ae.safetensors`
-- `custom_nodes/comfyui_controlnet_aux/ckpts/depth-anything/Depth-Anything-V2-Large/depth_anything_v2_vitl.pth`
+- `custom_nodes/controlnet_aux/ckpts/depth-anything/Depth-Anything-V2-Large/depth_anything_v2_vitl.pth`
 
-The workflow follows the official Comfy FLUX.1 Depth LoRA example graph. The depth adapter is recorded from `Comfy-Org/flux1-dev` split files while preserving the legacy `romanfratric234/FLUX.1-Depth-dev-lora` saved-project alias.
+The workflow follows the official Comfy FLUX.1 Depth LoRA example graph with the diffusion backbone loaded through `UnetLoaderGGUF` from the Q5_0 GGUF artifact. The depth adapter is recorded from `Comfy-Org/flux1-dev` split files while preserving the legacy `romanfratric234/FLUX.1-Depth-dev-lora` saved-project alias.
 
 ## UI Parameter Mapping
 
@@ -56,7 +56,7 @@ The workflow follows the official Comfy FLUX.1 Depth LoRA example graph. The dep
 - `seed` -> node `12`, input `seed`
 - sampler defaults -> node `12`, inputs `cfg`, `sampler_name`, `scheduler`, and `denoise`
 
-The existing frame, image-strength, and LoRA controls remain visible. The official FLUX.1 Depth LoRA Comfy graph uses `InstructPixToPixConditioning` and does not expose an independent conditioning-strength input, so image strength is recorded as unmapped instead of silently applied.
+The existing frame, image-strength, and LoRA controls remain visible. Selected project LoRAs are inserted by the plugin through `LoraLoaderModelOnly` nodes after the certified FLUX.1 Depth adapter and before the sampler model input. The official FLUX.1 Depth LoRA Comfy graph uses `InstructPixToPixConditioning` and does not expose an independent conditioning-strength input, so image strength is recorded as unmapped instead of silently applied.
 
 ## Output Contract
 

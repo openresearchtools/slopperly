@@ -14,7 +14,7 @@ Local ComfyUI Canny-control workflow pack for the existing `fuliucansheng/FLUX.1
 - `LoadImage`
 - `ImageScale`
 - `CannyEdgePreprocessor`
-- `UNETLoader`
+- `UnetLoaderGGUF`
 - `VAELoader`
 - `DualCLIPLoader`
 - `CLIPTextEncode`
@@ -24,16 +24,16 @@ Local ComfyUI Canny-control workflow pack for the existing `fuliucansheng/FLUX.1
 - `VAEDecode`
 - `SaveImage`
 
-`CannyEdgePreprocessor` is from pinned `Fannovel16/comfyui_controlnet_aux` commit `e8b689a513c3e6b63edc44066560ca5919c0576e`. The other nodes are ComfyUI core node classes from pinned ComfyUI commit `603d891eaf045d726d9c23276b4428daf2977624`.
+`UnetLoaderGGUF` is from pinned `city96/ComfyUI-GGUF`. `CannyEdgePreprocessor` is from pinned `Fannovel16/comfyui_controlnet_aux` commit `e8b689a513c3e6b63edc44066560ca5919c0576e`. The other nodes are ComfyUI core node classes from pinned ComfyUI commit `603d891eaf045d726d9c23276b4428daf2977624`.
 
 ## Model Files
 
-- `models/diffusion_models/flux1-canny-dev.safetensors`
+- `models/diffusion_models/flux1-canny-dev-fp16-Q5_0-GGUF.gguf`
 - `models/text_encoders/clip_l.safetensors`
 - `models/text_encoders/t5xxl_fp16.safetensors`
 - `models/vae/ae.safetensors`
 
-The workflow follows the official Comfy FLUX.1 Canny example graph. The Canny diffusion model is recorded from `Comfy-Org/flux1-dev` split files, while the text encoders and VAE match the Comfy documentation's manual installation list.
+The workflow follows the official Comfy FLUX.1 Canny example graph with the diffusion backbone loaded through `UnetLoaderGGUF` from the Q5_0 GGUF artifact, while the text encoders and VAE match the Comfy documentation's manual installation list.
 
 ## UI Parameter Mapping
 
@@ -52,7 +52,7 @@ The workflow follows the official Comfy FLUX.1 Canny example graph. The Canny di
 - `seed` -> node `11`, input `seed`
 - sampler defaults -> node `11`, inputs `cfg`, `sampler_name`, `scheduler`, and `denoise`
 
-The existing frame, image-strength, and LoRA controls remain visible. The official FLUX.1 Canny Comfy graph uses `InstructPixToPixConditioning` and does not expose an independent conditioning-strength input, so image strength is recorded as unmapped instead of silently applied.
+The existing frame, image-strength, and LoRA controls remain visible. Selected project LoRAs are inserted by the plugin through `LoraLoaderModelOnly` nodes before the sampler model input. The official FLUX.1 Canny Comfy graph uses `InstructPixToPixConditioning` and does not expose an independent conditioning-strength input, so image strength is recorded as unmapped instead of silently applied.
 
 ## Output Contract
 

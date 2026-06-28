@@ -2694,8 +2694,7 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 height=768,
                 seed=6101,
                 steps=28,
-                flux1_canny_model="flux1-canny-dev.safetensors",
-                flux1_canny_weight_dtype="fp8_e4m3fn",
+                flux1_canny_model="flux1-canny-dev-fp16-Q5_0-GGUF.gguf",
                 flux1_canny_clip_l="clip_l.safetensors",
                 flux1_canny_t5="t5xxl_fp16.safetensors",
                 flux1_canny_clip_type="flux",
@@ -2731,8 +2730,9 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["3"]["inputs"]["low_threshold"], 50)
         self.assertEqual(prompt["3"]["inputs"]["high_threshold"], 200)
         self.assertEqual(prompt["3"]["inputs"]["resolution"], 1024)
-        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-canny-dev.safetensors")
-        self.assertEqual(prompt["4"]["inputs"]["weight_dtype"], "fp8_e4m3fn")
+        self.assertEqual(prompt["4"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-canny-dev-fp16-Q5_0-GGUF.gguf")
+        self.assertNotIn("weight_dtype", prompt["4"]["inputs"])
         self.assertEqual(prompt["6"]["inputs"]["clip_name1"], "clip_l.safetensors")
         self.assertEqual(prompt["6"]["inputs"]["clip_name2"], "t5xxl_fp16.safetensors")
         self.assertEqual(prompt["7"]["inputs"]["text"], "local FLUX.1 Canny workflow render")
@@ -2756,8 +2756,7 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 height=1024,
                 seed=6102,
                 steps=28,
-                flux1_depth_model="flux1-dev.safetensors",
-                flux1_depth_weight_dtype="fp8_e4m3fn",
+                flux1_depth_model="flux1-depth-dev-fp16-Q5_0-GGUF.gguf",
                 flux1_depth_lora="flux1-depth-dev-lora.safetensors",
                 flux1_depth_lora_strength=1.0,
                 flux1_depth_clip_l="clip_l.safetensors",
@@ -2793,7 +2792,9 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["2"]["inputs"]["height"], 1024)
         self.assertEqual(prompt["3"]["inputs"]["ckpt_name"], "depth_anything_v2_vitl.pth")
         self.assertEqual(prompt["3"]["inputs"]["resolution"], 768)
-        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-dev.safetensors")
+        self.assertEqual(prompt["4"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-depth-dev-fp16-Q5_0-GGUF.gguf")
+        self.assertNotIn("weight_dtype", prompt["4"]["inputs"])
         self.assertEqual(prompt["5"]["inputs"]["lora_name"], "flux1-depth-dev-lora.safetensors")
         self.assertEqual(prompt["5"]["inputs"]["strength_model"], 1.0)
         self.assertEqual(prompt["8"]["inputs"]["text"], "local FLUX.1 Depth workflow render")

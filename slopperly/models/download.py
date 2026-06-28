@@ -534,7 +534,7 @@ def main(argv: list[str] | None = None) -> int:
         cache_root=cache_root,
         names=args.models,
         accept_licenses=args.accept_licenses,
-        dry_run=args.dry_run,
+        dry_run=args.dry_run or args.report_only,
     )
     print_results(results)
     blocked = any(result.status == "BLOCKED" for result in results)

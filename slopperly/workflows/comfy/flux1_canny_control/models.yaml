@@ -7,7 +7,6 @@ required_custom_nodes:
     node_classes:
       - LoadImage
       - ImageScale
-      - UNETLoader
       - VAELoader
       - DualCLIPLoader
       - CLIPTextEncode
@@ -21,14 +20,18 @@ required_custom_nodes:
     commit: e8b689a513c3e6b63edc44066560ca5919c0576e
     node_classes:
       - CannyEdgePreprocessor
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    node_classes:
+      - UnetLoaderGGUF
 model_files:
-  - source: https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/split_files/diffusion_models/flux1-canny-dev.safetensors
-    target: models/diffusion_models/flux1-canny-dev.safetensors
+  - source: https://huggingface.co/SporkySporkness/FLUX.1-Canny-dev-GGUF/resolve/main/flux1-canny-dev-fp16-Q5_0-GGUF.gguf
+    target: models/diffusion_models/flux1-canny-dev-fp16-Q5_0-GGUF.gguf
   - source: https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors
     target: models/text_encoders/clip_l.safetensors
   - source: https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors
     target: models/text_encoders/t5xxl_fp16.safetensors
-  - source: https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors
+  - source: https://huggingface.co/Kijai/flux-fp8/resolve/main/flux-vae-bf16.safetensors
     target: models/vae/ae.safetensors
 supported_resolutions:
   - 1024x1024

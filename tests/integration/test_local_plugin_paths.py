@@ -2144,8 +2144,9 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["3"]["inputs"]["low_threshold"], 50)
         self.assertEqual(prompt["3"]["inputs"]["high_threshold"], 200)
         self.assertEqual(prompt["3"]["inputs"]["resolution"], 1024)
-        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-canny-dev.safetensors")
-        self.assertEqual(prompt["4"]["inputs"]["weight_dtype"], "fp8_e4m3fn")
+        self.assertEqual(prompt["4"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-canny-dev-fp16-Q5_0-GGUF.gguf")
+        self.assertNotIn("weight_dtype", prompt["4"]["inputs"])
         self.assertEqual(prompt["5"]["inputs"]["vae_name"], "ae.safetensors")
         self.assertEqual(prompt["6"]["inputs"]["clip_name1"], "clip_l.safetensors")
         self.assertEqual(prompt["6"]["inputs"]["clip_name2"], "t5xxl_fp16.safetensors")
@@ -2158,6 +2159,40 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["11"]["inputs"]["cfg"], 1.0)
         self.assertIn("image strength slider is preserved", inputs.usage_note)
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local canny lora source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            lora_inputs = self.base.ModelInputs(
+                prompt="local FLUX.1 Canny control render with selected LoRA",
+                image=str(source),
+                width=1024,
+                height=768,
+                steps=28,
+                guidance=3.5,
+                strength=0.45,
+                seed=6111,
+                frames=1,
+            )
+            enabled = [
+                SimpleNamespace(name="styles/canny_control_style", weight_value=0.65, enabled=True)
+            ]
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace(), enabled_items=enabled)
+                output = plugin.generate(pipe, lora_inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        lora_prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(lora_prompt["90"]["class_type"], "LoraLoaderModelOnly")
+        self.assertEqual(lora_prompt["90"]["inputs"]["model"], ["4", 0])
+        self.assertEqual(lora_prompt["90"]["inputs"]["lora_name"], "canny_control_style.safetensors")
+        self.assertEqual(lora_prompt["90"]["inputs"]["strength_model"], 0.65)
+        self.assertEqual(lora_prompt["11"]["inputs"]["model"], ["90", 0])
+        self.assertIn("applied 1 selected LoRA", lora_inputs.usage_note)
+        self.assertFalse(hasattr(lora_inputs, "_slopperly_comfy_workflow_mutator"))
 
     def test_flux_depth_uses_comfy_control_plugin_path(self):
         module = load_plugin_module("image", "flux_depth")
@@ -2192,8 +2227,9 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["3"]["class_type"], "DepthAnythingV2Preprocessor")
         self.assertEqual(prompt["3"]["inputs"]["ckpt_name"], "depth_anything_v2_vitl.pth")
         self.assertEqual(prompt["3"]["inputs"]["resolution"], 768)
-        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-dev.safetensors")
-        self.assertEqual(prompt["4"]["inputs"]["weight_dtype"], "fp8_e4m3fn")
+        self.assertEqual(prompt["4"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["4"]["inputs"]["unet_name"], "flux1-depth-dev-fp16-Q5_0-GGUF.gguf")
+        self.assertNotIn("weight_dtype", prompt["4"]["inputs"])
         self.assertEqual(prompt["5"]["inputs"]["lora_name"], "flux1-depth-dev-lora.safetensors")
         self.assertEqual(prompt["5"]["inputs"]["strength_model"], 1.0)
         self.assertEqual(prompt["6"]["inputs"]["vae_name"], "ae.safetensors")
@@ -2208,6 +2244,40 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["12"]["inputs"]["cfg"], 2.0)
         self.assertIn("image strength slider is preserved", inputs.usage_note)
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local depth lora source image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            lora_inputs = self.base.ModelInputs(
+                prompt="local FLUX.1 Depth control render with selected LoRA",
+                image=str(source),
+                width=768,
+                height=1024,
+                steps=28,
+                guidance=3.5,
+                strength=0.45,
+                seed=6112,
+                frames=1,
+            )
+            enabled = [
+                SimpleNamespace(name="depth_control_style.safetensors", weight_value=0.7, enabled=True)
+            ]
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace(), enabled_items=enabled)
+                output = plugin.generate(pipe, lora_inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        lora_prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(lora_prompt["90"]["class_type"], "LoraLoaderModelOnly")
+        self.assertEqual(lora_prompt["90"]["inputs"]["model"], ["5", 0])
+        self.assertEqual(lora_prompt["90"]["inputs"]["lora_name"], "depth_control_style.safetensors")
+        self.assertEqual(lora_prompt["90"]["inputs"]["strength_model"], 0.7)
+        self.assertEqual(lora_prompt["12"]["inputs"]["model"], ["90", 0])
+        self.assertIn("applied 1 selected LoRA", lora_inputs.usage_note)
+        self.assertFalse(hasattr(lora_inputs, "_slopperly_comfy_workflow_mutator"))
 
     def test_flux_redux_uses_comfy_restyle_plugin_path(self):
         module = load_plugin_module("image", "flux_redux")

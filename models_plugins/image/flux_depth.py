@@ -6,6 +6,7 @@ from ...utils.helpers import clean_filename, solve_path
 
 
 WORKFLOW_ID = "flux1_depth_control"
+_MUTATOR_ATTR = "_slopperly_comfy_workflow_mutator"
 
 
 class FluxDepthPlugin(ModelPlugin):
@@ -46,12 +47,18 @@ class FluxDepthPlugin(ModelPlugin):
         if gateway is None:
             gateway = SlopperlyRuntimeGateway()
 
-        if isinstance(pipe_obj, dict) and pipe_obj.get("enabled_loras"):
+        custom_loras = pipe_obj.get("enabled_loras", []) if isinstance(pipe_obj, dict) else []
+        applied_loras = _set_flux1_lora_mutator(
+            inputs,
+            custom_loras,
+            model_source_node="5",
+            sampler_node="12",
+        )
+        if applied_loras:
             self._append_usage_note(
                 inputs,
-                "FLUX.1 Depth local Comfy workflow preserves the LoRA UI, but "
-                "dynamic project LoRA injection beyond the certified depth adapter "
-                "is not mapped in this graph yet.",
+                f"FLUX.1 Depth applied {applied_loras} selected LoRA(s) after the "
+                "certified depth adapter through local ComfyUI LoraLoaderModelOnly.",
             )
         self._append_usage_note(
             inputs,
@@ -60,8 +67,7 @@ class FluxDepthPlugin(ModelPlugin):
             "strength slider is preserved in the UI and recorded as unmapped.",
         )
 
-        inputs.flux1_depth_model = "flux1-dev.safetensors"
-        inputs.flux1_depth_weight_dtype = "fp8_e4m3fn"
+        inputs.flux1_depth_model = "flux1-depth-dev-fp16-Q5_0-GGUF.gguf"
         inputs.flux1_depth_lora = "flux1-depth-dev-lora.safetensors"
         inputs.flux1_depth_lora_strength = 1.0
         inputs.flux1_depth_clip_l = "clip_l.safetensors"
@@ -80,16 +86,95 @@ class FluxDepthPlugin(ModelPlugin):
         self.set_phase(inputs, f"Generating with local ComfyUI {self.DISPLAY_NAME}")
         filename = clean_filename(f"{inputs.seed}_flux1_depth_control") or "flux1_depth_control"
         destination = solve_path(filename + ".png")
-        return gateway.run_comfy_workflow(
-            WORKFLOW_ID,
-            inputs,
-            scene,
-            prefs,
-            destination=destination,
-            timeout=float(getattr(prefs, "comfyui_timeout", 3600.0) or 3600.0),
-        )
+        try:
+            return gateway.run_comfy_workflow(
+                WORKFLOW_ID,
+                inputs,
+                scene,
+                prefs,
+                destination=destination,
+                timeout=float(getattr(prefs, "comfyui_timeout", 3600.0) or 3600.0),
+            )
+        finally:
+            _clear_flux1_lora_mutator(inputs)
 
     @staticmethod
     def _append_usage_note(inputs: ModelInputs, message: str) -> None:
         prefix = (getattr(inputs, "usage_note", "") + "\n") if getattr(inputs, "usage_note", "") else ""
         inputs.usage_note = prefix + message
+
+
+def _set_flux1_lora_mutator(
+    inputs: ModelInputs,
+    enabled_loras,
+    *,
+    model_source_node: str,
+    sampler_node: str,
+) -> int:
+    loras = _normalise_comfy_loras(enabled_loras)
+    if not loras:
+        return 0
+
+    def _mutate(workflow, _schema, _inputs, _scene):
+        return _inject_flux1_lora_chain(
+            workflow,
+            loras,
+            model_source_node=model_source_node,
+            sampler_node=sampler_node,
+        )
+
+    setattr(inputs, _MUTATOR_ATTR, _mutate)
+    return len(loras)
+
+
+def _clear_flux1_lora_mutator(inputs: ModelInputs) -> None:
+    if hasattr(inputs, _MUTATOR_ATTR):
+        delattr(inputs, _MUTATOR_ATTR)
+
+
+def _normalise_comfy_loras(enabled_loras) -> list[tuple[str, float]]:
+    loras: list[tuple[str, float]] = []
+    for raw_name, raw_weight in enabled_loras or []:
+        name = _comfy_lora_filename(raw_name)
+        if not name:
+            continue
+        weight = float(raw_weight if raw_weight is not None else 1.0)
+        loras.append((name, weight))
+    return loras
+
+
+def _comfy_lora_filename(raw_name) -> str:
+    name = str(raw_name or "").replace("\\", "/").strip().rsplit("/", 1)[-1]
+    if not name:
+        return ""
+    lower = name.lower()
+    if not lower.endswith((".safetensors", ".ckpt", ".pt")):
+        name = f"{name}.safetensors"
+    return name
+
+
+def _inject_flux1_lora_chain(
+    workflow: dict,
+    loras: list[tuple[str, float]],
+    *,
+    model_source_node: str,
+    sampler_node: str,
+) -> dict:
+    previous_model = [model_source_node, 0]
+    next_node_id = 90
+    for lora_name, strength in loras:
+        while str(next_node_id) in workflow:
+            next_node_id += 1
+        node_id = str(next_node_id)
+        workflow[node_id] = {
+            "class_type": "LoraLoaderModelOnly",
+            "inputs": {
+                "model": previous_model,
+                "lora_name": lora_name,
+                "strength_model": strength,
+            },
+        }
+        previous_model = [node_id, 0]
+        next_node_id += 1
+    workflow[sampler_node].setdefault("inputs", {})["model"] = previous_model
+    return workflow

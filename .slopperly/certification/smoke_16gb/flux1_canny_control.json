@@ -1,0 +1,26 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/flux1_canny_control/flux1_canny_control.png",
+  "command": "pytest tests/gpu/test_flux1_control.py::test_flux1_canny_control --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T10:59:40+00:00",
+  "logical_name": "flux1_canny_control",
+  "metadata": {
+    "model_files": {
+      "gguf": "flux1-canny-dev-fp16-Q5_0-GGUF.gguf"
+    },
+    "result_path": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux1_canny_control/flux1_canny_control.png",
+    "runtime_url": "http://127.0.0.1:8190",
+    "source": "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
+    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/flux1_canny_control/workflow.api.json"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "alpha": false,
+    "format": "PNG",
+    "height": 1024,
+    "kind": "image",
+    "width": 1024
+  }
+}

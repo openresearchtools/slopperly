@@ -87,12 +87,6 @@
         "input": "unet_name"
       }
     ],
-    "flux1_depth_weight_dtype": [
-      {
-        "node": "4",
-        "input": "weight_dtype"
-      }
-    ],
     "flux1_depth_lora": [
       {
         "node": "5",
@@ -142,7 +136,6 @@
   "unmapped_ui_parameters": {
     "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
     "image_strength": "The upstream FLUX.1 Depth LoRA Comfy graph uses InstructPixToPixConditioning and exposes no conditioning-strength input.",
-    "lora": "Project LoRA UI is preserved, but only the certified FLUX.1 Depth adapter is loaded in this graph.",
     "negative_prompt": "The current FLUX Depth plugin does not expose a negative prompt section; the workflow patches an empty negative conditioning string."
   },
   "outputs": [

@@ -31,10 +31,9 @@
     }
   },
   "4": {
-    "class_type": "UNETLoader",
+    "class_type": "UnetLoaderGGUF",
     "inputs": {
-      "unet_name": "flux1-canny-dev.safetensors",
-      "weight_dtype": "fp8_e4m3fn"
+      "unet_name": "flux1-canny-dev-fp16-Q5_0-GGUF.gguf"
     }
   },
   "5": {

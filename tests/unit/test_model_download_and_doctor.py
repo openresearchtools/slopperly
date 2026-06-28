@@ -16,6 +16,7 @@ from slopperly.models.download import (
     huggingface_repo_id,
     is_exact_file,
     is_safe_relative_file,
+    main as download_main,
     mirror_torchaudio_asset,
     rewrite_moss_tts_nano_config,
 )
@@ -98,6 +99,23 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
         self.assertIn(("moss_tts_nano_vllm_omni:moss_audio_tokenizer_nano", "PLAN"), statuses)
         self.assertIn(("moss_tts_nano_vllm_omni:moss_local_tokenizer_config", "PLAN"), statuses)
         self.assertFalse([result for result in results if result.status == "BLOCKED"])
+
+    def test_download_report_only_uses_dry_run(self):
+        with mock.patch("slopperly.models.download.download_models", return_value=[]) as mocked:
+            code = download_main([
+                "--root",
+                str(ROOT),
+                "--cache-root",
+                ".slopperly/runtimes/ComfyUI",
+                "--model",
+                "flux1_canny_control",
+                "--report-only",
+                "--accept-licenses",
+            ])
+
+        self.assertEqual(code, 0)
+        self.assertTrue(mocked.call_args.kwargs["dry_run"])
+        self.assertTrue(mocked.call_args.kwargs["accept_licenses"])
 
     def test_moss_download_postprocess_points_config_to_local_tokenizer(self):
         with tempfile.TemporaryDirectory() as tmp:

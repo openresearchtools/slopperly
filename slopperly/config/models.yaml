@@ -296,12 +296,11 @@ models:
       - black-forest-labs/FLUX.1-Canny-dev
     task: image_control
     runtime: comfy
-    model_source: https://huggingface.co/Comfy-Org/flux1-dev
+    model_source: https://huggingface.co/SporkySporkness/FLUX.1-Canny-dev-GGUF
     download_mode: hf_file
-    local_cache_path: models/diffusion_models/flux1-canny-dev.safetensors
+    local_cache_path: models/diffusion_models/flux1-canny-dev-fp16-Q5_0-GGUF.gguf
     required_files:
-      - path: split_files/diffusion_models/flux1-canny-dev.safetensors
-        target: flux1-canny-dev.safetensors
+      - flux1-canny-dev-fp16-Q5_0-GGUF.gguf
     auxiliary_sources:
       - id: flux1_control_clip_l
         model_source: https://huggingface.co/comfyanonymous/flux_text_encoders
@@ -316,12 +315,16 @@ models:
         required_files:
           - t5xxl_fp16.safetensors
       - id: flux1_control_vae
-        model_source: https://huggingface.co/black-forest-labs/FLUX.1-schnell
+        model_source: https://huggingface.co/Kijai/flux-fp8
         download_mode: hf_file
         local_cache_path: models/vae/ae.safetensors
         required_files:
-          - ae.safetensors
-    required_node_pack: comfyui core flux control + comfyui_controlnet_aux
+          - path: flux-vae-bf16.safetensors
+            target: ae.safetensors
+    required_node_pack: comfyui_gguf + comfyui core flux control + comfyui_controlnet_aux
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
       - 1280x720
@@ -334,6 +337,7 @@ models:
       scheduler: normal
       canny_low_threshold: 50
       canny_high_threshold: 200
+      lora_injection: dynamic_lora_loader_model_only
       fps: null
     minimum_vram_gb: 24
     validation_command: pytest tests/gpu/test_flux1_control.py --device cuda
@@ -346,11 +350,11 @@ models:
       - black-forest-labs/FLUX.1-Depth-dev-lora
     task: image_control
     runtime: comfy
-    model_source: https://huggingface.co/Comfy-Org/flux1-dev
+    model_source: https://huggingface.co/SporkySporkness/FLUX.1-Depth-dev-GGUF
     download_mode: hf_file
-    local_cache_path: models/diffusion_models/flux1-dev.safetensors
+    local_cache_path: models/diffusion_models/flux1-depth-dev-fp16-Q5_0-GGUF.gguf
     required_files:
-      - flux1-dev.safetensors
+      - flux1-depth-dev-fp16-Q5_0-GGUF.gguf
     auxiliary_sources:
       - id: flux1_depth_lora
         model_source: https://huggingface.co/Comfy-Org/flux1-dev
@@ -372,18 +376,22 @@ models:
         required_files:
           - t5xxl_fp16.safetensors
       - id: flux1_control_vae
-        model_source: https://huggingface.co/black-forest-labs/FLUX.1-schnell
+        model_source: https://huggingface.co/Kijai/flux-fp8
         download_mode: hf_file
         local_cache_path: models/vae/ae.safetensors
         required_files:
-          - ae.safetensors
+          - path: flux-vae-bf16.safetensors
+            target: ae.safetensors
       - id: depth_anything_v2_large
         model_source: https://huggingface.co/depth-anything/Depth-Anything-V2-Large
         download_mode: hf_file
-        local_cache_path: custom_nodes/comfyui_controlnet_aux/ckpts/depth-anything/Depth-Anything-V2-Large/depth_anything_v2_vitl.pth
+        local_cache_path: custom_nodes/controlnet_aux/ckpts/depth-anything/Depth-Anything-V2-Large/depth_anything_v2_vitl.pth
         required_files:
           - depth_anything_v2_vitl.pth
-    required_node_pack: comfyui core flux control + comfyui_controlnet_aux
+    required_node_pack: comfyui_gguf + comfyui core flux control + comfyui_controlnet_aux
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
       - 1280x720
@@ -395,6 +403,7 @@ models:
       sampler: euler
       scheduler: normal
       depth_preprocessor: depth_anything_v2_vitl.pth
+      lora_injection: dynamic_lora_loader_model_only
       fps: null
     minimum_vram_gb: 24
     validation_command: pytest tests/gpu/test_flux1_control.py --device cuda
@@ -437,11 +446,12 @@ models:
         required_files:
           - t5xxl_fp16.safetensors
       - id: flux_redux_vae
-        model_source: https://huggingface.co/black-forest-labs/FLUX.1-schnell
+        model_source: https://huggingface.co/Kijai/flux-fp8
         download_mode: hf_file
         local_cache_path: models/vae/ae.safetensors
         required_files:
-          - ae.safetensors
+          - path: flux-vae-bf16.safetensors
+            target: ae.safetensors
     required_node_pack: comfyui core redux/style model
     supported_resolutions:
       - 1024x1024
@@ -485,11 +495,12 @@ models:
         required_files:
           - t5xxl_fp8_e4m3fn_scaled.safetensors
       - id: flux_kontext_vae
-        model_source: https://huggingface.co/black-forest-labs/FLUX.1-schnell
+        model_source: https://huggingface.co/Kijai/flux-fp8
         download_mode: hf_file
         local_cache_path: models/vae/ae.safetensors
         required_files:
-          - ae.safetensors
+          - path: flux-vae-bf16.safetensors
+            target: ae.safetensors
     required_node_pack: comfyui core FLUX Kontext edit
     supported_resolutions:
       - 1024x1024
@@ -540,11 +551,12 @@ models:
         required_files:
           - t5xxl_fp8_e4m3fn_scaled.safetensors
       - id: kontext_relight_vae
-        model_source: https://huggingface.co/black-forest-labs/FLUX.1-schnell
+        model_source: https://huggingface.co/Kijai/flux-fp8
         download_mode: hf_file
         local_cache_path: models/vae/ae.safetensors
         required_files:
-          - ae.safetensors
+          - path: flux-vae-bf16.safetensors
+            target: ae.safetensors
     required_node_pack: comfyui core FLUX Kontext edit + Relight LoRA
     supported_resolutions:
       - 1024x1024
