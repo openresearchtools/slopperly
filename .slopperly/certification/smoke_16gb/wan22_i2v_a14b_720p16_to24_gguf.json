@@ -1,0 +1,52 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/wan22_i2v_a14b_720p16_to24_gguf/wan22_i2v_a14b_24fps.mp4",
+  "command": "pytest tests/gpu/test_wan22_i2v_a14b.py::test_wan22_i2v_a14b_q5_gguf_plugin_path --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T14:55:07+00:00",
+  "logical_name": "wan22_i2v_a14b_720p16_to24_gguf",
+  "metadata": {
+    "generated_native_frames": 17,
+    "gguf_backbones": [
+      "Wan2.2-I2V-A14B-HighNoise-Q5_K_M.gguf",
+      "Wan2.2-I2V-A14B-LowNoise-Q5_K_M.gguf"
+    ],
+    "mode": "i2v",
+    "model_files": {
+      "high_lora": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+      "high_noise_gguf": "Wan2.2-I2V-A14B-HighNoise-Q5_K_M.gguf",
+      "low_lora": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+      "low_noise_gguf": "Wan2.2-I2V-A14B-LowNoise-Q5_K_M.gguf",
+      "text_encoder": "umt5_xxl_wan_text_encoder.safetensors",
+      "vae": "wan_2.1_vae.safetensors"
+    },
+    "native_artifact": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/wan22_i2v_a14b_720p16_to24_gguf/wan22_i2v_a14b_24fps_native16.mp4",
+    "native_validation": {
+      "duration": 1.062012,
+      "fps": 16.0,
+      "frame_count": 17,
+      "has_audio": false,
+      "height": 720,
+      "kind": "video",
+      "width": 1280
+    },
+    "plugin": "video/wan_i2v.py",
+    "requested_target_frames": 25,
+    "runtime_url": "http://127.0.0.1:8190",
+    "source": "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
+    "target_fps": 24.0,
+    "workflow_native_fps": 16.0,
+    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/wan22_i2v_a14b_720p16_to24_gguf/workflow.api.json"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "duration": 1.083333,
+    "fps": 24.0,
+    "frame_count": 26,
+    "has_audio": false,
+    "height": 720,
+    "kind": "video",
+    "width": 1280
+  }
+}

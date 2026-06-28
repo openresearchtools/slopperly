@@ -1,0 +1,276 @@
+{
+  "version": 1,
+  "workflow_id": "wan22_i2v_a14b_720p16_to24_gguf",
+  "description": "Patch schema for local Wan2.2 I2V A14B Q5 GGUF, native 16fps generation and plugin-level 24fps finalization.",
+  "inputs": {
+    "wan_vae": [
+      {
+        "node": "2",
+        "input": "vae_name"
+      }
+    ],
+    "wan_vae_device": [
+      {
+        "node": "2",
+        "input": "device"
+      }
+    ],
+    "wan_text_encoder": [
+      {
+        "node": "3",
+        "input": "clip_name"
+      }
+    ],
+    "wan_clip_type": [
+      {
+        "node": "3",
+        "input": "type"
+      }
+    ],
+    "wan_clip_device": [
+      {
+        "node": "3",
+        "input": "device"
+      }
+    ],
+    "prompt": [
+      {
+        "node": "4",
+        "input": "text"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "5",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "6",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "6",
+        "input": "height"
+      }
+    ],
+    "frames": [
+      {
+        "node": "6",
+        "input": "length"
+      }
+    ],
+    "batch": [
+      {
+        "node": "6",
+        "input": "batch_size"
+      }
+    ],
+    "wan_high_model": [
+      {
+        "node": "7",
+        "input": "unet_name"
+      }
+    ],
+    "wan_low_model": [
+      {
+        "node": "8",
+        "input": "unet_name"
+      }
+    ],
+    "wan_compute_device": [
+      {
+        "node": "7",
+        "input": "compute_device"
+      },
+      {
+        "node": "8",
+        "input": "compute_device"
+      }
+    ],
+    "wan_virtual_vram_gb": [
+      {
+        "node": "7",
+        "input": "virtual_vram_gb"
+      },
+      {
+        "node": "8",
+        "input": "virtual_vram_gb"
+      }
+    ],
+    "wan_donor_device": [
+      {
+        "node": "7",
+        "input": "donor_device"
+      },
+      {
+        "node": "8",
+        "input": "donor_device"
+      }
+    ],
+    "wan_expert_allocations": [
+      {
+        "node": "7",
+        "input": "expert_mode_allocations"
+      },
+      {
+        "node": "8",
+        "input": "expert_mode_allocations"
+      }
+    ],
+    "wan_eject_models": [
+      {
+        "node": "7",
+        "input": "eject_models"
+      },
+      {
+        "node": "8",
+        "input": "eject_models"
+      }
+    ],
+    "wan_high_lora": [
+      {
+        "node": "9",
+        "input": "lora_name"
+      }
+    ],
+    "wan_low_lora": [
+      {
+        "node": "10",
+        "input": "lora_name"
+      }
+    ],
+    "wan_lora_strength": [
+      {
+        "node": "9",
+        "input": "strength_model"
+      },
+      {
+        "node": "10",
+        "input": "strength_model"
+      }
+    ],
+    "wan_shift": [
+      {
+        "node": "11",
+        "input": "shift"
+      },
+      {
+        "node": "12",
+        "input": "shift"
+      }
+    ],
+    "seed": [
+      {
+        "node": "13",
+        "input": "noise_seed"
+      },
+      {
+        "node": "14",
+        "input": "noise_seed"
+      }
+    ],
+    "steps": [
+      {
+        "node": "13",
+        "input": "steps"
+      },
+      {
+        "node": "14",
+        "input": "steps"
+      },
+      {
+        "node": "14",
+        "input": "end_at_step"
+      }
+    ],
+    "guidance": [
+      {
+        "node": "13",
+        "input": "cfg"
+      },
+      {
+        "node": "14",
+        "input": "cfg"
+      }
+    ],
+    "wan_sampler": [
+      {
+        "node": "13",
+        "input": "sampler_name"
+      },
+      {
+        "node": "14",
+        "input": "sampler_name"
+      }
+    ],
+    "wan_scheduler": [
+      {
+        "node": "13",
+        "input": "scheduler"
+      },
+      {
+        "node": "14",
+        "input": "scheduler"
+      }
+    ],
+    "wan_high_end_step": [
+      {
+        "node": "13",
+        "input": "end_at_step"
+      },
+      {
+        "node": "14",
+        "input": "start_at_step"
+      }
+    ],
+    "fps": [
+      {
+        "node": "16",
+        "input": "fps"
+      }
+    ],
+    "wan_output_prefix": [
+      {
+        "node": "17",
+        "input": "filename_prefix"
+      }
+    ],
+    "wan_video_format": [
+      {
+        "node": "17",
+        "input": "format"
+      }
+    ],
+    "wan_video_codec": [
+      {
+        "node": "17",
+        "input": "codec"
+      }
+    ]
+  },
+  "uploads": {
+    "input_image": [
+      {
+        "node": "1",
+        "input": "image",
+        "type": "input",
+        "endpoint": "/upload/image",
+        "form_field": "image"
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "lora_files": "The certified A14B graph applies pinned high/low Lightx2v LoRAs. Arbitrary project LoRA injection remains visible in the UI but requires a separate certified graph mutation."
+  },
+  "outputs": [
+    {
+      "node": "17",
+      "type": "video/mp4",
+      "contract": "Return an ffprobe-readable native MP4 at 1280x720 or 720x1280, 16fps. The production plugin finalizes this native file into the returned 24fps MP4."
+    }
+  ]
+}

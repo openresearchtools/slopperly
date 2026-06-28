@@ -175,6 +175,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "StyleModelApply": {},
                 "Ideogram4Scheduler": {},
                 "SamplerCustomAdvanced": {},
+                "KSamplerAdvanced": {},
                 "ConditioningStableAudio": {},
                 "EmptyLatentAudio": {},
                 "EmptyLatentImage": {},
@@ -200,7 +201,13 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "VAEEncode": {},
                 "VAEDecode": {},
                 "VAEDecodeTiled": {},
+                "WanImageToVideo": {},
                 "Wan22ImageToVideoLatent": {},
+                "CreateVideo": {},
+                "SaveVideo": {},
+                "UnetLoaderGGUFDisTorch2MultiGPU": {},
+                "VAELoaderMultiGPU": {},
+                "CLIPLoaderMultiGPU": {},
             })
         if self.path.startswith("/view"):
             if ".mp4" in self.path:
@@ -469,6 +476,26 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                         "subfolder": "",
                                         "type": "output",
                                         "format": "video/h264-mp4",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "WanImageToVideo"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "17": {
+                                "videos": [
+                                    {
+                                        "filename": "slopperly_wan22_i2v_a14b_native16.mp4",
+                                        "subfolder": "video",
+                                        "type": "output",
                                     }
                                 ]
                             }
@@ -3040,6 +3067,63 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["9"]["inputs"]["cfg"], 5.0)
         self.assertEqual(prompt["11"]["inputs"]["frame_rate"], 24.0)
         self.assertEqual(prompt["11"]["inputs"]["format"], "video/h264-mp4")
+
+    def test_wan22_i2v_a14b_uses_local_comfy_gguf_plugin_path(self):
+        module = load_plugin_module("video", "wan_i2v")
+        plugin = module.WanI2VPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            source.write_bytes(b"local image fixture bytes")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            module._finalize_native_16fps_to_24fps = (
+                lambda native_path, destination: Path(destination).write_bytes(Path(native_path).read_bytes())
+            )
+            inputs = self.base.ModelInputs(
+                prompt="local Wan A14B image motion",
+                neg_prompt="text, watermark",
+                image=str(source),
+                width=1920,
+                height=1080,
+                frames=25,
+                steps=4,
+                guidance=1.0,
+                seed=220514,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.mp4_bytes)
+            self.assertTrue(output.endswith(".mp4"))
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["7"]["inputs"]["unet_name"], "HighNoise/Wan2.2-I2V-A14B-HighNoise-Q5_K_M.gguf")
+        self.assertEqual(prompt["8"]["inputs"]["unet_name"], "LowNoise/Wan2.2-I2V-A14B-LowNoise-Q5_K_M.gguf")
+        self.assertEqual(prompt["7"]["inputs"]["compute_device"], "cuda:0")
+        self.assertEqual(prompt["7"]["inputs"]["expert_mode_allocations"], "cuda:0,1gb;cpu,*")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name"], "umt5_xxl_wan_text_encoder.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["type"], "wan")
+        self.assertEqual(prompt["3"]["inputs"]["device"], "cpu")
+        self.assertEqual(prompt["2"]["inputs"]["vae_name"], "wan_2.1_vae.safetensors")
+        self.assertEqual(prompt["4"]["inputs"]["text"], "local Wan A14B image motion")
+        self.assertEqual(prompt["5"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["6"]["inputs"]["width"], 1280)
+        self.assertEqual(prompt["6"]["inputs"]["height"], 720)
+        self.assertEqual(prompt["6"]["inputs"]["length"], 17)
+        self.assertEqual(prompt["9"]["inputs"]["lora_name"], "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors")
+        self.assertEqual(prompt["10"]["inputs"]["lora_name"], "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors")
+        self.assertEqual(prompt["13"]["inputs"]["noise_seed"], 220514)
+        self.assertEqual(prompt["13"]["inputs"]["steps"], 4)
+        self.assertEqual(prompt["13"]["inputs"]["end_at_step"], 2)
+        self.assertEqual(prompt["14"]["inputs"]["start_at_step"], 2)
+        self.assertEqual(prompt["14"]["inputs"]["end_at_step"], 4)
+        self.assertEqual(prompt["16"]["inputs"]["fps"], 16.0)
+        self.assertEqual(prompt["17"]["inputs"]["format"], "mp4")
+        self.assertEqual(prompt["17"]["inputs"]["codec"], "h264")
+        self.assertIn(b'name="image"; filename="source.png"', RuntimeHandler.comfy_uploads[-1])
+        self.assertIn("finalized the returned MP4 at 24fps", inputs.usage_note)
 
     def test_stem_split_uses_comfy_plugin_path(self):
         module = load_plugin_module("audio", "stem_split")

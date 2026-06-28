@@ -1,0 +1,18 @@
+{
+  "prompt": "local Wan A14B image-to-video smoke test with slow camera motion",
+  "negative_prompt": "text, watermark, low quality, jitter",
+  "input_image": "tests/fixtures/vsr_source.ppm",
+  "width": 1280,
+  "height": 720,
+  "frames": 25,
+  "fps": 24,
+  "steps": 4,
+  "guidance": 1.0,
+  "seed": 220514,
+  "expected": {
+    "native_fps": 16,
+    "final_fps": 24,
+    "width": 1280,
+    "height": 720
+  }
+}
