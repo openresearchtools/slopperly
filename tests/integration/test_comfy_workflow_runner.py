@@ -575,6 +575,25 @@ class ComfyHandler(BaseHTTPRequestHandler):
                         }
                     }
                 })
+            if any(
+                node.get("class_type") == "EmptyHunyuanLatentVideo"
+                for node in ComfyHandler.last_prompt.values()
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "16": {
+                                "videos": [
+                                    {
+                                        "filename": "slopperly_wan22_t2v_a14b_native16_00001_.mp4",
+                                        "subfolder": "video",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
             if (
                 any(
                     node.get("class_type") == "UnetLoaderGGUF"
@@ -1076,6 +1095,15 @@ def _wan22_i2v_a14b_object_info() -> dict:
     return {node["class_type"]: {} for node in workflow.values()}
 
 
+def _wan22_t2v_a14b_object_info() -> dict:
+    workflow = json.loads(
+        (
+            ROOT / "slopperly/workflows/comfy/wan22_t2v_a14b_720p16_to24_gguf/workflow.api.json"
+        ).read_text(encoding="utf-8")
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
 class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -1337,6 +1365,77 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["17"]["inputs"]["format"], "mp4")
         self.assertEqual(prompt["17"]["inputs"]["codec"], "h264")
         self.assertIn(b'name="image"; filename="source.png"', ComfyHandler.upload_bodies[0])
+
+    def test_wan22_t2v_a14b_pack_patches_gguf_two_stage_graph(self):
+        ComfyHandler.reset(_wan22_t2v_a14b_object_info())
+        runner = ComfyWorkflowRunner(ComfyApiClient(self.base_url))
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "wan_a14b_t2v_native16.mp4"
+            inputs = SimpleNamespace(
+                prompt="local Wan A14B T2V motion",
+                neg_prompt="text, watermark",
+                width=1280,
+                height=720,
+                frames=17,
+                fps=16,
+                steps=4,
+                guidance=1.0,
+                seed=220515,
+                batch=1,
+                wan_high_model="HighNoise/Wan2.2-T2V-A14B-HighNoise-Q5_K_M.gguf",
+                wan_low_model="LowNoise/Wan2.2-T2V-A14B-LowNoise-Q5_K_M.gguf",
+                wan_text_encoder="umt5_xxl_wan_text_encoder.safetensors",
+                wan_clip_type="wan",
+                wan_clip_device="cpu",
+                wan_vae="wan_2.1_vae.safetensors",
+                wan_vae_device="cuda:0",
+                wan_compute_device="cuda:0",
+                wan_virtual_vram_gb=0.0,
+                wan_donor_device="cpu",
+                wan_expert_allocations="cuda:0,1gb;cpu,*",
+                wan_eject_models=True,
+                wan_high_lora="wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors",
+                wan_low_lora="wan2.2_t2v_lightx2v_4steps_lora_v1.1_low_noise.safetensors",
+                wan_lora_strength=1.0,
+                wan_shift=5.0,
+                wan_sampler="euler",
+                wan_scheduler="simple",
+                wan_high_end_step=2,
+                wan_video_format="mp4",
+                wan_video_codec="h264",
+                wan_output_prefix="video/slopperly_wan22_t2v_a14b_native16",
+            )
+
+            with local_only_network():
+                result = runner.run_pack(
+                    ROOT / "slopperly/workflows/comfy/wan22_t2v_a14b_720p16_to24_gguf",
+                    inputs,
+                    SimpleNamespace(),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.video_bytes)
+
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["6"]["inputs"]["unet_name"], "HighNoise/Wan2.2-T2V-A14B-HighNoise-Q5_K_M.gguf")
+        self.assertEqual(prompt["7"]["inputs"]["unet_name"], "LowNoise/Wan2.2-T2V-A14B-LowNoise-Q5_K_M.gguf")
+        self.assertEqual(prompt["6"]["inputs"]["expert_mode_allocations"], "cuda:0,1gb;cpu,*")
+        self.assertEqual(prompt["7"]["inputs"]["expert_mode_allocations"], "cuda:0,1gb;cpu,*")
+        self.assertEqual(prompt["2"]["inputs"]["clip_name"], "umt5_xxl_wan_text_encoder.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["device"], "cpu")
+        self.assertEqual(prompt["1"]["inputs"]["vae_name"], "wan_2.1_vae.safetensors")
+        self.assertEqual(prompt["5"]["inputs"]["width"], 1280)
+        self.assertEqual(prompt["5"]["inputs"]["height"], 720)
+        self.assertEqual(prompt["5"]["inputs"]["length"], 17)
+        self.assertEqual(prompt["12"]["inputs"]["steps"], 4)
+        self.assertEqual(prompt["12"]["inputs"]["end_at_step"], 2)
+        self.assertEqual(prompt["13"]["inputs"]["start_at_step"], 2)
+        self.assertEqual(prompt["13"]["inputs"]["end_at_step"], 4)
+        self.assertEqual(prompt["15"]["inputs"]["fps"], 16.0)
+        self.assertEqual(prompt["16"]["inputs"]["format"], "mp4")
+        self.assertEqual(prompt["16"]["inputs"]["codec"], "h264")
 
     def test_florence_pack_collects_text_and_json_history_outputs(self):
         ComfyHandler.reset(_florence2_object_info())

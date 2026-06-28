@@ -203,6 +203,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 "VAEDecodeTiled": {},
                 "WanImageToVideo": {},
                 "Wan22ImageToVideoLatent": {},
+                "EmptyHunyuanLatentVideo": {},
                 "CreateVideo": {},
                 "SaveVideo": {},
                 "UnetLoaderGGUFDisTorch2MultiGPU": {},
@@ -494,6 +495,26 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                                 "videos": [
                                     {
                                         "filename": "slopperly_wan22_i2v_a14b_native16.mp4",
+                                        "subfolder": "video",
+                                        "type": "output",
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                })
+            if any(
+                node.get("class_type") == "EmptyHunyuanLatentVideo"
+                for node in RuntimeHandler.comfy_prompt.values()
+                if isinstance(node, dict)
+            ):
+                return self._json({
+                    "prompt-1": {
+                        "outputs": {
+                            "16": {
+                                "videos": [
+                                    {
+                                        "filename": "slopperly_wan22_t2v_a14b_native16.mp4",
                                         "subfolder": "video",
                                         "type": "output",
                                     }
@@ -3133,6 +3154,59 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["17"]["inputs"]["codec"], "h264")
         self.assertIn(b'name="image"; filename="source.png"', RuntimeHandler.comfy_uploads[-1])
         self.assertIn("finalized the returned MP4 at 24fps", inputs.usage_note)
+
+    def test_wan22_t2v_a14b_uses_local_comfy_gguf_plugin_path(self):
+        module = load_plugin_module("video", "wan_t2v")
+        plugin = module.WanT2VPlugin()
+        with tempfile.TemporaryDirectory() as tmp:
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            module._finalize_native_16fps_to_24fps = (
+                lambda native_path, destination: Path(destination).write_bytes(Path(native_path).read_bytes())
+            )
+            inputs = self.base.ModelInputs(
+                prompt="local Wan A14B text motion",
+                neg_prompt="text, watermark",
+                width=1920,
+                height=1080,
+                frames=25,
+                steps=4,
+                guidance=1.0,
+                seed=220515,
+            )
+            prefs = SimpleNamespace(comfyui_url=self.base_url)
+
+            with local_only_network():
+                pipe = plugin.load(prefs, SimpleNamespace())
+                output = plugin.generate(pipe, inputs, SimpleNamespace(), prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.mp4_bytes)
+            self.assertTrue(output.endswith(".mp4"))
+
+        prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(prompt["6"]["inputs"]["unet_name"], "HighNoise/Wan2.2-T2V-A14B-HighNoise-Q5_K_M.gguf")
+        self.assertEqual(prompt["7"]["inputs"]["unet_name"], "LowNoise/Wan2.2-T2V-A14B-LowNoise-Q5_K_M.gguf")
+        self.assertEqual(prompt["6"]["inputs"]["compute_device"], "cuda:0")
+        self.assertEqual(prompt["6"]["inputs"]["expert_mode_allocations"], "cuda:0,1gb;cpu,*")
+        self.assertEqual(prompt["2"]["inputs"]["clip_name"], "umt5_xxl_wan_text_encoder.safetensors")
+        self.assertEqual(prompt["2"]["inputs"]["type"], "wan")
+        self.assertEqual(prompt["2"]["inputs"]["device"], "cpu")
+        self.assertEqual(prompt["1"]["inputs"]["vae_name"], "wan_2.1_vae.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["text"], "local Wan A14B text motion")
+        self.assertEqual(prompt["4"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["5"]["inputs"]["width"], 1280)
+        self.assertEqual(prompt["5"]["inputs"]["height"], 720)
+        self.assertEqual(prompt["5"]["inputs"]["length"], 17)
+        self.assertEqual(prompt["8"]["inputs"]["lora_name"], "wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors")
+        self.assertEqual(prompt["9"]["inputs"]["lora_name"], "wan2.2_t2v_lightx2v_4steps_lora_v1.1_low_noise.safetensors")
+        self.assertEqual(prompt["12"]["inputs"]["noise_seed"], 220515)
+        self.assertEqual(prompt["12"]["inputs"]["steps"], 4)
+        self.assertEqual(prompt["12"]["inputs"]["end_at_step"], 2)
+        self.assertEqual(prompt["13"]["inputs"]["start_at_step"], 2)
+        self.assertEqual(prompt["13"]["inputs"]["end_at_step"], 4)
+        self.assertEqual(prompt["15"]["inputs"]["fps"], 16.0)
+        self.assertEqual(prompt["16"]["inputs"]["format"], "mp4")
+        self.assertEqual(prompt["16"]["inputs"]["codec"], "h264")
+        self.assertIn("A14B T2V Q5 generated", inputs.usage_note)
 
     def test_stem_split_uses_comfy_plugin_path(self):
         module = load_plugin_module("audio", "stem_split")
