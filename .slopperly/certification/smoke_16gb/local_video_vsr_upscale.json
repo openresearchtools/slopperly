@@ -1,0 +1,31 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/local_video_vsr_upscale/local_video_vsr.mp4",
+  "command": "pytest tests/gpu/test_local_video_vsr_upscale.py::test_local_video_vsr_upscale --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T23:37:24+00:00",
+  "logical_name": "local_video_vsr_upscale",
+  "metadata": {
+    "audio_passthrough": true,
+    "crf": 19,
+    "model_files": {
+      "upscale_model": "RealESRGAN_x4.pth"
+    },
+    "pix_fmt": "yuv420p",
+    "runtime_url": "http://127.0.0.1:8190",
+    "source_video": "/home/user/Documents/Slopperly/tests/fixtures/video_vsr_source.mp4",
+    "video_format": "video/h264-mp4",
+    "workflow_pack": "local_video_vsr_upscale"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "duration": 1.0,
+    "fps": 12.0,
+    "frame_count": 12,
+    "has_audio": true,
+    "height": 24,
+    "kind": "video",
+    "width": 32
+  }
+}

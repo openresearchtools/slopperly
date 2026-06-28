@@ -50,6 +50,30 @@
         "node": "5",
         "input": "format"
       }
+    ],
+    "local_video_vsr_pix_fmt": [
+      {
+        "node": "5",
+        "input": "pix_fmt"
+      }
+    ],
+    "local_video_vsr_crf": [
+      {
+        "node": "5",
+        "input": "crf"
+      }
+    ],
+    "local_video_vsr_save_metadata": [
+      {
+        "node": "5",
+        "input": "save_metadata"
+      }
+    ],
+    "local_video_vsr_trim_to_audio": [
+      {
+        "node": "5",
+        "input": "trim_to_audio"
+      }
     ]
   },
   "uploads": {

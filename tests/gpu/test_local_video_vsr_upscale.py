@@ -54,5 +54,14 @@ def test_local_video_vsr_upscale(gpu_cert, plugin_loader, base_models, repo_root
         LOGICAL_NAME,
         output_path,
         validation,
-        metadata={"runtime_url": runtime_url, "source_video": str(video_path)},
+        metadata={
+            "runtime_url": runtime_url,
+            "source_video": str(video_path),
+            "workflow_pack": "local_video_vsr_upscale",
+            "model_files": {"upscale_model": "RealESRGAN_x4.pth"},
+            "video_format": "video/h264-mp4",
+            "pix_fmt": "yuv420p",
+            "crf": 19,
+            "audio_passthrough": True,
+        },
     )

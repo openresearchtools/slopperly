@@ -43,13 +43,17 @@ The workflow uses the same local upscaler artifact as image VSR:
 - optional scene field `local_vsr_crop` -> node `4`, input `crop`
 - optional scene field `local_video_vsr_frame_load_cap` -> node `1`, input `frame_load_cap`
 - optional scene field `local_video_vsr_format` -> node `5`, input `format`
+- optional scene field `local_video_vsr_pix_fmt` -> node `5`, input `pix_fmt`
+- optional scene field `local_video_vsr_crf` -> node `5`, input `crf`
+- optional scene field `local_video_vsr_save_metadata` -> node `5`, input `save_metadata`
+- optional scene field `local_video_vsr_trim_to_audio` -> node `5`, input `trim_to_audio`
 - `VHS_LoadVideo` audio output -> node `5`, input `audio`
 
 The old Maxine-only quality selector is deliberately unmapped because this workflow does not use the NVIDIA Maxine runtime.
 
 ## Output Contract
 
-Node `5` saves an MP4 using `video/h264-mp4`. The plugin path must return the local file path. The artifact must be ffprobe-readable, match the requested width and height, preserve the source fps/duration within one frame, and include an audio stream when the source has audio.
+Node `5` saves an MP4 using `video/h264-mp4`, `pix_fmt=yuv420p`, `crf=19`, `save_metadata=true`, and `trim_to_audio=false`. The plugin path must return the local file path. The artifact must be ffprobe-readable, match the requested width and height, preserve the source fps/duration within one frame, and include an audio stream when the source has audio.
 
 ## Test Command
 

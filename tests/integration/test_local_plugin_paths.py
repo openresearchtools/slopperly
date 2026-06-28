@@ -3054,6 +3054,10 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(prompt["5"]["class_type"], "VHS_VideoCombine")
         self.assertEqual(prompt["5"]["inputs"]["frame_rate"], 12.5)
         self.assertEqual(prompt["5"]["inputs"]["format"], "video/h264-mp4")
+        self.assertEqual(prompt["5"]["inputs"]["pix_fmt"], "yuv420p")
+        self.assertEqual(prompt["5"]["inputs"]["crf"], 19)
+        self.assertIs(prompt["5"]["inputs"]["save_metadata"], True)
+        self.assertIs(prompt["5"]["inputs"]["trim_to_audio"], False)
         self.assertEqual(prompt["5"]["inputs"]["audio"], ["1", 2])
         self.assertIn(b'name="image"; filename="clip.mp4"', RuntimeHandler.comfy_uploads[-1])
 
