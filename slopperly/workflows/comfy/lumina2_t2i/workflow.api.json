@@ -1,8 +1,8 @@
 {
   "1": {
-    "class_type": "CheckpointLoaderSimple",
+    "class_type": "UnetLoaderGGUF",
     "inputs": {
-      "ckpt_name": "lumina_2.safetensors"
+      "unet_name": "lumina_2_model-Q5_K_M.gguf"
     }
   },
   "2": {
@@ -16,27 +16,35 @@
     }
   },
   "3": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "gemma_2_2b_fp16.safetensors",
+      "type": "lumina2",
+      "device": "default"
+    }
+  },
+  "4": {
     "class_type": "CLIPTextEncodeLumina2",
     "inputs": {
       "clip": [
-        "1",
-        1
+        "3",
+        0
       ],
       "system_prompt": "superior",
       "user_prompt": "a local Lumina-Image 2.0 smoke-test render"
     }
   },
-  "4": {
+  "5": {
     "class_type": "CLIPTextEncode",
     "inputs": {
       "clip": [
-        "1",
-        1
+        "3",
+        0
       ],
       "text": "worst quality, low quality, blurry, watermark"
     }
   },
-  "5": {
+  "6": {
     "class_type": "EmptySD3LatentImage",
     "inputs": {
       "width": 1024,
@@ -44,7 +52,7 @@
       "batch_size": 1
     }
   },
-  "6": {
+  "7": {
     "class_type": "KSampler",
     "inputs": {
       "model": [
@@ -52,15 +60,15 @@
         0
       ],
       "positive": [
-        "3",
-        0
-      ],
-      "negative": [
         "4",
         0
       ],
-      "latent_image": [
+      "negative": [
         "5",
+        0
+      ],
+      "latent_image": [
+        "6",
         0
       ],
       "seed": 0,
@@ -71,24 +79,30 @@
       "denoise": 1.0
     }
   },
-  "7": {
+  "8": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "lumina2_ae.safetensors"
+    }
+  },
+  "9": {
     "class_type": "VAEDecode",
     "inputs": {
       "samples": [
-        "6",
+        "7",
         0
       ],
       "vae": [
-        "1",
-        2
+        "8",
+        0
       ]
     }
   },
-  "8": {
+  "10": {
     "class_type": "SaveImage",
     "inputs": {
       "images": [
-        "7",
+        "9",
         0
       ],
       "filename_prefix": "slopperly_lumina2"

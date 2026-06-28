@@ -56,7 +56,9 @@ class Lumina2Plugin(ModelPlugin):
 
 
 def _prepare_lumina_inputs(inputs: ModelInputs) -> None:
-    inputs.lumina_checkpoint = "lumina_2.safetensors"
+    inputs.lumina_model = "lumina_2_model-Q5_K_M.gguf"
+    inputs.lumina_text_encoder = "gemma_2_2b_fp16.safetensors"
+    inputs.lumina_vae = "lumina2_ae.safetensors"
     inputs.lumina_system_prompt = "superior"
     inputs.lumina_shift = 6.0
     inputs.lumina_sampler = "res_multistep"

@@ -15,7 +15,7 @@ from slopperly.models.download import (
 )
 
 ALLOWED_RUNTIMES = {"comfy", "vllm", "vllm_omni", "llamacpp"}
-ALLOWED_DOWNLOAD_MODES = {"hf_file", "hf_snapshot"}
+ALLOWED_DOWNLOAD_MODES = {"hf_file", "hf_snapshot", "local_derived"}
 REQUIRED_FIELDS = (
     "logical_name",
     "legacy_aliases",
@@ -143,6 +143,10 @@ def _validate_artifact_spec(name: str, entry: dict, errors: list[str]) -> None:
                 errors.append(
                     f"{name}: hf_snapshot evidence file is unsafe or generic: {filename!r}"
                 )
+    elif mode == "local_derived":
+        for filename in required_files:
+            if not is_exact_file(str(filename)):
+                errors.append(f"{name}: local_derived required file is not exact: {filename!r}")
 
 
 def main(argv: list[str] | None = None) -> int:

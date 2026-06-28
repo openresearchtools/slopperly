@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import shutil
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
@@ -26,6 +27,12 @@ KONTEXT_RELIGHT_LORA_AUX_ID = "kontext_relight_lora"
 KONTEXT_RELIGHT_RAW_LORA = "relighting-kontext-dev-lora-v3.safetensors"
 KONTEXT_RELIGHT_COMFY_LORA = "relighting-kontext-dev-lora-v3-comfy.safetensors"
 KONTEXT_RELIGHT_LORA_PREFIX = "base_model.model."
+LUMINA2_LOGICAL_NAME = "lumina2_t2i"
+LUMINA2_SOURCE_BF16 = "models/diffusion_models/lumina_2_model_bf16.safetensors"
+LUMINA2_INTERMEDIATE_GGUF = "models/diffusion_models/lumina_2_model-BF16.gguf"
+LUMINA2_Q5_GGUF = "models/diffusion_models/lumina_2_model-Q5_K_M.gguf"
+LUMINA2_LLAMA_CPP_TAG = "b3962"
+LUMINA2_LLAMA_CPP_REPO = "https://github.com/ggerganov/llama.cpp"
 
 
 @dataclass
@@ -92,6 +99,14 @@ def target_path(cache_root: Path, entry: dict, filename: str) -> Path:
 
 def snapshot_path(cache_root: Path, entry: dict) -> Path:
     return cache_root / Path(str(entry.get("local_cache_path") or entry.get("logical_name")))
+
+
+def has_gguf_header(path: Path) -> bool:
+    try:
+        with path.open("rb") as handle:
+            return handle.read(4) == b"GGUF"
+    except OSError:
+        return False
 
 
 def torchaudio_asset_key(entry: dict) -> str:
@@ -457,6 +472,254 @@ def normalize_kontext_relight_lora(
     )
 
 
+def build_lumina2_q5_gguf(
+    *,
+    entry: dict,
+    name: str,
+    cache_root: Path,
+    root: Path,
+    dry_run: bool,
+) -> DownloadResult | None:
+    if str(entry.get("logical_name") or "") != LUMINA2_LOGICAL_NAME:
+        return None
+
+    source_path = cache_root / LUMINA2_SOURCE_BF16
+    intermediate_path = cache_root / LUMINA2_INTERMEDIATE_GGUF
+    dest_path = cache_root / LUMINA2_Q5_GGUF
+    postprocess_name = f"{name}:lumina2_q5_gguf"
+
+    if dest_path.is_file() and has_gguf_header(dest_path):
+        return DownloadResult("PASS", postprocess_name, "Lumina2 Q5 GGUF already exists", str(dest_path))
+
+    if dry_run:
+        if not source_path.is_file():
+            return DownloadResult(
+                "PLAN",
+                postprocess_name,
+                "would derive Lumina2 Q5 GGUF after downloading the original split BF16 diffusion file",
+                str(dest_path),
+            )
+        return DownloadResult(
+            "PLAN",
+            postprocess_name,
+            "would convert original Lumina2 BF16 diffusion weights to GGUF and quantize Q5_K_M",
+            str(dest_path),
+        )
+
+    if not source_path.is_file() or source_path.stat().st_size <= 0:
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            f"original Lumina2 BF16 diffusion file is missing: {source_path}",
+            str(source_path),
+        )
+
+    comfy_python = root / ".slopperly" / "runtimes" / "comfy-venv" / "bin" / "python"
+    convert_script = (
+        root
+        / ".slopperly"
+        / "runtimes"
+        / "ComfyUI"
+        / "custom_nodes"
+        / "comfyui_gguf"
+        / "tools"
+        / "convert.py"
+    )
+    quantizer_status = ensure_lumina2_image_quantizer(
+        root=root,
+        name=postprocess_name,
+        dry_run=dry_run,
+    )
+    if quantizer_status is not None:
+        return quantizer_status
+    quantize_bin = lumina2_image_quantizer_bin(root)
+    for required in (comfy_python, convert_script, quantize_bin):
+        if not required.exists():
+            return DownloadResult(
+                "BLOCKED",
+                postprocess_name,
+                f"required Lumina2 GGUF conversion tool is missing: {required}",
+                str(dest_path),
+            )
+
+    intermediate_path.parent.mkdir(parents=True, exist_ok=True)
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    if not intermediate_path.is_file() or not has_gguf_header(intermediate_path):
+        try:
+            subprocess.run(
+                [
+                    str(comfy_python),
+                    str(convert_script),
+                    "--src",
+                    str(source_path),
+                    "--dst",
+                    str(intermediate_path),
+                ],
+                cwd=str(root),
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+        except subprocess.CalledProcessError as exc:
+            return DownloadResult(
+                "BLOCKED",
+                postprocess_name,
+                f"Lumina2 BF16 GGUF conversion failed: {str(exc.stdout or exc)[:500]}",
+                str(intermediate_path),
+            )
+
+    tmp_dest = dest_path.with_suffix(dest_path.suffix + ".tmp")
+    try:
+        subprocess.run(
+            [
+                str(quantize_bin),
+                str(intermediate_path),
+                str(tmp_dest),
+                "Q5_K_M",
+            ],
+            cwd=str(root),
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+    except subprocess.CalledProcessError as exc:
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            f"Lumina2 Q5_K_M quantization failed: {str(exc.stdout or exc)[:500]}",
+            str(tmp_dest),
+        )
+    if not has_gguf_header(tmp_dest):
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            f"Lumina2 Q5_K_M quantization did not write a GGUF file: {tmp_dest}",
+            str(tmp_dest),
+        )
+    os.replace(tmp_dest, dest_path)
+    return DownloadResult(
+        "PASS",
+        postprocess_name,
+        "derived Lumina2 Q5_K_M GGUF from original Comfy-Org split diffusion weights",
+        str(dest_path),
+    )
+
+
+def lumina2_image_quantizer_source(root: Path) -> Path:
+    return root / ".slopperly" / "runtimes" / "llama.cpp-image-quantize-src"
+
+
+def lumina2_image_quantizer_bin(root: Path) -> Path:
+    return lumina2_image_quantizer_source(root) / "build" / "bin" / "llama-quantize"
+
+
+def ensure_lumina2_image_quantizer(
+    *,
+    root: Path,
+    name: str,
+    dry_run: bool,
+) -> DownloadResult | None:
+    quantize_bin = lumina2_image_quantizer_bin(root)
+    if quantize_bin.is_file():
+        return None
+    if dry_run:
+        return DownloadResult(
+            "PLAN",
+            name,
+            f"would build patched ComfyUI-GGUF image quantizer from llama.cpp tag {LUMINA2_LLAMA_CPP_TAG}",
+            str(quantize_bin),
+        )
+
+    git_bin = shutil.which("git")
+    cmake_bin = shutil.which("cmake")
+    if not git_bin or not cmake_bin:
+        missing = "git" if not git_bin else "cmake"
+        return DownloadResult("BLOCKED", name, f"{missing} is required to build the Lumina2 image quantizer", str(quantize_bin))
+
+    source_dir = lumina2_image_quantizer_source(root)
+    patch_path = (
+        root
+        / ".slopperly"
+        / "runtimes"
+        / "ComfyUI"
+        / "custom_nodes"
+        / "comfyui_gguf"
+        / "tools"
+        / "lcpp.patch"
+    )
+    if not patch_path.is_file():
+        return DownloadResult("BLOCKED", name, f"ComfyUI-GGUF llama.cpp patch is missing: {patch_path}", str(patch_path))
+
+    try:
+        if not (source_dir / ".git").is_dir():
+            source_dir.parent.mkdir(parents=True, exist_ok=True)
+            subprocess.run(
+                [
+                    git_bin,
+                    "clone",
+                    "--depth",
+                    "1",
+                    "--branch",
+                    LUMINA2_LLAMA_CPP_TAG,
+                    LUMINA2_LLAMA_CPP_REPO,
+                    str(source_dir),
+                ],
+                cwd=str(root),
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+
+        llama_cpp_source = source_dir / "src" / "llama.cpp"
+        patch_needed = "LLM_ARCH_LUMINA2" not in llama_cpp_source.read_text(encoding="utf-8", errors="ignore")
+        if patch_needed:
+            subprocess.run(
+                [git_bin, "apply", str(patch_path)],
+                cwd=str(source_dir),
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+        subprocess.run(
+            [cmake_bin, "-B", "build", "-DLLAMA_CURL=OFF", "-DGGML_CUDA=OFF"],
+            cwd=str(source_dir),
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        subprocess.run(
+            [
+                cmake_bin,
+                "--build",
+                "build",
+                f"-j{os.cpu_count() or 2}",
+                "--target",
+                "llama-quantize",
+            ],
+            cwd=str(source_dir),
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        output = getattr(exc, "stdout", None) or str(exc)
+        return DownloadResult(
+            "BLOCKED",
+            name,
+            f"failed to build patched Lumina2 image quantizer: {str(output)[:500]}",
+            str(quantize_bin),
+        )
+    if not quantize_bin.is_file():
+        return DownloadResult("BLOCKED", name, f"patched Lumina2 image quantizer was not built: {quantize_bin}", str(quantize_bin))
+    return None
+
+
 def download_models(
     *,
     root: Path,
@@ -511,6 +774,15 @@ def download_models(
         )
         if postprocess:
             results.append(postprocess)
+        postprocess = build_lumina2_q5_gguf(
+            entry=entry,
+            name=str(name),
+            cache_root=cache_root,
+            root=root,
+            dry_run=dry_run,
+        )
+        if postprocess:
+            results.append(postprocess)
     return results
 
 
@@ -538,6 +810,13 @@ def download_artifact_entry(
             )
         ]
 
+    if download_mode == "local_derived":
+        return validate_local_derived_artifact(
+            entry=entry,
+            name=name,
+            cache_root=cache_root,
+            dry_run=dry_run,
+        )
     if download_mode == "hf_snapshot":
         return download_snapshot(
             entry=entry,
@@ -663,6 +942,41 @@ def download_artifact_entry(
         )
         if mirror:
             results.append(mirror)
+    return results
+
+
+def validate_local_derived_artifact(
+    *,
+    entry: dict,
+    name: str,
+    cache_root: Path,
+    dry_run: bool,
+) -> list[DownloadResult]:
+    results: list[DownloadResult] = []
+    required_files = entry.get("required_files") or []
+    for raw_file in required_files:
+        filename = str(raw_file).strip()
+        if not is_exact_file(filename):
+            results.append(
+                DownloadResult("BLOCKED", name, f"local derived file is not exact: {raw_file!r}")
+            )
+            continue
+        dest = target_path(cache_root, entry, filename)
+        if dest.is_file() and dest.stat().st_size > 0:
+            if filename.lower().endswith(".gguf") and not has_gguf_header(dest):
+                results.append(DownloadResult("BLOCKED", name, "derived GGUF has invalid header", str(dest)))
+                continue
+            results.append(DownloadResult("PASS", name, "derived artifact already cached", str(dest)))
+            continue
+        if dry_run:
+            results.append(
+                DownloadResult(
+                    "PLAN",
+                    name,
+                    "derived artifact will be built from auxiliary local sources",
+                    str(dest),
+                )
+            )
     return results
 
 

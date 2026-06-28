@@ -945,15 +945,15 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
-                node.get("class_type") == "CheckpointLoaderSimple"
-                and (node.get("inputs") or {}).get("ckpt_name") == "lumina_2.safetensors"
+                node.get("class_type") == "UnetLoaderGGUF"
+                and (node.get("inputs") or {}).get("unet_name") == "lumina_2_model-Q5_K_M.gguf"
                 for node in RuntimeHandler.comfy_prompt.values()
                 if isinstance(node, dict)
             ):
                 return self._json({
                     "prompt-1": {
                         "outputs": {
-                            "8": {
+                            "10": {
                                 "images": [
                                     {
                                         "filename": "slopperly_lumina2_00001_.png",
@@ -2076,20 +2076,25 @@ class LocalPluginPathTests(unittest.TestCase):
 
         prompt = RuntimeHandler.comfy_prompts[-1]
         self.assertEqual(RuntimeHandler.comfy_uploads, [])
-        self.assertEqual(prompt["1"]["inputs"]["ckpt_name"], "lumina_2.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "lumina_2_model-Q5_K_M.gguf")
         self.assertEqual(prompt["2"]["class_type"], "ModelSamplingAuraFlow")
         self.assertEqual(prompt["2"]["inputs"]["shift"], 6.0)
-        self.assertEqual(prompt["3"]["class_type"], "CLIPTextEncodeLumina2")
-        self.assertEqual(prompt["3"]["inputs"]["system_prompt"], "superior")
-        self.assertEqual(prompt["3"]["inputs"]["user_prompt"], "local Lumina text to image")
-        self.assertEqual(prompt["4"]["inputs"]["text"], "text, watermark")
-        self.assertEqual(prompt["5"]["inputs"]["width"], 1024)
-        self.assertEqual(prompt["5"]["inputs"]["height"], 1024)
-        self.assertEqual(prompt["6"]["inputs"]["seed"], 5101)
-        self.assertEqual(prompt["6"]["inputs"]["steps"], 30)
-        self.assertEqual(prompt["6"]["inputs"]["cfg"], 4.0)
-        self.assertEqual(prompt["6"]["inputs"]["sampler_name"], "res_multistep")
-        self.assertEqual(prompt["6"]["inputs"]["scheduler"], "simple")
+        self.assertEqual(prompt["3"]["class_type"], "CLIPLoader")
+        self.assertEqual(prompt["3"]["inputs"]["clip_name"], "gemma_2_2b_fp16.safetensors")
+        self.assertEqual(prompt["3"]["inputs"]["type"], "lumina2")
+        self.assertEqual(prompt["4"]["class_type"], "CLIPTextEncodeLumina2")
+        self.assertEqual(prompt["4"]["inputs"]["system_prompt"], "superior")
+        self.assertEqual(prompt["4"]["inputs"]["user_prompt"], "local Lumina text to image")
+        self.assertEqual(prompt["5"]["inputs"]["text"], "text, watermark")
+        self.assertEqual(prompt["6"]["inputs"]["width"], 1024)
+        self.assertEqual(prompt["6"]["inputs"]["height"], 1024)
+        self.assertEqual(prompt["7"]["inputs"]["seed"], 5101)
+        self.assertEqual(prompt["7"]["inputs"]["steps"], 30)
+        self.assertEqual(prompt["7"]["inputs"]["cfg"], 4.0)
+        self.assertEqual(prompt["7"]["inputs"]["sampler_name"], "res_multistep")
+        self.assertEqual(prompt["7"]["inputs"]["scheduler"], "simple")
+        self.assertEqual(prompt["8"]["inputs"]["vae_name"], "lumina2_ae.safetensors")
 
     def test_ideogram4_uses_comfy_t2i_plugin_path(self):
         module = load_plugin_module("image", "ideogram4")
