@@ -166,6 +166,7 @@ models:
       cfg: 1.0
       sampler: euler
       fps: null
+      lora_injection: dynamic_lora_loader_model_only
     minimum_vram_gb: 16
     validation_command: pytest tests/gpu/test_flux2_klein_4b.py --device cuda
     workflows:

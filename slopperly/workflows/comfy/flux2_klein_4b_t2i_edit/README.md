@@ -22,7 +22,7 @@ The editable reference comes from the official Comfy template `image_flux2_klein
 - `steps` -> `Flux2Scheduler.steps`
 - `guidance` -> plugin field `flux2_klein_guidance` -> `CFGGuider.cfg`
 - `seed` -> `RandomNoise.noise_seed`
-- `LoRA` controls remain visible but are recorded as unmapped until dynamic Comfy LoRA injection is certified.
+- selected `LoRA` controls -> plugin-inserted `LoraLoaderModelOnly` chain before `CFGGuider.model`
 
 ## Output Contract
 

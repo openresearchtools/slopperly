@@ -87,8 +87,7 @@
   "uploads": {},
   "unmapped_ui_parameters": {
     "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
-    "image_strength": "Text-to-image does not consume image strength.",
-    "custom_loras": "The workflow keeps the LoRA UI visible but dynamic project LoRA injection is not mapped in this certified graph yet."
+    "image_strength": "Text-to-image does not consume image strength."
   },
   "outputs": [
     {

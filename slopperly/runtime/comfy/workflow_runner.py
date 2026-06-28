@@ -211,8 +211,8 @@ class ComfyWorkflowRunner:
                     node = workflow.get(node_id)
                     if node is not None:
                         node.setdefault("inputs", {}).pop(input_name, None)
-                if target.get("prune_node"):
-                    workflow.pop(str(target["node"]), None)
+                for prune_node_id in self._prune_targets(target):
+                    workflow.pop(str(prune_node_id), None)
 
     def validate_runtime_nodes(self, workflow: dict) -> None:
         info = self.client.object_info()
@@ -432,6 +432,12 @@ class ComfyWorkflowRunner:
                         f"{pack_name}: {field} optional disconnect maps to missing "
                         f"input {disconnect_node_id}.{disconnect_input}"
                     )
+            for prune_node_id in cls._prune_targets(target):
+                if str(prune_node_id) not in workflow:
+                    raise WorkflowValidationError(
+                        f"{pack_name}: {field} optional prune maps to missing node "
+                        f"{prune_node_id}"
+                    )
 
     @staticmethod
     def _disconnect_targets(target: dict) -> list[dict]:
@@ -447,6 +453,21 @@ class ComfyWorkflowRunner:
         raise WorkflowValidationError(
             f"optional upload disconnect must be a mapping or list: {disconnect!r}"
         )
+
+    @staticmethod
+    def _prune_targets(target: dict) -> list[str]:
+        prune_nodes: list[str] = []
+        if target.get("prune_node"):
+            prune_nodes.append(str(target["node"]))
+        extra = target.get("prune_nodes") or []
+        if isinstance(extra, (str, int)):
+            extra = [extra]
+        if not isinstance(extra, list) or not all(isinstance(item, (str, int)) for item in extra):
+            raise WorkflowValidationError(
+                f"optional upload prune_nodes must be a node id or list of node ids: {extra!r}"
+            )
+        prune_nodes.extend(str(item) for item in extra)
+        return list(dict.fromkeys(prune_nodes))
 
     def run_pack(
         self,

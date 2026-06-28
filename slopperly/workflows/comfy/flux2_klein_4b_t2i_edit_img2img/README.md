@@ -24,6 +24,7 @@ The editable reference comes from the official Comfy template `image_flux2_klein
 - `steps` -> `Flux2Scheduler.steps`
 - `guidance` -> plugin field `flux2_klein_guidance` -> `CFGGuider.cfg`
 - `seed` -> `RandomNoise.noise_seed`
+- selected `LoRA` controls -> plugin-inserted `LoraLoaderModelOnly` chain before `CFGGuider.model`
 - `image_strength` remains visible but is recorded as unmapped because the official ReferenceLatent graph does not expose a denoise value.
 
 ## Output Contract

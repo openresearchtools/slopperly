@@ -1,0 +1,45 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/flux2_klein_4b_t2i_edit/flux2_klein_4b_manifest.json",
+  "command": "pytest tests/gpu/test_flux2_klein_4b.py::test_flux2_klein_4b_t2i_and_edit --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T01:48:42+00:00",
+  "logical_name": "flux2_klein_4b_t2i_edit",
+  "metadata": {
+    "artifacts": {
+      "edit": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux2_klein_4b_t2i_edit/flux2_klein_4b_edit.png",
+      "t2i": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux2_klein_4b_t2i_edit/flux2_klein_4b_t2i.png"
+    },
+    "edit_usage_note": "The official FLUX.2 Klein reference-edit workflow does not expose a denoise/strength input; the image-strength slider is kept visible and recorded as unmapped for this certified graph.",
+    "references": [
+      "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
+      "/home/user/Documents/Slopperly/tests/fixtures/birefnet_source.ppm"
+    ],
+    "runtime_url": "http://127.0.0.1:8190",
+    "workflow_packs": {
+      "edit": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/flux2_klein_4b_t2i_edit_img2img/workflow.api.json",
+      "t2i": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/flux2_klein_4b_t2i_edit/workflow.api.json"
+    }
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "cases": {
+      "edit": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      },
+      "t2i": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      }
+    },
+    "kind": "manifest"
+  }
+}
