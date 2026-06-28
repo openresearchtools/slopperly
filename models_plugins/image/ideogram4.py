@@ -9,7 +9,7 @@ WORKFLOW_ID = "ideogram4_t2i"
 
 
 class Ideogram4Plugin(ModelPlugin):
-    MODEL_ID = "ideogram-ai/ideogram-4-nf4-diffusers"
+    MODEL_ID = "molbal/ideogram-4-gguf"
     DISPLAY_NAME = "Image: Ideogram 4"
     DESCRIPTION = "Text-to-image via the local ComfyUI Ideogram 4 workflow"
     MODEL_TYPE = "image"
@@ -72,8 +72,8 @@ def _prepare_ideogram_inputs(
     steps_default: int,
     guidance_default: float,
 ) -> None:
-    inputs.ideogram_model = "ideogram4_fp8_scaled.safetensors"
-    inputs.ideogram_unconditional_model = "ideogram4_unconditional_fp8_scaled.safetensors"
+    inputs.ideogram_model = "ideogram4-transformer-q5_0.gguf"
+    inputs.ideogram_unconditional_model = "ideogram4-unconditional_transformer-q5_0.gguf"
     inputs.ideogram_text_encoder = "qwen3vl_8b_fp8_scaled.safetensors"
     inputs.ideogram_clip_type = "ideogram4"
     inputs.ideogram_vae = "flux2-vae.safetensors"

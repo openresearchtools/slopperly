@@ -114,7 +114,11 @@ def apply_slopperly_post_install_patches(comfy_path: Path, *, dry_run: bool) -> 
         disable_foundation1_object_info_autodownload(
             comfy_path / "custom_nodes" / "foundation_1" / "nodes" / "loader_node.py",
             dry_run=dry_run,
-        )
+        ),
+        patch_comfyui_gguf_ideogram4_arch(
+            comfy_path / "custom_nodes" / "comfyui_gguf",
+            dry_run=dry_run,
+        ),
     ]
 
 
@@ -167,6 +171,103 @@ def disable_foundation1_object_info_autodownload(path: Path, *, dry_run: bool) -
         "PASS",
         "foundation_1",
         f"patched {path} to keep /object_info local-only",
+    )
+
+
+def patch_comfyui_gguf_ideogram4_arch(node_path: Path, *, dry_run: bool) -> InstallStep:
+    """Teach the pinned ComfyUI-GGUF loader to detect Comfy core Ideogram 4 keys."""
+
+    loader_path = node_path / "loader.py"
+    convert_path = node_path / "tools" / "convert.py"
+    marker = "class ModelIdeogram4(ModelTemplate):"
+    if dry_run:
+        return InstallStep(
+            "PLAN",
+            "comfyui_gguf-ideogram4",
+            f"patch {node_path} to detect Ideogram 4 GGUF backbones",
+        )
+    if not loader_path.is_file() or not convert_path.is_file():
+        return InstallStep(
+            "PASS",
+            "comfyui_gguf-ideogram4",
+            f"ComfyUI-GGUF not present at {node_path}; no Ideogram 4 patch needed",
+        )
+
+    loader = loader_path.read_text(encoding="utf-8")
+    convert = convert_path.read_text(encoding="utf-8")
+    changed = False
+
+    old_loader = (
+        'IMG_ARCH_LIST = {"flux", "sd1", "sdxl", "sd3", "aura", "hidream", '
+        '"cosmos", "ltxv", "hyvid", "wan", "lumina2", "qwen_image"}'
+    )
+    new_loader = (
+        'IMG_ARCH_LIST = {"flux", "sd1", "sdxl", "sd3", "aura", "hidream", '
+        '"cosmos", "ltxv", "hyvid", "wan", "lumina2", "qwen_image", "ideogram4"}'
+    )
+    if old_loader in loader:
+        loader = loader.replace(old_loader, new_loader, 1)
+        changed = True
+    elif '"ideogram4"' not in loader:
+        return InstallStep(
+            "BLOCKED",
+            "comfyui_gguf-ideogram4",
+            f"could not find ComfyUI-GGUF IMG_ARCH_LIST to patch in {loader_path}",
+        )
+
+    if marker not in convert:
+        old_convert = (
+            "class ModelLumina2(ModelTemplate):\n"
+            '    arch = "lumina2"\n'
+            "    keys_detect = [\n"
+            '        ("cap_embedder.1.weight", "context_refiner.0.attention.qkv.weight")\n'
+            "    ]\n"
+            "\n"
+            "arch_list = [ModelFlux, ModelSD3, ModelAura, ModelHiDream, CosmosPredict2, "
+            "\n"
+            "             ModelLTXV, ModelHyVid, ModelWan, ModelSDXL, ModelSD1, ModelLumina2]\n"
+        )
+        new_convert = """class ModelLumina2(ModelTemplate):
+    arch = "lumina2"
+    keys_detect = [
+        ("cap_embedder.1.weight", "context_refiner.0.attention.qkv.weight")
+    ]
+
+class ModelIdeogram4(ModelTemplate):
+    arch = "ideogram4"
+    keys_detect = [
+        (
+            "embed_image_indicator.weight",
+            "layers.0.attention.qkv.weight",
+            "final_layer.adaln_modulation.weight",
+        )
+    ]
+
+arch_list = [ModelFlux, ModelSD3, ModelAura, ModelHiDream, CosmosPredict2,
+             ModelLTXV, ModelHyVid, ModelWan, ModelSDXL, ModelSD1, ModelLumina2,
+             ModelIdeogram4]
+"""
+        if old_convert not in convert:
+            return InstallStep(
+                "BLOCKED",
+                "comfyui_gguf-ideogram4",
+                f"could not find ComfyUI-GGUF arch list to patch in {convert_path}",
+            )
+        convert = convert.replace(old_convert, new_convert, 1)
+        changed = True
+
+    if changed:
+        loader_path.write_text(loader, encoding="utf-8")
+        convert_path.write_text(convert, encoding="utf-8")
+        return InstallStep(
+            "PASS",
+            "comfyui_gguf-ideogram4",
+            f"patched {node_path} to detect Ideogram 4 GGUF backbones",
+        )
+    return InstallStep(
+        "PASS",
+        "comfyui_gguf-ideogram4",
+        f"Ideogram 4 GGUF detection patch already present in {node_path}",
     )
 
 

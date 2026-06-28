@@ -53,5 +53,11 @@ def test_ideogram4_t2i(gpu_cert, plugin_loader, base_models, repo_root):
             "runtime_url": runtime_url,
             "workflow_pack": str(workflow_pack),
             "result_path": str(result_path),
+            "model_files": {
+                "gguf": "ideogram4-transformer-q5_0.gguf",
+                "unconditional_gguf": "ideogram4-unconditional_transformer-q5_0.gguf",
+                "text_encoder": "qwen3vl_8b_fp8_scaled.safetensors",
+                "vae": "flux2-vae.safetensors",
+            },
         },
     )

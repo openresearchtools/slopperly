@@ -12,6 +12,7 @@ from slopperly.runtime.comfy import install as comfy_install_module
 from slopperly.runtime.comfy.install import (
     disable_foundation1_object_info_autodownload,
     install_comfy,
+    patch_comfyui_gguf_ideogram4_arch,
 )
 from slopperly.runtime.llamacpp.install import (
     install_llamacpp,
@@ -72,6 +73,41 @@ class RuntimeInstallerTests(unittest.TestCase):
         self.assertEqual(step.status, "PASS")
         self.assertIn("Slopperly disables upstream auto-download", patched)
         self.assertNotIn("_download_foundation1()", patched)
+
+    def test_comfyui_gguf_patch_detects_ideogram4_arch(self):
+        loader_source = (
+            'IMG_ARCH_LIST = {"flux", "sd1", "sdxl", "sd3", "aura", "hidream", '
+            '"cosmos", "ltxv", "hyvid", "wan", "lumina2", "qwen_image"}\n'
+        )
+        convert_source = (
+            "class ModelLumina2(ModelTemplate):\n"
+            '    arch = "lumina2"\n'
+            "    keys_detect = [\n"
+            '        ("cap_embedder.1.weight", "context_refiner.0.attention.qkv.weight")\n'
+            "    ]\n"
+            "\n"
+            "arch_list = [ModelFlux, ModelSD3, ModelAura, ModelHiDream, CosmosPredict2, "
+            "\n"
+            "             ModelLTXV, ModelHyVid, ModelWan, ModelSDXL, ModelSD1, ModelLumina2]\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            node_path = Path(tmp) / "comfyui_gguf"
+            tools = node_path / "tools"
+            tools.mkdir(parents=True)
+            loader = node_path / "loader.py"
+            convert = tools / "convert.py"
+            loader.write_text(loader_source, encoding="utf-8")
+            convert.write_text(convert_source, encoding="utf-8")
+
+            step = patch_comfyui_gguf_ideogram4_arch(node_path, dry_run=False)
+            patched_loader = loader.read_text(encoding="utf-8")
+            patched_convert = convert.read_text(encoding="utf-8")
+
+        self.assertEqual(step.status, "PASS")
+        self.assertIn('"ideogram4"', patched_loader)
+        self.assertIn("class ModelIdeogram4(ModelTemplate):", patched_convert)
+        self.assertIn("embed_image_indicator.weight", patched_convert)
+        self.assertIn("ModelIdeogram4", patched_convert)
 
     def test_vllm_install_dry_run_records_audio_extra(self):
         with tempfile.TemporaryDirectory() as tmp:

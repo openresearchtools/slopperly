@@ -966,8 +966,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
-                node.get("class_type") == "UNETLoader"
-                and (node.get("inputs") or {}).get("unet_name") == "ideogram4_fp8_scaled.safetensors"
+                node.get("class_type") == "UnetLoaderGGUF"
+                and (node.get("inputs") or {}).get("unet_name") == "ideogram4-transformer-q5_0.gguf"
                 for node in RuntimeHandler.comfy_prompt.values()
                 if isinstance(node, dict)
             ):
@@ -2117,8 +2117,10 @@ class LocalPluginPathTests(unittest.TestCase):
 
         prompt = RuntimeHandler.comfy_prompts[-1]
         self.assertEqual(RuntimeHandler.comfy_uploads, [])
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ideogram4_fp8_scaled.safetensors")
-        self.assertEqual(prompt["2"]["inputs"]["unet_name"], "ideogram4_unconditional_fp8_scaled.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["2"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ideogram4-transformer-q5_0.gguf")
+        self.assertEqual(prompt["2"]["inputs"]["unet_name"], "ideogram4-unconditional_transformer-q5_0.gguf")
         self.assertEqual(prompt["3"]["inputs"]["clip_name"], "qwen3vl_8b_fp8_scaled.safetensors")
         self.assertEqual(prompt["3"]["inputs"]["type"], "ideogram4")
         self.assertEqual(prompt["4"]["inputs"]["text"], "local Ideogram 4 poster with readable text")

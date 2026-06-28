@@ -750,8 +750,8 @@ class ComfyHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
-                node.get("class_type") == "UNETLoader"
-                and (node.get("inputs") or {}).get("unet_name") == "ideogram4_fp8_scaled.safetensors"
+                node.get("class_type") == "UnetLoaderGGUF"
+                and (node.get("inputs") or {}).get("unet_name") == "ideogram4-transformer-q5_0.gguf"
                 for node in ComfyHandler.last_prompt.values()
             ):
                 return self._json({
@@ -3226,8 +3226,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 height=1024,
                 batch=1,
                 seed=4404,
-                ideogram_model="ideogram4_fp8_scaled.safetensors",
-                ideogram_unconditional_model="ideogram4_unconditional_fp8_scaled.safetensors",
+                ideogram_model="ideogram4-transformer-q5_0.gguf",
+                ideogram_unconditional_model="ideogram4-unconditional_transformer-q5_0.gguf",
                 ideogram_text_encoder="qwen3vl_8b_fp8_scaled.safetensors",
                 ideogram_clip_type="ideogram4",
                 ideogram_vae="flux2-vae.safetensors",
@@ -3255,8 +3255,10 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
 
         prompt = ComfyHandler.last_prompt
         self.assertEqual(ComfyHandler.upload_bodies, [])
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ideogram4_fp8_scaled.safetensors")
-        self.assertEqual(prompt["2"]["inputs"]["unet_name"], "ideogram4_unconditional_fp8_scaled.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["2"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ideogram4-transformer-q5_0.gguf")
+        self.assertEqual(prompt["2"]["inputs"]["unet_name"], "ideogram4-unconditional_transformer-q5_0.gguf")
         self.assertEqual(prompt["3"]["inputs"]["clip_name"], "qwen3vl_8b_fp8_scaled.safetensors")
         self.assertEqual(prompt["3"]["inputs"]["type"], "ideogram4")
         self.assertEqual(prompt["4"]["inputs"]["text"], "local Ideogram 4 workflow render with readable sign text")

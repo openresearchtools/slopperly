@@ -5,7 +5,6 @@ required_custom_nodes:
     repo: https://github.com/comfyanonymous/ComfyUI.git
     commit: 603d891eaf045d726d9c23276b4428daf2977624
     node_classes:
-      - UNETLoader
       - CLIPLoader
       - CLIPTextEncode
       - ConditioningZeroOut
@@ -19,11 +18,16 @@ required_custom_nodes:
       - VAELoader
       - VAEDecode
       - SaveImage
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    commit: 6ea2651e7df66d7585f6ffee804b20e92fb38b8a
+    node_classes:
+      - UnetLoaderGGUF
 model_files:
-  - source: https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_fp8_scaled.safetensors
-    target: models/diffusion_models/ideogram4_fp8_scaled.safetensors
-  - source: https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/diffusion_models/ideogram4_unconditional_fp8_scaled.safetensors
-    target: models/diffusion_models/ideogram4_unconditional_fp8_scaled.safetensors
+  - source: https://huggingface.co/molbal/ideogram-4-gguf/resolve/main/ideogram4-transformer-q5_0.gguf
+    target: models/diffusion_models/ideogram4-transformer-q5_0.gguf
+  - source: https://huggingface.co/molbal/ideogram-4-gguf/resolve/main/ideogram4-unconditional_transformer-q5_0.gguf
+    target: models/diffusion_models/ideogram4-unconditional_transformer-q5_0.gguf
   - source: https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/text_encoders/qwen3vl_8b_fp8_scaled.safetensors
     target: models/text_encoders/qwen3vl_8b_fp8_scaled.safetensors
   - source: https://huggingface.co/Comfy-Org/Ideogram-4/resolve/main/vae/flux2-vae.safetensors
