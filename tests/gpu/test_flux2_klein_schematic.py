@@ -68,6 +68,11 @@ def test_flux2_klein_schematic_lora(gpu_cert, plugin_loader, base_models, repo_r
                 mode: result["artifact"]
                 for mode, result in case_results.items()
             },
+            "model_files": {
+                "gguf": "flux-2-klein-base-9b-Q5_K_M.gguf",
+                "text_encoder": "qwen_3_8b.safetensors",
+                "vae": "flux2-vae.safetensors",
+            },
         },
     )
 

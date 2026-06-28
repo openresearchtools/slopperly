@@ -19,10 +19,9 @@
     }
   },
   "3": {
-    "class_type": "UNETLoader",
+    "class_type": "UnetLoaderGGUF",
     "inputs": {
-      "unet_name": "flux-2-klein-base-9b-fp8.safetensors",
-      "weight_dtype": "default"
+      "unet_name": "flux-2-klein-base-9b-Q5_K_M.gguf"
     }
   },
   "4": {

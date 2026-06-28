@@ -1,7 +1,7 @@
 {
   "artifact": ".slopperly/gpu-artifacts/smoke_16gb/flux2_klein_9b_schematic_lora/flux2_klein_schematic_manifest.json",
   "command": "pytest tests/gpu/test_flux2_klein_schematic.py::test_flux2_klein_schematic_lora --device cuda --profile smoke_16gb",
-  "generated_at_utc": "2026-06-28T03:57:02+00:00",
+  "generated_at_utc": "2026-06-28T08:25:39+00:00",
   "logical_name": "flux2_klein_9b_schematic_lora",
   "metadata": {
     "artifacts": {
@@ -11,6 +11,11 @@
       "DEPTH": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux2_klein_9b_schematic_lora/flux2_klein_schematic_depth.png",
       "FULL_POSE": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux2_klein_9b_schematic_lora/flux2_klein_schematic_full_pose.png",
       "NORMAL": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux2_klein_9b_schematic_lora/flux2_klein_schematic_normal.png"
+    },
+    "model_files": {
+      "gguf": "flux-2-klein-base-9b-Q5_K_M.gguf",
+      "text_encoder": "qwen_3_8b.safetensors",
+      "vae": "flux2-vae.safetensors"
     },
     "modes": [
       "DEPTH",

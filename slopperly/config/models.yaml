@@ -235,11 +235,11 @@ models:
       - nomadoor/flux-2-klein-9B-schematic-lora
     task: image_schematic
     runtime: comfy
-    model_source: https://huggingface.co/wissxi/FLUX.2-klein-base-9b-fp8
+    model_source: https://huggingface.co/unsloth/FLUX.2-klein-base-9B-GGUF
     download_mode: hf_file
-    local_cache_path: models/diffusion_models/flux-2-klein-base-9b-fp8.safetensors
+    local_cache_path: models/diffusion_models/flux-2-klein-base-9b-Q5_K_M.gguf
     required_files:
-      - flux-2-klein-base-9b-fp8.safetensors
+      - flux-2-klein-base-9b-Q5_K_M.gguf
     auxiliary_sources:
       - id: flux2_klein_9b_base_text_encoder
         model_source: https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-9b
@@ -272,11 +272,10 @@ models:
             target: flux2-klein-schematic-binary-segmentation-lora.safetensors
           - path: loras/flux2-klein-schematic-amodal-segmentation-lora.safetensors
             target: flux2-klein-schematic-amodal-segmentation-lora.safetensors
-    required_node_pack: comfyui core flux2 klein lora
+    required_node_pack: comfyui_gguf + comfyui core flux2 klein lora
     certification_requirements:
       gguf_backbone_required: true
-      primary_backbone_format: safetensors
-      next_action: install and wire a schematic-compatible FLUX.2 Klein 9B GGUF backbone, then rerun all six schematic-mode artifact tests.
+      primary_backbone_format: gguf
     supported_resolutions:
       - source-image-dimensions
     default_parameters:

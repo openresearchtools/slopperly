@@ -2826,7 +2826,8 @@ class LocalPluginPathTests(unittest.TestCase):
         prompt = RuntimeHandler.comfy_prompts[-1]
         self.assertEqual(len(RuntimeHandler.comfy_uploads), 1)
         self.assertEqual(prompt["1"]["inputs"]["image"], "uploaded_source.png")
-        self.assertEqual(prompt["3"]["inputs"]["unet_name"], "flux-2-klein-base-9b-fp8.safetensors")
+        self.assertEqual(prompt["3"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["3"]["inputs"]["unet_name"], "flux-2-klein-base-9b-Q5_K_M.gguf")
         self.assertEqual(prompt["4"]["inputs"]["lora_name"], "flux2-klein-schematic-amodal-segmentation-lora.safetensors")
         self.assertEqual(prompt["4"]["inputs"]["strength_model"], 0.8)
         self.assertEqual(prompt["5"]["inputs"]["clip_name"], "qwen_3_8b.safetensors")

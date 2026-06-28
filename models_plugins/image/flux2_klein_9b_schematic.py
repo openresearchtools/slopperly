@@ -85,7 +85,7 @@ class Flux2Klein9BSchematicPlugin(ModelPlugin):
         width, height = self._input_dimensions(inputs)
         inputs.width = width
         inputs.height = height
-        inputs.flux2_klein_schematic_model = "flux-2-klein-base-9b-fp8.safetensors"
+        inputs.flux2_klein_schematic_model = "flux-2-klein-base-9b-Q5_K_M.gguf"
         inputs.flux2_klein_schematic_lora = self._lora_file(scene)
         inputs.flux2_klein_schematic_lora_strength = 0.8
         inputs.flux2_klein_schematic_text_encoder = "qwen_3_8b.safetensors"

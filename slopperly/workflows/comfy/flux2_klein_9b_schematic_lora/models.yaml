@@ -1,10 +1,14 @@
 workflow_id: flux2_klein_9b_schematic_lora
 required_custom_nodes:
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    node_classes:
+      - UnetLoaderGGUF
   - comfyui core
 required_node_classes:
   - LoadImage
   - ImageScale
-  - UNETLoader
+  - UnetLoaderGGUF
   - LoraLoaderModelOnly
   - CLIPLoader
   - VAELoader
@@ -20,9 +24,9 @@ required_node_classes:
   - VAEDecode
   - SaveImage
 model_files:
-  - source: https://huggingface.co/wissxi/FLUX.2-klein-base-9b-fp8
-    file: flux-2-klein-base-9b-fp8.safetensors
-    destination: models/diffusion_models/flux-2-klein-base-9b-fp8.safetensors
+  - source: https://huggingface.co/unsloth/FLUX.2-klein-base-9B-GGUF
+    file: flux-2-klein-base-9b-Q5_K_M.gguf
+    destination: models/diffusion_models/flux-2-klein-base-9b-Q5_K_M.gguf
   - source: https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-9b
     file: split_files/text_encoders/qwen_3_8b.safetensors
     destination: models/text_encoders/qwen_3_8b.safetensors
