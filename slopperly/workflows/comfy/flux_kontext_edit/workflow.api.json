@@ -60,10 +60,9 @@
     }
   },
   "37": {
-    "class_type": "UNETLoader",
+    "class_type": "UnetLoaderGGUF",
     "inputs": {
-      "unet_name": "flux1-dev-kontext_fp8_scaled.safetensors",
-      "weight_dtype": "default"
+      "unet_name": "flux1-kontext-dev-Q5_K_M.gguf"
     }
   },
   "38": {

@@ -235,6 +235,9 @@ def install_plugin_import_harness(root: Path) -> None:
     helpers.clean_filename = lambda value: re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_")
     helpers.solve_path = lambda filename: str(Path(tempfile.gettempdir()) / filename)
     helpers.remove_duplicate_phrases = lambda text: text
+    helpers.ILLUMINATION_OPTIONS = {
+        "golden time": "Warm golden hour lighting with enhanced warm colors and soft shadows",
+    }
     helpers.find_strip_by_name = _find_strip_by_name
     helpers.get_strip_path = _get_strip_path
     sys.modules[f"{TEST_PACKAGE}.utils.helpers"] = helpers

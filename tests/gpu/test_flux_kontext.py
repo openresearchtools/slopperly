@@ -60,5 +60,8 @@ def test_flux_kontext_edit(gpu_cert, plugin_loader, base_models, repo_root):
             "workflow_pack": str(workflow_pack),
             "result_path": str(result_path),
             "source": str(source),
+            "model_files": {
+                "gguf": "flux1-kontext-dev-Q5_K_M.gguf",
+            },
         },
     )

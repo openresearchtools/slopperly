@@ -41,9 +41,8 @@ class KontextRelightPlugin(ModelPlugin):
             gateway = SlopperlyRuntimeGateway()
 
         inputs.kontext_relight_prompt = self._build_relight_prompt(inputs, scene)
-        inputs.kontext_relight_model = "flux1-dev-kontext_fp8_scaled.safetensors"
-        inputs.kontext_relight_weight_dtype = "default"
-        inputs.kontext_relight_lora = "relighting-kontext-dev-lora-v3.safetensors"
+        inputs.kontext_relight_model = "flux1-kontext-dev-Q5_K_M.gguf"
+        inputs.kontext_relight_lora = "relighting-kontext-dev-lora-v3-comfy.safetensors"
         inputs.kontext_relight_lora_strength = 0.75
         inputs.kontext_relight_clip_l = "clip_l.safetensors"
         inputs.kontext_relight_t5 = "t5xxl_fp8_e4m3fn_scaled.safetensors"

@@ -6,7 +6,6 @@ required_custom_nodes:
     commit: 603d891eaf045d726d9c23276b4428daf2977624
     node_classes:
       - LoadImage
-      - UNETLoader
       - LoraLoaderModelOnly
       - DualCLIPLoader
       - VAELoader
@@ -20,11 +19,17 @@ required_custom_nodes:
       - KSampler
       - VAEDecode
       - SaveImage
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    node_classes:
+      - UnetLoaderGGUF
 model_files:
-  - source: https://huggingface.co/Comfy-Org/flux1-kontext-dev_ComfyUI/resolve/main/split_files/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors
-    target: models/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors
+  - source: https://huggingface.co/unsloth/FLUX.1-Kontext-dev-GGUF/resolve/main/flux1-kontext-dev-Q5_K_M.gguf
+    target: models/diffusion_models/flux1-kontext-dev-Q5_K_M.gguf
   - source: https://huggingface.co/kontext-community/relighting-kontext-dev-lora-v3/resolve/main/relighting-kontext-dev-lora-v3.safetensors
     target: models/loras/relighting-kontext-dev-lora-v3.safetensors
+  - source: generated from models/loras/relighting-kontext-dev-lora-v3.safetensors by slopperly.models.download
+    target: models/loras/relighting-kontext-dev-lora-v3-comfy.safetensors
   - source: https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors
     target: models/text_encoders/clip_l.safetensors
   - source: https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn_scaled.safetensors

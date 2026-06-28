@@ -1,4 +1,5 @@
 import tempfile
+import types
 import unittest
 from pathlib import Path
 import sys
@@ -18,6 +19,7 @@ from slopperly.models.download import (
     is_safe_relative_file,
     main as download_main,
     mirror_torchaudio_asset,
+    normalize_kontext_relight_lora,
     rewrite_moss_tts_nano_config,
 )
 
@@ -150,6 +152,79 @@ class ModelDownloadAndDoctorTests(unittest.TestCase):
 
             self.assertEqual(result.status, "PASS")
             self.assertIn(str(tokenizer_dir.resolve()), config_path.read_text(encoding="utf-8"))
+
+    def test_kontext_relight_lora_postprocess_strips_comfy_prefix(self):
+        class FakeSafeOpen:
+            def __init__(self, path, framework=None, device=None):
+                self.path = Path(path)
+                self.data = {
+                    "base_model.model.double_blocks.0.img_attn.proj.lora_A.weight": "a",
+                    "base_model.model.double_blocks.0.img_attn.proj.lora_B.weight": "b",
+                }
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def keys(self):
+                return self.data.keys()
+
+            def metadata(self):
+                return {"format": "pt"}
+
+            def get_tensor(self, key):
+                return self.data[key]
+
+        saved = {}
+        fake_safetensors = types.ModuleType("safetensors")
+        fake_safetensors.__path__ = []
+        fake_safetensors.safe_open = FakeSafeOpen
+        fake_torch = types.ModuleType("safetensors.torch")
+
+        def fake_save_file(tensors, path, metadata=None):
+            saved["tensors"] = dict(tensors)
+            saved["metadata"] = dict(metadata or {})
+            Path(path).write_bytes(b"normalized")
+
+        fake_torch.save_file = fake_save_file
+
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_root = Path(tmp)
+            raw = cache_root / "models" / "loras" / "relighting-kontext-dev-lora-v3.safetensors"
+            raw.parent.mkdir(parents=True)
+            raw.write_bytes(b"raw")
+            entry = {
+                "logical_name": "kontext_relight",
+                "auxiliary_sources": [
+                    {
+                        "id": "kontext_relight_lora",
+                        "local_cache_path": "models/loras/relighting-kontext-dev-lora-v3.safetensors",
+                    }
+                ],
+            }
+            with mock.patch.dict(
+                sys.modules,
+                {"safetensors": fake_safetensors, "safetensors.torch": fake_torch},
+            ):
+                result = normalize_kontext_relight_lora(
+                    entry=entry,
+                    name="kontext_relight",
+                    cache_root=cache_root,
+                    dry_run=False,
+                )
+
+            self.assertEqual(result.status, "PASS")
+            self.assertTrue(result.path.endswith("relighting-kontext-dev-lora-v3-comfy.safetensors"))
+            self.assertEqual(
+                sorted(saved["tensors"]),
+                [
+                    "transformer.transformer_blocks.0.attn.to_out.0.lora_A.weight",
+                    "transformer.transformer_blocks.0.attn.to_out.0.lora_B.weight",
+                ],
+            )
+            self.assertEqual(saved["metadata"], {"format": "pt"})
 
     def test_torchaudio_asset_mirror_copies_to_hub_cache(self):
         with tempfile.TemporaryDirectory() as tmp:

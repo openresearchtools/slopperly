@@ -319,7 +319,7 @@ class ComfyHandler(BaseHTTPRequestHandler):
             if any(
                 node.get("class_type") == "LoraLoaderModelOnly"
                 and (node.get("inputs") or {}).get("lora_name")
-                == "relighting-kontext-dev-lora-v3.safetensors"
+                == "relighting-kontext-dev-lora-v3-comfy.safetensors"
                 for node in ComfyHandler.last_prompt.values()
             ):
                 return self._json({
@@ -338,9 +338,9 @@ class ComfyHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
-                node.get("class_type") == "UNETLoader"
+                node.get("class_type") == "UnetLoaderGGUF"
                 and (node.get("inputs") or {}).get("unet_name")
-                == "flux1-dev-kontext_fp8_scaled.safetensors"
+                == "flux1-kontext-dev-Q5_K_M.gguf"
                 for node in ComfyHandler.last_prompt.values()
             ):
                 return self._json({
@@ -2891,8 +2891,7 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 flux_kontext_scheduler="simple",
                 flux_kontext_denoise=1.0,
                 flux_kontext_flux_guidance=3.5,
-                flux_kontext_model="flux1-dev-kontext_fp8_scaled.safetensors",
-                flux_kontext_weight_dtype="default",
+                flux_kontext_model="flux1-kontext-dev-Q5_K_M.gguf",
                 flux_kontext_clip_l="clip_l.safetensors",
                 flux_kontext_t5="t5xxl_fp8_e4m3fn_scaled.safetensors",
                 flux_kontext_clip_type="flux",
@@ -2916,8 +2915,9 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["142"]["inputs"]["image"], "uploaded_source.png")
         self.assertEqual(prompt["188"]["inputs"]["width"], 1024)
         self.assertEqual(prompt["188"]["inputs"]["height"], 768)
-        self.assertEqual(prompt["37"]["inputs"]["unet_name"], "flux1-dev-kontext_fp8_scaled.safetensors")
-        self.assertEqual(prompt["37"]["inputs"]["weight_dtype"], "default")
+        self.assertEqual(prompt["37"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["37"]["inputs"]["unet_name"], "flux1-kontext-dev-Q5_K_M.gguf")
+        self.assertNotIn("weight_dtype", prompt["37"]["inputs"])
         self.assertEqual(prompt["38"]["inputs"]["clip_name1"], "clip_l.safetensors")
         self.assertEqual(prompt["38"]["inputs"]["clip_name2"], "t5xxl_fp8_e4m3fn_scaled.safetensors")
         self.assertEqual(prompt["38"]["inputs"]["type"], "flux")
@@ -2958,9 +2958,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 kontext_relight_scheduler="simple",
                 kontext_relight_denoise=1.0,
                 kontext_relight_flux_guidance=3.5,
-                kontext_relight_model="flux1-dev-kontext_fp8_scaled.safetensors",
-                kontext_relight_weight_dtype="default",
-                kontext_relight_lora="relighting-kontext-dev-lora-v3.safetensors",
+                kontext_relight_model="flux1-kontext-dev-Q5_K_M.gguf",
+                kontext_relight_lora="relighting-kontext-dev-lora-v3-comfy.safetensors",
                 kontext_relight_lora_strength=0.75,
                 kontext_relight_clip_l="clip_l.safetensors",
                 kontext_relight_t5="t5xxl_fp8_e4m3fn_scaled.safetensors",
@@ -2985,9 +2984,10 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["142"]["inputs"]["image"], "uploaded_source.png")
         self.assertEqual(prompt["188"]["inputs"]["width"], 1024)
         self.assertEqual(prompt["188"]["inputs"]["height"], 768)
-        self.assertEqual(prompt["37"]["inputs"]["unet_name"], "flux1-dev-kontext_fp8_scaled.safetensors")
-        self.assertEqual(prompt["37"]["inputs"]["weight_dtype"], "default")
-        self.assertEqual(prompt["50"]["inputs"]["lora_name"], "relighting-kontext-dev-lora-v3.safetensors")
+        self.assertEqual(prompt["37"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["37"]["inputs"]["unet_name"], "flux1-kontext-dev-Q5_K_M.gguf")
+        self.assertNotIn("weight_dtype", prompt["37"]["inputs"])
+        self.assertEqual(prompt["50"]["inputs"]["lora_name"], "relighting-kontext-dev-lora-v3-comfy.safetensors")
         self.assertEqual(prompt["50"]["inputs"]["strength_model"], 0.75)
         self.assertEqual(prompt["38"]["inputs"]["clip_name1"], "clip_l.safetensors")
         self.assertEqual(prompt["38"]["inputs"]["clip_name2"], "t5xxl_fp8_e4m3fn_scaled.safetensors")

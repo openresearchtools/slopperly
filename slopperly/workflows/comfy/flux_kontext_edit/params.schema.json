@@ -69,12 +69,6 @@
         "input": "unet_name"
       }
     ],
-    "flux_kontext_weight_dtype": [
-      {
-        "node": "37",
-        "input": "weight_dtype"
-      }
-    ],
     "flux_kontext_clip_l": [
       {
         "node": "38",

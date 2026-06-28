@@ -62,5 +62,9 @@ def test_kontext_relight(gpu_cert, plugin_loader, base_models, repo_root):
             "source": str(source),
             "illumination_style": scene.illumination_style,
             "light_direction": scene.light_direction,
+            "model_files": {
+                "gguf": "flux1-kontext-dev-Q5_K_M.gguf",
+                "lora": "relighting-kontext-dev-lora-v3-comfy.safetensors",
+            },
         },
     )

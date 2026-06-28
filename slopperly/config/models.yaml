@@ -475,12 +475,11 @@ models:
       - black-forest-labs/FLUX.1-Kontext-dev
     task: image_edit
     runtime: comfy
-    model_source: https://huggingface.co/Comfy-Org/flux1-kontext-dev_ComfyUI
+    model_source: https://huggingface.co/unsloth/FLUX.1-Kontext-dev-GGUF
     download_mode: hf_file
-    local_cache_path: models/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors
+    local_cache_path: models/diffusion_models/flux1-kontext-dev-Q5_K_M.gguf
     required_files:
-      - path: split_files/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors
-        target: flux1-dev-kontext_fp8_scaled.safetensors
+      - flux1-kontext-dev-Q5_K_M.gguf
     auxiliary_sources:
       - id: flux_kontext_clip_l
         model_source: https://huggingface.co/comfyanonymous/flux_text_encoders
@@ -501,7 +500,10 @@ models:
         required_files:
           - path: flux-vae-bf16.safetensors
             target: ae.safetensors
-    required_node_pack: comfyui core FLUX Kontext edit
+    required_node_pack: comfyui_gguf + comfyui core FLUX Kontext edit
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
       - 1280x720
@@ -513,7 +515,6 @@ models:
       sampler: euler
       scheduler: simple
       denoise: 1.0
-      fp8_weight_dtype: default
       fps: null
     minimum_vram_gb: 20
     validation_command: pytest tests/gpu/test_flux_kontext.py --device cuda
@@ -525,12 +526,11 @@ models:
       - kontext-community/relighting-kontext-dev-lora-v3
     task: image_relight
     runtime: comfy
-    model_source: https://huggingface.co/Comfy-Org/flux1-kontext-dev_ComfyUI
+    model_source: https://huggingface.co/unsloth/FLUX.1-Kontext-dev-GGUF
     download_mode: hf_file
-    local_cache_path: models/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors
+    local_cache_path: models/diffusion_models/flux1-kontext-dev-Q5_K_M.gguf
     required_files:
-      - path: split_files/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors
-        target: flux1-dev-kontext_fp8_scaled.safetensors
+      - flux1-kontext-dev-Q5_K_M.gguf
     auxiliary_sources:
       - id: kontext_relight_lora
         model_source: https://huggingface.co/kontext-community/relighting-kontext-dev-lora-v3
@@ -557,7 +557,10 @@ models:
         required_files:
           - path: flux-vae-bf16.safetensors
             target: ae.safetensors
-    required_node_pack: comfyui core FLUX Kontext edit + Relight LoRA
+    required_node_pack: comfyui_gguf + comfyui core FLUX Kontext edit + Relight LoRA
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
       - 1280x720
@@ -570,7 +573,6 @@ models:
       scheduler: simple
       denoise: 1.0
       lora_strength: 0.75
-      fp8_weight_dtype: default
       fps: null
     minimum_vram_gb: 20
     validation_command: pytest tests/gpu/test_kontext_relight.py --device cuda

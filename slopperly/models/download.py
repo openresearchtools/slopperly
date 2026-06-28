@@ -21,6 +21,11 @@ GENERIC_FILE_MARKERS = (
 MOSS_TTS_NANO_LOGICAL_NAME = "moss_tts_nano_vllm_omni"
 MOSS_AUDIO_TOKENIZER_AUX_ID = "moss_audio_tokenizer_nano"
 MOSS_AUDIO_TOKENIZER_CONFIG_KEY = "audio_tokenizer_pretrained_name_or_path"
+KONTEXT_RELIGHT_LOGICAL_NAME = "kontext_relight"
+KONTEXT_RELIGHT_LORA_AUX_ID = "kontext_relight_lora"
+KONTEXT_RELIGHT_RAW_LORA = "relighting-kontext-dev-lora-v3.safetensors"
+KONTEXT_RELIGHT_COMFY_LORA = "relighting-kontext-dev-lora-v3-comfy.safetensors"
+KONTEXT_RELIGHT_LORA_PREFIX = "base_model.model."
 
 
 @dataclass
@@ -168,6 +173,13 @@ def moss_audio_tokenizer_entry(entry: dict) -> dict | None:
     return None
 
 
+def kontext_relight_lora_entry(entry: dict) -> dict | None:
+    for auxiliary in auxiliary_entries(entry):
+        if str(auxiliary.get("id") or "") == KONTEXT_RELIGHT_LORA_AUX_ID:
+            return auxiliary
+    return None
+
+
 def rewrite_moss_tts_nano_config(
     *,
     entry: dict,
@@ -209,6 +221,242 @@ def rewrite_moss_tts_nano_config(
     return DownloadResult("PASS", name, "MOSS config updated to local audio tokenizer", str(model_config))
 
 
+def normalize_kontext_relight_lora(
+    *,
+    entry: dict,
+    name: str,
+    cache_root: Path,
+    dry_run: bool,
+) -> DownloadResult | None:
+    if str(entry.get("logical_name") or "") != KONTEXT_RELIGHT_LOGICAL_NAME:
+        return None
+    lora_entry = kontext_relight_lora_entry(entry)
+    if lora_entry is None:
+        return DownloadResult("BLOCKED", name, "Kontext Relight LoRA auxiliary source is missing")
+
+    source_path = target_path(cache_root, lora_entry, KONTEXT_RELIGHT_RAW_LORA)
+    dest_path = source_path.with_name(KONTEXT_RELIGHT_COMFY_LORA)
+    postprocess_name = f"{name}:kontext_relight_lora_comfy"
+    if dry_run:
+        return DownloadResult(
+            "PLAN",
+            postprocess_name,
+            f"would normalize Relight LoRA keys from {source_path.name}",
+            str(dest_path),
+        )
+    if not source_path.is_file() or source_path.stat().st_size <= 0:
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            f"raw Relight LoRA is missing: {source_path}",
+            str(source_path),
+        )
+
+    try:
+        from safetensors import safe_open
+        from safetensors.torch import save_file
+    except Exception as exc:
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            f"safetensors with torch support is required to normalize Relight LoRA: {exc}",
+            str(dest_path),
+        )
+
+    if dest_path.is_file() and dest_path.stat().st_size > 0:
+        try:
+            dest_is_fresh = dest_path.stat().st_mtime >= source_path.stat().st_mtime
+            with safe_open(str(dest_path), framework="pt", device="cpu") as existing:
+                existing_keys = list(existing.keys())
+            if (
+                dest_is_fresh
+                and existing_keys
+                and all(key.startswith("transformer.") for key in existing_keys)
+                and not any(key.startswith("transformer.final_layer.linear.") for key in existing_keys)
+                and not any(key.startswith(KONTEXT_RELIGHT_LORA_PREFIX) for key in existing_keys)
+            ):
+                return DownloadResult(
+                    "PASS",
+                    postprocess_name,
+                    "Comfy-compatible Relight LoRA already exists",
+                    str(dest_path),
+                )
+        except Exception:
+            pass
+
+    raw_tensors = {}
+    try:
+        with safe_open(str(source_path), framework="pt", device="cpu") as source:
+            metadata = source.metadata() or {}
+            for key in source.keys():
+                normalized = key.removeprefix(KONTEXT_RELIGHT_LORA_PREFIX)
+                if normalized in raw_tensors:
+                    return DownloadResult(
+                        "BLOCKED",
+                        postprocess_name,
+                        f"duplicate Relight LoRA key after normalization: {normalized}",
+                        str(dest_path),
+                    )
+                raw_tensors[normalized] = source.get_tensor(key)
+    except Exception as exc:
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            f"failed to read raw Relight LoRA: {exc}",
+            str(source_path),
+        )
+    if not raw_tensors:
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            "raw Relight LoRA contains no tensors",
+            str(source_path),
+        )
+
+    tensors: dict[str, object] = {}
+    handled_bases: set[str] = set()
+
+    def add_pair(source_base: str, target_base: str) -> DownloadResult | None:
+        a_key = f"{source_base}.lora_A.weight"
+        b_key = f"{source_base}.lora_B.weight"
+        if a_key not in raw_tensors or b_key not in raw_tensors:
+            return DownloadResult(
+                "BLOCKED",
+                postprocess_name,
+                f"Relight LoRA pair is incomplete for {source_base}",
+                str(source_path),
+            )
+        tensors[f"transformer.{target_base}.lora_A.weight"] = raw_tensors[a_key]
+        tensors[f"transformer.{target_base}.lora_B.weight"] = raw_tensors[b_key]
+        handled_bases.add(source_base)
+        return None
+
+    def add_split(source_base: str, targets: list[tuple[str, int]]) -> DownloadResult | None:
+        a_key = f"{source_base}.lora_A.weight"
+        b_key = f"{source_base}.lora_B.weight"
+        if a_key not in raw_tensors or b_key not in raw_tensors:
+            return DownloadResult(
+                "BLOCKED",
+                postprocess_name,
+                f"Relight LoRA split pair is incomplete for {source_base}",
+                str(source_path),
+            )
+        a_tensor = raw_tensors[a_key]
+        b_tensor = raw_tensors[b_key]
+        total = sum(size for _, size in targets)
+        if getattr(b_tensor, "shape", (0,))[0] != total:
+            return DownloadResult(
+                "BLOCKED",
+                postprocess_name,
+                f"Relight LoRA split shape mismatch for {source_base}: expected {total}, got {getattr(b_tensor, 'shape', None)}",
+                str(source_path),
+            )
+        offset = 0
+        for target_base, size in targets:
+            tensors[f"transformer.{target_base}.lora_A.weight"] = a_tensor.clone().contiguous()
+            tensors[f"transformer.{target_base}.lora_B.weight"] = b_tensor[offset : offset + size, :].clone().contiguous()
+            offset += size
+        handled_bases.add(source_base)
+        return None
+
+    double_map = {
+        "img_attn.proj": "attn.to_out.0",
+        "img_mlp.0": "ff.net.0.proj",
+        "img_mlp.2": "ff.net.2",
+        "img_mod.lin": "norm1.linear",
+        "txt_attn.proj": "attn.to_add_out",
+        "txt_mlp.0": "ff_context.net.0.proj",
+        "txt_mlp.2": "ff_context.net.2",
+        "txt_mod.lin": "norm1_context.linear",
+    }
+    single_map = {
+        "linear2": "proj_out",
+        "modulation.lin": "norm.linear",
+    }
+
+    for source_base in sorted(
+        key.removesuffix(".lora_A.weight") for key in raw_tensors if key.endswith(".lora_A.weight")
+    ):
+        parts = source_base.split(".")
+        result: DownloadResult | None = None
+        if len(parts) >= 3 and parts[0] == "double_blocks":
+            index = parts[1]
+            suffix = ".".join(parts[2:])
+            if suffix == "img_attn.qkv":
+                hidden = raw_tensors[f"{source_base}.lora_A.weight"].shape[1]
+                result = add_split(
+                    source_base,
+                    [
+                        (f"transformer_blocks.{index}.attn.to_q", hidden),
+                        (f"transformer_blocks.{index}.attn.to_k", hidden),
+                        (f"transformer_blocks.{index}.attn.to_v", hidden),
+                    ],
+                )
+            elif suffix == "txt_attn.qkv":
+                hidden = raw_tensors[f"{source_base}.lora_A.weight"].shape[1]
+                result = add_split(
+                    source_base,
+                    [
+                        (f"transformer_blocks.{index}.attn.add_q_proj", hidden),
+                        (f"transformer_blocks.{index}.attn.add_k_proj", hidden),
+                        (f"transformer_blocks.{index}.attn.add_v_proj", hidden),
+                    ],
+                )
+            elif suffix in double_map:
+                result = add_pair(source_base, f"transformer_blocks.{index}.{double_map[suffix]}")
+        elif len(parts) >= 3 and parts[0] == "single_blocks":
+            index = parts[1]
+            suffix = ".".join(parts[2:])
+            if suffix == "linear1":
+                hidden = raw_tensors[f"{source_base}.lora_A.weight"].shape[1]
+                result = add_split(
+                    source_base,
+                    [
+                        (f"single_transformer_blocks.{index}.attn.to_q", hidden),
+                        (f"single_transformer_blocks.{index}.attn.to_k", hidden),
+                        (f"single_transformer_blocks.{index}.attn.to_v", hidden),
+                        (f"single_transformer_blocks.{index}.proj_mlp", hidden * 4),
+                    ],
+                )
+            elif suffix in single_map:
+                result = add_pair(source_base, f"single_transformer_blocks.{index}.{single_map[suffix]}")
+        elif source_base == "final_layer.linear":
+            result = add_pair(source_base, "proj_out")
+
+        if result is not None:
+            return result
+
+    expected_bases = {
+        key.removesuffix(".lora_A.weight")
+        for key in raw_tensors
+        if key.endswith(".lora_A.weight")
+    }
+    unknown = sorted(expected_bases - handled_bases)
+    if unknown:
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            f"unsupported Relight LoRA key pattern(s): {unknown[:5]}",
+            str(source_path),
+        )
+
+    try:
+        save_file(tensors, str(dest_path), metadata=metadata)
+    except Exception as exc:
+        return DownloadResult(
+            "BLOCKED",
+            postprocess_name,
+            f"failed to write Comfy-compatible Relight LoRA: {exc}",
+            str(dest_path),
+        )
+    return DownloadResult(
+        "PASS",
+        postprocess_name,
+        f"normalized {len(tensors)} Relight LoRA keys for Comfy",
+        str(dest_path),
+    )
+
+
 def download_models(
     *,
     root: Path,
@@ -248,6 +496,14 @@ def download_models(
                 )
             )
         postprocess = rewrite_moss_tts_nano_config(
+            entry=entry,
+            name=str(name),
+            cache_root=cache_root,
+            dry_run=dry_run,
+        )
+        if postprocess:
+            results.append(postprocess)
+        postprocess = normalize_kontext_relight_lora(
             entry=entry,
             name=str(name),
             cache_root=cache_root,

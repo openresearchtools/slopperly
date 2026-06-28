@@ -7,11 +7,11 @@ Local FLUX.1 Kontext instruction-based image editing for `models_plugins/image/f
 ## Required Nodes
 
 - ComfyUI core at `https://github.com/comfyanonymous/ComfyUI.git`, commit `603d891eaf045d726d9c23276b4428daf2977624`.
-- Required `/object_info` classes: `LoadImage`, `UNETLoader`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `FluxKontextImageScale`, `VAEEncode`, `ReferenceLatent`, `ConditioningZeroOut`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
+- Required `/object_info` classes: `LoadImage`, `UnetLoaderGGUF`, `DualCLIPLoader`, `VAELoader`, `CLIPTextEncode`, `FluxGuidance`, `FluxKontextImageScale`, `VAEEncode`, `ReferenceLatent`, `ConditioningZeroOut`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
 
 ## Model Files
 
-- `models/diffusion_models/flux1-dev-kontext_fp8_scaled.safetensors` from `Comfy-Org/flux1-kontext-dev_ComfyUI`.
+- `models/diffusion_models/flux1-kontext-dev-Q5_K_M.gguf` from `unsloth/FLUX.1-Kontext-dev-GGUF`.
 - `models/text_encoders/clip_l.safetensors` from `comfyanonymous/flux_text_encoders`.
 - `models/text_encoders/t5xxl_fp8_e4m3fn_scaled.safetensors` from `comfyanonymous/flux_text_encoders`.
 - `models/vae/ae.safetensors` from `black-forest-labs/FLUX.1-schnell`.
@@ -40,4 +40,4 @@ pytest tests/gpu/test_flux_kontext.py --device cuda
 
 ## Expected Validation
 
-Source image upload succeeds, required node classes are present, Comfy queues the API graph, and the returned PNG is readable at the requested dimensions.
+Source image upload succeeds, `UnetLoaderGGUF` loads the Q5 Kontext backbone, required node classes are present, Comfy queues the API graph, and the returned PNG is readable at the requested dimensions.

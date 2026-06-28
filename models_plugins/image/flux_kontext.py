@@ -70,8 +70,7 @@ class FluxKontextPlugin(ModelPlugin):
             "recorded as unmapped until a certified strength-aware graph is added.",
         )
 
-        inputs.flux_kontext_model = "flux1-dev-kontext_fp8_scaled.safetensors"
-        inputs.flux_kontext_weight_dtype = "default"
+        inputs.flux_kontext_model = "flux1-kontext-dev-Q5_K_M.gguf"
         inputs.flux_kontext_clip_l = "clip_l.safetensors"
         inputs.flux_kontext_t5 = "t5xxl_fp8_e4m3fn_scaled.safetensors"
         inputs.flux_kontext_clip_type = "flux"

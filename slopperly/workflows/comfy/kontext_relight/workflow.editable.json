@@ -2,5 +2,5 @@
   "workflow_id": "kontext_relight",
   "source": "https://raw.githubusercontent.com/Comfy-Org/example_workflows/main/flux/kontext/dev/flux_1_kontext_dev_basic.png",
   "reference_docs": "https://docs.comfy.org/tutorials/flux/flux-1-kontext-dev",
-  "note": "Editable metadata is based on the official FLUX Kontext reference-latent example. The API graph inserts LoraLoaderModelOnly for relighting-kontext-dev-lora-v3.safetensors and keeps Slopperly illumination controls in the plugin prompt builder."
+  "note": "Editable metadata is based on the official FLUX Kontext reference-latent example. The API graph uses UnetLoaderGGUF for the Q5 Kontext backbone, inserts LoraLoaderModelOnly for the postprocessed relighting-kontext-dev-lora-v3-comfy.safetensors adapter, and keeps Slopperly illumination controls in the plugin prompt builder."
 }

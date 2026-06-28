@@ -69,12 +69,6 @@
         "input": "unet_name"
       }
     ],
-    "kontext_relight_weight_dtype": [
-      {
-        "node": "37",
-        "input": "weight_dtype"
-      }
-    ],
     "kontext_relight_clip_l": [
       {
         "node": "38",

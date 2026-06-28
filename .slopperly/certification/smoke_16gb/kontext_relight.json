@@ -1,0 +1,29 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/kontext_relight/kontext_relight.png",
+  "command": "pytest tests/gpu/test_kontext_relight.py::test_kontext_relight --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T12:11:33+00:00",
+  "logical_name": "kontext_relight",
+  "metadata": {
+    "illumination_style": "golden time",
+    "light_direction": "left",
+    "model_files": {
+      "gguf": "flux1-kontext-dev-Q5_K_M.gguf",
+      "lora": "relighting-kontext-dev-lora-v3-comfy.safetensors"
+    },
+    "result_path": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/kontext_relight/kontext_relight.png",
+    "runtime_url": "http://127.0.0.1:8190",
+    "source": "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
+    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/kontext_relight/workflow.api.json"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "alpha": false,
+    "format": "PNG",
+    "height": 1024,
+    "kind": "image",
+    "width": 1024
+  }
+}
