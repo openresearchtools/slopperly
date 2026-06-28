@@ -6,6 +6,7 @@ import json
 import re
 import shutil
 import tempfile
+import uuid
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -162,6 +163,16 @@ class ComfyWorkflowRunner:
             workflow = mutated
         self.validate_local_only_workflow(str(schema.get("workflow_id", "mutated_workflow")), workflow)
         return workflow
+
+    @staticmethod
+    def make_save_prefixes_unique(workflow: dict) -> None:
+        nonce = uuid.uuid4().hex[:12]
+        for node in workflow.values():
+            inputs = node.get("inputs")
+            if not isinstance(inputs, dict) or "filename_prefix" not in inputs:
+                continue
+            prefix = str(inputs.get("filename_prefix") or "slopperly")
+            inputs["filename_prefix"] = f"{prefix}_{nonce}"
 
     def patch_media_uploads(self, workflow: dict, schema: dict, inputs) -> list[Path]:
         temp_paths: list[Path] = []
@@ -486,6 +497,7 @@ class ComfyWorkflowRunner:
         workflow = self.patched_workflow(workflow, schema, inputs, scene)
         self.apply_optional_upload_slots(workflow, schema, inputs)
         workflow = self.apply_workflow_mutator(workflow, schema, inputs, scene)
+        self.make_save_prefixes_unique(workflow)
         self._set_phase(inputs, "Checking Comfy workflow nodes")
         self.validate_runtime_nodes(workflow)
         self._set_progress(inputs, 2, total_steps)
