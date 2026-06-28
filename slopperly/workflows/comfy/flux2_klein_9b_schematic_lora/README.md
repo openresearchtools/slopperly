@@ -9,9 +9,9 @@ Routes the existing `Flux2Klein9BSchematicPlugin.generate()` image-conditioned s
 
 ## Model Files
 
-- `models/diffusion_models/flux-2-klein-base-9b-fp8.safetensors` from `black-forest-labs/FLUX.2-klein-base-9b-fp8`.
+- `models/diffusion_models/flux-2-klein-base-9b-fp8.safetensors` from the public `wissxi/FLUX.2-klein-base-9b-fp8` mirror; the original BFL FP8 source is gated and requires a Hugging Face token.
 - `models/text_encoders/qwen_3_8b.safetensors` from `Comfy-Org/vae-text-encorder-for-flux-klein-9b`.
-- `models/vae/flux2-vae.safetensors` from `Comfy-Org/vae-text-encorder-for-flux-klein-9b`.
+- `models/vae/flux2-vae.safetensors` from `Comfy-Org/flux2-dev`.
 - Six schematic LoRAs from `nomadoor/flux-2-klein-9B-schematic-lora`, installed under `models/loras/`.
 
 The upstream README states these LoRAs were trained on FLUX.2 Klein 9B base and may not behave correctly on distilled Klein models. This workflow therefore uses the base 9B FP8 file rather than the distilled 9B workflow used by `flux2_klein_9b_t2i_edit`.

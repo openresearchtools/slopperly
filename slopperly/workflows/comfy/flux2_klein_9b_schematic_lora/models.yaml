@@ -20,13 +20,13 @@ required_node_classes:
   - VAEDecode
   - SaveImage
 model_files:
-  - source: https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9b-fp8
+  - source: https://huggingface.co/wissxi/FLUX.2-klein-base-9b-fp8
     file: flux-2-klein-base-9b-fp8.safetensors
     destination: models/diffusion_models/flux-2-klein-base-9b-fp8.safetensors
   - source: https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-9b
     file: split_files/text_encoders/qwen_3_8b.safetensors
     destination: models/text_encoders/qwen_3_8b.safetensors
-  - source: https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-9b
+  - source: https://huggingface.co/Comfy-Org/flux2-dev
     file: split_files/vae/flux2-vae.safetensors
     destination: models/vae/flux2-vae.safetensors
   - source: https://huggingface.co/nomadoor/flux-2-klein-9B-schematic-lora

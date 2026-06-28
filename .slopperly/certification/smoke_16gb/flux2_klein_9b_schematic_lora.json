@@ -1,0 +1,78 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/flux2_klein_9b_schematic_lora/flux2_klein_schematic_manifest.json",
+  "command": "pytest tests/gpu/test_flux2_klein_schematic.py::test_flux2_klein_schematic_lora --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T03:57:02+00:00",
+  "logical_name": "flux2_klein_9b_schematic_lora",
+  "metadata": {
+    "artifacts": {
+      "AMODAL_SEG": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux2_klein_9b_schematic_lora/flux2_klein_schematic_amodal_seg.png",
+      "BINARY_SEG": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux2_klein_9b_schematic_lora/flux2_klein_schematic_binary_seg.png",
+      "BODY_POSE": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux2_klein_9b_schematic_lora/flux2_klein_schematic_body_pose.png",
+      "DEPTH": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux2_klein_9b_schematic_lora/flux2_klein_schematic_depth.png",
+      "FULL_POSE": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux2_klein_9b_schematic_lora/flux2_klein_schematic_full_pose.png",
+      "NORMAL": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux2_klein_9b_schematic_lora/flux2_klein_schematic_normal.png"
+    },
+    "modes": [
+      "DEPTH",
+      "NORMAL",
+      "BODY_POSE",
+      "FULL_POSE",
+      "BINARY_SEG",
+      "AMODAL_SEG"
+    ],
+    "runtime_url": "http://127.0.0.1:8190",
+    "source": "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
+    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/flux2_klein_9b_schematic_lora/workflow.api.json"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "cases": {
+      "AMODAL_SEG": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      },
+      "BINARY_SEG": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      },
+      "BODY_POSE": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      },
+      "DEPTH": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      },
+      "FULL_POSE": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      },
+      "NORMAL": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      }
+    },
+    "kind": "manifest"
+  }
+}

@@ -220,7 +220,7 @@ models:
       - nomadoor/flux-2-klein-9B-schematic-lora
     task: image_schematic
     runtime: comfy
-    model_source: https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9b-fp8
+    model_source: https://huggingface.co/wissxi/FLUX.2-klein-base-9b-fp8
     download_mode: hf_file
     local_cache_path: models/diffusion_models/flux-2-klein-base-9b-fp8.safetensors
     required_files:
@@ -234,7 +234,7 @@ models:
           - path: split_files/text_encoders/qwen_3_8b.safetensors
             target: qwen_3_8b.safetensors
       - id: flux2_klein_9b_base_vae
-        model_source: https://huggingface.co/Comfy-Org/vae-text-encorder-for-flux-klein-9b
+        model_source: https://huggingface.co/Comfy-Org/flux2-dev
         download_mode: hf_file
         local_cache_path: models/vae/flux2-vae.safetensors
         required_files:
