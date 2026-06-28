@@ -48,10 +48,9 @@
     }
   },
   "12": {
-    "class_type": "UNETLoader",
+    "class_type": "UnetLoaderGGUF",
     "inputs": {
-      "unet_name": "flux1-dev.safetensors",
-      "weight_dtype": "fp8_e4m3fn"
+      "unet_name": "flux1-dev-Q5_K_M.gguf"
     }
   },
   "13": {
@@ -163,7 +162,8 @@
       "image": [
         "40",
         0
-      ]
+      ],
+      "crop": "center"
     }
   },
   "40": {
@@ -186,7 +186,9 @@
       "clip_vision_output": [
         "39",
         0
-      ]
+      ],
+      "strength": 1.0,
+      "strength_type": "multiply"
     }
   },
   "42": {

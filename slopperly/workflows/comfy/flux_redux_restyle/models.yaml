@@ -6,7 +6,6 @@ required_custom_nodes:
     commit: 603d891eaf045d726d9c23276b4428daf2977624
     node_classes:
       - LoadImage
-      - UNETLoader
       - VAELoader
       - DualCLIPLoader
       - CLIPTextEncode
@@ -24,9 +23,13 @@ required_custom_nodes:
       - SamplerCustomAdvanced
       - VAEDecode
       - SaveImage
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    node_classes:
+      - UnetLoaderGGUF
 model_files:
-  - source: https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/flux1-dev.safetensors
-    target: models/diffusion_models/flux1-dev.safetensors
+  - source: https://huggingface.co/unsloth/FLUX.1-dev-GGUF/resolve/main/flux1-dev-Q5_K_M.gguf
+    target: models/diffusion_models/flux1-dev-Q5_K_M.gguf
   - source: https://huggingface.co/Runware/FLUX.1-Redux-dev/resolve/main/flux1-redux-dev.safetensors
     target: models/style_models/flux1-redux-dev.safetensors
   - source: https://huggingface.co/Comfy-Org/sigclip_vision_384/resolve/main/sigclip_vision_patch14_384.safetensors

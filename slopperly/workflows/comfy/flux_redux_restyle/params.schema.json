@@ -53,12 +53,6 @@
         "input": "unet_name"
       }
     ],
-    "flux_redux_weight_dtype": [
-      {
-        "node": "12",
-        "input": "weight_dtype"
-      }
-    ],
     "flux_redux_clip_l": [
       {
         "node": "11",
@@ -93,6 +87,24 @@
       {
         "node": "38",
         "input": "clip_name"
+      }
+    ],
+    "flux_redux_clip_crop": [
+      {
+        "node": "39",
+        "input": "crop"
+      }
+    ],
+    "flux_redux_style_strength": [
+      {
+        "node": "41",
+        "input": "strength"
+      }
+    ],
+    "flux_redux_style_strength_type": [
+      {
+        "node": "41",
+        "input": "strength_type"
       }
     ],
     "flux_redux_sampler": [

@@ -1,0 +1,28 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/flux_redux_restyle/flux_redux_restyle.png",
+  "command": "pytest tests/gpu/test_flux_redux.py::test_flux_redux_restyle --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T12:47:46+00:00",
+  "logical_name": "flux_redux_restyle",
+  "metadata": {
+    "model_files": {
+      "clip_vision": "sigclip_vision_patch14_384.safetensors",
+      "gguf": "flux1-dev-Q5_K_M.gguf",
+      "style_model": "flux1-redux-dev.safetensors"
+    },
+    "result_path": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/flux_redux_restyle/flux_redux_restyle.png",
+    "runtime_url": "http://127.0.0.1:8190",
+    "source": "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
+    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/flux_redux_restyle/workflow.api.json"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "alpha": false,
+    "format": "PNG",
+    "height": 1024,
+    "kind": "image",
+    "width": 1024
+  }
+}

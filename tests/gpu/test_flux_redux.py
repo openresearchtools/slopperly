@@ -58,5 +58,10 @@ def test_flux_redux_restyle(gpu_cert, plugin_loader, base_models, repo_root):
             "workflow_pack": str(workflow_pack),
             "result_path": str(result_path),
             "source": str(source),
+            "model_files": {
+                "gguf": "flux1-dev-Q5_K_M.gguf",
+                "style_model": "flux1-redux-dev.safetensors",
+                "clip_vision": "sigclip_vision_patch14_384.safetensors",
+            },
         },
     )

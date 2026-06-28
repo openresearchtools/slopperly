@@ -40,14 +40,16 @@ class FluxReduxPlugin(ModelPlugin):
             gateway = SlopperlyRuntimeGateway()
 
         inputs.flux_redux_prompt = ""
-        inputs.flux_redux_model = "flux1-dev.safetensors"
-        inputs.flux_redux_weight_dtype = "fp8_e4m3fn"
+        inputs.flux_redux_model = "flux1-dev-Q5_K_M.gguf"
         inputs.flux_redux_clip_l = "clip_l.safetensors"
         inputs.flux_redux_t5 = "t5xxl_fp16.safetensors"
         inputs.flux_redux_clip_type = "flux"
         inputs.flux_redux_vae = "ae.safetensors"
         inputs.flux_redux_style_model = "flux1-redux-dev.safetensors"
         inputs.flux_redux_clip_vision = "sigclip_vision_patch14_384.safetensors"
+        inputs.flux_redux_clip_crop = "center"
+        inputs.flux_redux_style_strength = 1.0
+        inputs.flux_redux_style_strength_type = "multiply"
         inputs.flux_redux_flux_guidance = float(inputs.guidance or 3.5)
         inputs.flux_redux_sampler = "euler"
         inputs.flux_redux_scheduler = "simple"

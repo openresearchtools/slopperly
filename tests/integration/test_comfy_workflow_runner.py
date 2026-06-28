@@ -2818,14 +2818,16 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 seed=6201,
                 steps=25,
                 flux_redux_prompt="",
-                flux_redux_model="flux1-dev.safetensors",
-                flux_redux_weight_dtype="fp8_e4m3fn",
+                flux_redux_model="flux1-dev-Q5_K_M.gguf",
                 flux_redux_clip_l="clip_l.safetensors",
                 flux_redux_t5="t5xxl_fp16.safetensors",
                 flux_redux_clip_type="flux",
                 flux_redux_vae="ae.safetensors",
                 flux_redux_style_model="flux1-redux-dev.safetensors",
                 flux_redux_clip_vision="sigclip_vision_patch14_384.safetensors",
+                flux_redux_clip_crop="center",
+                flux_redux_style_strength=1.0,
+                flux_redux_style_strength_type="multiply",
                 flux_redux_flux_guidance=3.5,
                 flux_redux_sampler="euler",
                 flux_redux_scheduler="simple",
@@ -2853,14 +2855,18 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
         self.assertEqual(prompt["27"]["inputs"]["height"], 768)
         self.assertEqual(prompt["30"]["inputs"]["width"], 1024)
         self.assertEqual(prompt["30"]["inputs"]["height"], 768)
-        self.assertEqual(prompt["12"]["inputs"]["unet_name"], "flux1-dev.safetensors")
-        self.assertEqual(prompt["12"]["inputs"]["weight_dtype"], "fp8_e4m3fn")
+        self.assertEqual(prompt["12"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["12"]["inputs"]["unet_name"], "flux1-dev-Q5_K_M.gguf")
+        self.assertNotIn("weight_dtype", prompt["12"]["inputs"])
         self.assertEqual(prompt["11"]["inputs"]["clip_name1"], "t5xxl_fp16.safetensors")
         self.assertEqual(prompt["11"]["inputs"]["clip_name2"], "clip_l.safetensors")
         self.assertEqual(prompt["11"]["inputs"]["type"], "flux")
         self.assertEqual(prompt["10"]["inputs"]["vae_name"], "ae.safetensors")
         self.assertEqual(prompt["38"]["inputs"]["clip_name"], "sigclip_vision_patch14_384.safetensors")
         self.assertEqual(prompt["42"]["inputs"]["style_model_name"], "flux1-redux-dev.safetensors")
+        self.assertEqual(prompt["39"]["inputs"]["crop"], "center")
+        self.assertEqual(prompt["41"]["inputs"]["strength"], 1.0)
+        self.assertEqual(prompt["41"]["inputs"]["strength_type"], "multiply")
         self.assertEqual(prompt["6"]["inputs"]["text"], "")
         self.assertEqual(prompt["26"]["inputs"]["guidance"], 3.5)
         self.assertEqual(prompt["16"]["inputs"]["sampler_name"], "euler")
