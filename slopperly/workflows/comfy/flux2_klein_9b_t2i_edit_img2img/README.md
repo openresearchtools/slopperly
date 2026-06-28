@@ -9,7 +9,7 @@ Routes the existing `Flux2Klein9BPlugin.generate()` image edit path through loca
 
 ## Model Files
 
-- `models/diffusion_models/flux-2-klein-9b-fp8.safetensors` from `black-forest-labs/FLUX.2-klein-9b-fp8`.
+- `models/diffusion_models/flux-2-klein-9b-fp8.safetensors` from `titomatus0203/flux-2-klein-9b-fp8`.
 - `models/text_encoders/qwen_3_8b_fp8mixed.safetensors` from `Comfy-Org/vae-text-encorder-for-flux-klein-9b`.
 - `models/vae/full_encoder_small_decoder.safetensors` from `black-forest-labs/FLUX.2-small-decoder`.
 
@@ -24,6 +24,7 @@ The editable reference comes from the official Comfy template `image_flux2_klein
 - `steps` -> `Flux2Scheduler.steps`
 - `guidance` -> plugin field `flux2_klein_guidance` -> `CFGGuider.cfg`
 - `seed` -> `RandomNoise.noise_seed`
+- `LoRA` controls -> dynamic `LoraLoaderModelOnly` insertion before `CFGGuider.model`.
 - `image_strength` remains visible but is recorded as unmapped because the official ReferenceLatent graph does not expose a denoise value.
 
 ## Output Contract

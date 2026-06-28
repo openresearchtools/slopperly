@@ -2726,11 +2726,67 @@ class LocalPluginPathTests(unittest.TestCase):
         self.assertEqual(edit_prompt["12"]["inputs"]["noise_seed"], 42010)
         self.assertEqual(edit_prompt["11"]["inputs"]["positive"], ["27", 0])
         self.assertEqual(edit_prompt["22"]["inputs"]["latent"], ["21", 0])
+        self.assertNotIn("24", edit_prompt)
+        self.assertNotIn("25", edit_prompt)
+        self.assertNotIn("26", edit_prompt)
         self.assertNotIn("latent", edit_prompt["27"]["inputs"])
         self.assertNotIn("latent", edit_prompt["28"]["inputs"])
         self.assertIn(b'filename="source.png"', RuntimeHandler.comfy_uploads[0])
         self.assertIn(b'filename="ref.png"', RuntimeHandler.comfy_uploads[1])
         self.assertIn("denoise/strength input", edit_inputs.usage_note)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            ref = Path(tmp) / "ref.png"
+            source.write_bytes(b"local flux source image")
+            ref.write_bytes(b"local flux reference image")
+            module.solve_path = lambda filename: str(Path(tmp) / filename)
+            scene = SimpleNamespace(
+                sequence_editor=SimpleNamespace(strips=[
+                    SimpleNamespace(name="ref", type="IMAGE", filepath=str(ref)),
+                ]),
+                klein_strip_1="ref",
+                klein_strip_2="",
+                klein_strip_3="",
+            )
+            lora_edit_inputs = self.base.ModelInputs(
+                prompt="edit the local FLUX.2 Klein 9B image with selected LoRA",
+                image=str(source),
+                mode="img2img",
+                width=1024,
+                height=1024,
+                steps=4,
+                guidance=1.0,
+                strength=0.65,
+                seed=42011,
+                frames=1,
+            )
+            enabled = [
+                SimpleNamespace(name="klein_9b_edit_style.safetensors", weight_value=0.6, enabled=True)
+            ]
+
+            RuntimeHandler.comfy_uploads = []
+            with local_only_network():
+                pipe = plugin.load(prefs, scene, enabled_items=enabled)
+                output = plugin.generate(pipe, lora_edit_inputs, scene, prefs)
+
+            self.assertEqual(Path(output).read_bytes(), RuntimeHandler.png_bytes)
+
+        lora_edit_prompt = RuntimeHandler.comfy_prompts[-1]
+        self.assertEqual(len(RuntimeHandler.comfy_uploads), 2)
+        self.assertEqual(lora_edit_prompt["90"]["class_type"], "LoraLoaderModelOnly")
+        self.assertEqual(lora_edit_prompt["90"]["inputs"]["model"], ["3", 0])
+        self.assertEqual(lora_edit_prompt["90"]["inputs"]["lora_name"], "klein_9b_edit_style.safetensors")
+        self.assertEqual(lora_edit_prompt["90"]["inputs"]["strength_model"], 0.6)
+        self.assertEqual(lora_edit_prompt["11"]["inputs"]["model"], ["90", 0])
+        self.assertEqual(lora_edit_prompt["1"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(lora_edit_prompt["19"]["inputs"]["image"], "uploaded_source_2.png")
+        self.assertNotIn("24", lora_edit_prompt)
+        self.assertNotIn("25", lora_edit_prompt)
+        self.assertNotIn("26", lora_edit_prompt)
+        self.assertIn("applied 1 selected LoRA", lora_edit_inputs.usage_note)
+        self.assertIn("denoise/strength input", lora_edit_inputs.usage_note)
+        self.assertFalse(hasattr(lora_edit_inputs, "_slopperly_comfy_workflow_mutator"))
 
     def test_flux2_klein_schematic_uses_comfy_lora_plugin_path(self):
         module = load_plugin_module("image", "flux2_klein_9b_schematic")

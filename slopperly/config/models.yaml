@@ -179,7 +179,7 @@ models:
       - black-forest-labs/FLUX.2-klein-9B
     task: image_t2i_i2i
     runtime: comfy
-    model_source: https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8
+    model_source: https://huggingface.co/titomatus0203/flux-2-klein-9b-fp8
     download_mode: hf_file
     local_cache_path: models/diffusion_models/flux-2-klein-9b-fp8.safetensors
     required_files:
@@ -208,6 +208,7 @@ models:
       cfg: 1.0
       sampler: euler
       fps: null
+      lora_injection: dynamic_lora_loader_model_only
     minimum_vram_gb: 24
     validation_command: pytest tests/gpu/test_flux2_klein_9b.py --device cuda
     workflows:

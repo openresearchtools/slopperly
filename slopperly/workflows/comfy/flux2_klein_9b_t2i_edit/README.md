@@ -9,7 +9,7 @@ Routes the existing `Flux2Klein9BPlugin.generate()` text-to-image path through l
 
 ## Model Files
 
-- `models/diffusion_models/flux-2-klein-9b-fp8.safetensors` from `black-forest-labs/FLUX.2-klein-9b-fp8`.
+- `models/diffusion_models/flux-2-klein-9b-fp8.safetensors` from `titomatus0203/flux-2-klein-9b-fp8`.
 - `models/text_encoders/qwen_3_8b_fp8mixed.safetensors` from `Comfy-Org/vae-text-encorder-for-flux-klein-9b`.
 - `models/vae/full_encoder_small_decoder.safetensors` from `black-forest-labs/FLUX.2-small-decoder`.
 
@@ -22,7 +22,7 @@ The editable reference comes from the official Comfy 9B template family. The pro
 - `steps` -> `Flux2Scheduler.steps`
 - `guidance` -> plugin field `flux2_klein_guidance` -> `CFGGuider.cfg`
 - `seed` -> `RandomNoise.noise_seed`
-- `LoRA` controls remain visible but are recorded as unmapped until dynamic Comfy LoRA injection is certified.
+- `LoRA` controls -> dynamic `LoraLoaderModelOnly` insertion before `CFGGuider.model`.
 
 ## Output Contract
 

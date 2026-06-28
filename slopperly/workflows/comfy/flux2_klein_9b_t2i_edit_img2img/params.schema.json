@@ -122,6 +122,7 @@
         "input": "image",
         "type": "input",
         "optional": true,
+        "prune_nodes": ["19", "20", "21"],
         "disconnects": [
           {
             "node": "22",
@@ -140,6 +141,7 @@
         "input": "image",
         "type": "input",
         "optional": true,
+        "prune_nodes": ["24", "25", "26"],
         "disconnects": [
           {
             "node": "27",
@@ -156,7 +158,6 @@
   "unmapped_ui_parameters": {
     "frames": "The existing image-plugin frame control is preserved by the surrounding UI but this workflow emits one PNG per generate call.",
     "strength": "The official FLUX.2 Klein reference-edit graph does not expose a denoise/strength input; the plugin records a usage note when image edit is used.",
-    "custom_loras": "The workflow keeps the LoRA UI visible but dynamic project LoRA injection is not mapped in this certified graph yet.",
     "inpaint_mask": "Masked inpaint is blocked until an official local FLUX.2 Klein mask workflow is certified."
   },
   "outputs": [
