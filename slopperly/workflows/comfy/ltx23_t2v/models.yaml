@@ -1,0 +1,34 @@
+workflow_id: ltx23_t2v
+task: text_to_video
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui_gguf
+    classes:
+      - UnetLoaderGGUFDisTorch2MultiGPU
+  - id: video_helper_suite
+    classes:
+      - CreateVideo
+      - SaveVideo
+model_files:
+  unet:
+    - ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf
+  loras:
+    - ltx-2.3-22b-distilled-lora-384.safetensors
+  vae:
+    - ltx-2.3-22b-distilled_video_vae.safetensors
+    - ltx-2.3-22b-distilled_audio_vae.safetensors
+  text_encoders:
+    - gemma_3_12B_it_fp4_mixed.safetensors
+    - ltx-2.3-22b-distilled_embeddings_connectors.safetensors
+supported_profiles:
+  - width: 1280
+    height: 704
+    fps: 24
+    frames: 17
+artifact_contract:
+  output_type: mp4
+  validation:
+    - ffprobe-readable
+    - fps matches patched fps
+    - frame count approximately equals patched frames
+    - audio stream present when audio VAE output is connected

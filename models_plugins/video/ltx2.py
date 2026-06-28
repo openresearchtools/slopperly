@@ -1,4 +1,4 @@
-"""LTX image-to-video routed through the owned local ComfyUI runtime."""
+"""LTX text/image-to-video routed through the owned local ComfyUI runtime."""
 
 from ...models.base import InputSpec, ModelInputs, ModelPlugin, ParamSpec, UISection
 from ...slopperly.runtime.gateway import SlopperlyRuntimeGateway
@@ -10,7 +10,9 @@ except ImportError:  # GPU plugin harness only supplies helpers used by the exer
     load_first_frame = None
 
 
-WORKFLOW_ID = "ltx23_i2v"
+I2V_WORKFLOW_ID = "ltx23_i2v"
+T2V_WORKFLOW_ID = "ltx23_t2v"
+WORKFLOW_ID = I2V_WORKFLOW_ID
 LTX_GGUF_MODEL = "ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf"
 LTX_TEXT_ENCODER = "gemma_3_12B_it_fp4_mixed.safetensors"
 LTX_CONNECTOR = "ltx-2.3-22b-distilled_embeddings_connectors.safetensors"
@@ -30,7 +32,7 @@ def _safe_ltx_dimensions(width: int, height: int) -> tuple[int, int]:
     return safe_width, safe_height
 
 
-def prepare_ltx23_i2v_inputs(inputs: ModelInputs) -> None:
+def prepare_ltx23_inputs(inputs: ModelInputs) -> None:
     width, height = _safe_ltx_dimensions(inputs.width, inputs.height)
     inputs.width = width
     inputs.height = height
@@ -48,7 +50,7 @@ class LTX2Plugin(ModelPlugin):
     MODEL_ID = "rootonchair/LTX-2-19b-distilled"
     DISPLAY_NAME = "Video: LTX-2 19b (Local Q5)"
     MODEL_TYPE = "video"
-    DESCRIPTION = "Local LTX image-to-video through owned ComfyUI using the LTX 2.3 Q5 GGUF workflow."
+    DESCRIPTION = "Local LTX text/image-to-video through owned ComfyUI using LTX 2.3 Q5 GGUF workflows."
 
     INPUTS = InputSpec.PROMPT | InputSpec.NEG_PROMPT | InputSpec.IMAGE | InputSpec.LORA
     UI_SECTIONS = [
@@ -82,15 +84,15 @@ class LTX2Plugin(ModelPlugin):
             if load_first_frame is None:
                 raise ValueError("LTX video-strip input requires load_first_frame helper availability.")
             image = load_first_frame(inputs.video_path)
-        if image is None:
-            raise ValueError("LTX local image-to-video requires an image or video strip input.")
-        inputs.image = image
-        prepare_ltx23_i2v_inputs(inputs)
+        workflow_id = I2V_WORKFLOW_ID if image is not None else T2V_WORKFLOW_ID
+        if image is not None:
+            inputs.image = image
+        prepare_ltx23_inputs(inputs)
 
         custom_loras = pipe_obj.get("enabled_loras", []) if isinstance(pipe_obj, dict) else []
         if custom_loras:
             note = (
-                "LTX local Q5 workflow uses the committed distilled LTX LoRA. "
+                "LTX local Q5 workflows use the committed distilled LTX LoRA. "
                 "Project LoRA adapters remain visible in the UI but are not dynamically injected yet."
             )
             inputs.usage_note = ((inputs.usage_note + "\n") if inputs.usage_note else "") + note
@@ -108,11 +110,12 @@ class LTX2Plugin(ModelPlugin):
         if gateway is None:
             gateway = SlopperlyRuntimeGateway()
 
-        self.set_phase(inputs, f"Running local Comfy workflow: {WORKFLOW_ID}")
-        filename = clean_filename(f"{inputs.seed}_ltx23_q5_i2v") or "ltx23_q5_i2v"
+        self.set_phase(inputs, f"Running local Comfy workflow: {workflow_id}")
+        suffix = "i2v" if workflow_id == I2V_WORKFLOW_ID else "t2v"
+        filename = clean_filename(f"{inputs.seed}_ltx23_q5_{suffix}") or f"ltx23_q5_{suffix}"
         destination = solve_path(filename + ".mp4")
         return gateway.run_comfy_workflow(
-            WORKFLOW_ID,
+            workflow_id,
             inputs,
             scene,
             prefs,

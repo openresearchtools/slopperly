@@ -1,8 +1,8 @@
 {
-  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/ltx23_i2v_q5_gguf/ltx23_i2v_q5.mp4",
-  "command": "pytest tests/gpu/test_ltx23_i2v_existing_workflow.py::test_ltx23_i2v_existing_workflow --device cuda --profile smoke_16gb",
-  "generated_at_utc": "2026-06-28T14:02:49+00:00",
-  "logical_name": "ltx23_i2v_q5_gguf",
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/ltx23_t2v_q5_gguf/ltx23_t2v_q5.mp4",
+  "command": "pytest tests/gpu/test_ltx23_t2v_q5.py::test_ltx23_t2v_q5_workflow --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T14:00:30+00:00",
+  "logical_name": "ltx23_t2v_q5_gguf",
   "metadata": {
     "fps": 24.0,
     "frames": 17,
@@ -20,16 +20,15 @@
     "requested_height": 720,
     "requested_width": 1280,
     "runtime_url": "http://127.0.0.1:8190",
-    "source": "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
-    "workflow_id": "ltx23_i2v",
-    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/ltx23_i2v/workflow.api.json"
+    "workflow_id": "ltx23_t2v",
+    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/ltx23_t2v/workflow.api.json"
   },
   "profile": "smoke_16gb",
   "reason": "",
   "schema_version": 1,
   "status": "PASS",
   "validation": {
-    "duration": 0.708008,
+    "duration": 0.708333,
     "fps": 24.0,
     "frame_count": 17,
     "has_audio": true,

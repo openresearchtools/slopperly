@@ -1,0 +1,16 @@
+{
+  "prompt": "A cinematic local text-to-video shot of a small brass observatory rotating under morning light.",
+  "negative_prompt": "static pose, frozen frame, low quality, flicker, watermark",
+  "width": 1280,
+  "height": 720,
+  "frames": 17,
+  "fps": 24,
+  "seed": 230519,
+  "expected": {
+    "type": "video",
+    "extension": ".mp4",
+    "fps": 24,
+    "width": 1280,
+    "height": 704
+  }
+}
