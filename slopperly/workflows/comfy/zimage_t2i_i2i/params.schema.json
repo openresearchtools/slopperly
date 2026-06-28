@@ -1,7 +1,7 @@
 {
   "version": 1,
   "workflow_id": "zimage_t2i_i2i",
-  "description": "Patch schema for local Z-Image text-to-image generation through ComfyUI core nodes.",
+  "description": "Patch schema for local Z-Image text-to-image generation through ComfyUI-GGUF plus ComfyUI core nodes.",
   "inputs": {
     "prompt": [
       {

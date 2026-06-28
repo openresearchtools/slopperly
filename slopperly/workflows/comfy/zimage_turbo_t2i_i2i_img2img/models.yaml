@@ -1,11 +1,15 @@
 workflow_id: zimage_turbo_t2i_i2i_img2img
 runtime: comfy
 required_custom_nodes:
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    commit: fcf3c4c98baf3a6f78f5200b73d86436931c43fb
+    node_classes:
+      - UnetLoaderGGUF
   - id: comfyui_core
     repo: https://github.com/comfyanonymous/ComfyUI.git
     commit: 603d891eaf045d726d9c23276b4428daf2977624
     node_classes:
-      - UNETLoader
       - ModelSamplingAuraFlow
       - CLIPLoader
       - VAELoader
@@ -18,11 +22,14 @@ required_custom_nodes:
       - VAEDecode
       - SaveImage
 model_files:
+  - source: https://huggingface.co/unsloth/Z-Image-Turbo-GGUF
+    download_mode: hf_file
+    files:
+      - path: z-image-turbo-Q5_K_M.gguf
+        target: models/diffusion_models/z-image-turbo-Q5_K_M.gguf
   - source: https://huggingface.co/Comfy-Org/z_image_turbo
     download_mode: hf_file
     files:
-      - path: split_files/diffusion_models/z_image_turbo_bf16.safetensors
-        target: models/diffusion_models/z_image_turbo_bf16.safetensors
       - path: split_files/text_encoders/qwen_3_4b.safetensors
         target: models/text_encoders/qwen_3_4b.safetensors
       - path: split_files/vae/ae.safetensors

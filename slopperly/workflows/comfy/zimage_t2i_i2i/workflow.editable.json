@@ -2,7 +2,7 @@
   "workflow_id": "zimage_t2i_i2i",
   "source": "Derived from Comfy-Org workflow_templates image_z_image.json and exported as a Slopperly API graph.",
   "notes": [
-    "Production graph follows the official Z-Image Base template with core UNETLoader, CLIPLoader, VAELoader, ModelSamplingAuraFlow, KSampler, and SaveImage nodes.",
+    "Production graph follows the official Z-Image Base template with ComfyUI-GGUF UnetLoaderGGUF, CLIPLoader, VAELoader, ModelSamplingAuraFlow, KSampler, and SaveImage nodes.",
     "The img2img path is committed as the companion zimage_t2i_i2i_img2img API workflow pack."
   ]
 }

@@ -2,7 +2,7 @@
   "workflow_id": "zimage_turbo_t2i_i2i",
   "source": "Derived from Comfy-Org workflow_templates image_z_image_turbo.json and exported as a Slopperly API graph.",
   "notes": [
-    "Production graph follows the official Z-Image Turbo template with ConditioningZeroOut for the no-CFG negative path.",
+    "Production graph follows the official Z-Image Turbo template with ComfyUI-GGUF UnetLoaderGGUF and ConditioningZeroOut for the no-CFG negative path.",
     "The img2img path is committed as the companion zimage_turbo_t2i_i2i_img2img API workflow pack."
   ]
 }

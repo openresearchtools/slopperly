@@ -801,8 +801,8 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
-                node.get("class_type") == "UNETLoader"
-                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("z_image")
+                node.get("class_type") == "UnetLoaderGGUF"
+                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("z-image")
                 for node in RuntimeHandler.comfy_prompt.values()
                 if isinstance(node, dict)
             ):
@@ -810,7 +810,7 @@ class RuntimeHandler(BaseHTTPRequestHandler):
                 unet_name = next(
                     str((node.get("inputs") or {}).get("unet_name", ""))
                     for node in RuntimeHandler.comfy_prompt.values()
-                    if isinstance(node, dict) and node.get("class_type") == "UNETLoader"
+                    if isinstance(node, dict) and node.get("class_type") == "UnetLoaderGGUF"
                 )
                 turbo = "turbo" in unet_name
                 img2img = output_node == "12"
@@ -1546,7 +1546,8 @@ class LocalPluginPathTests(unittest.TestCase):
 
         prompt = RuntimeHandler.comfy_prompts[-1]
         self.assertEqual(RuntimeHandler.comfy_uploads, [])
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z_image_bf16.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z-image-Q5_K_M.gguf")
         self.assertEqual(prompt["3"]["inputs"]["clip_name"], "qwen_3_4b.safetensors")
         self.assertEqual(prompt["3"]["inputs"]["type"], "lumina2")
         self.assertEqual(prompt["4"]["inputs"]["vae_name"], "ae.safetensors")
@@ -1616,7 +1617,8 @@ class LocalPluginPathTests(unittest.TestCase):
 
         prompt = RuntimeHandler.comfy_prompts[-1]
         self.assertEqual(RuntimeHandler.comfy_uploads, [])
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z_image_turbo_bf16.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z-image-turbo-Q5_K_M.gguf")
         self.assertEqual(prompt["5"]["inputs"]["text"], "local Z-Image Turbo text to image")
         self.assertEqual(prompt["6"]["class_type"], "ConditioningZeroOut")
         self.assertEqual(prompt["8"]["inputs"]["seed"], 1301)

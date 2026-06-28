@@ -1,18 +1,19 @@
 # Z-Image Text-to-Image
 
-Local ComfyUI workflow for `Tongyi-MAI/Z-Image` text-to-image generation using the official Comfy-Org Z-Image template shape.
+Local ComfyUI workflow for `Tongyi-MAI/Z-Image` text-to-image generation using the official Z-Image template shape with a Q5 GGUF backbone.
 
 ## Required Nodes
 
-- ComfyUI core nodes from commit `603d891eaf045d726d9c23276b4428daf2977624`: `UNETLoader`, `ModelSamplingAuraFlow`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
+- ComfyUI-GGUF from commit `fcf3c4c98baf3a6f78f5200b73d86436931c43fb`: `UnetLoaderGGUF`.
+- ComfyUI core nodes from commit `603d891eaf045d726d9c23276b4428daf2977624`: `ModelSamplingAuraFlow`, `CLIPLoader`, `VAELoader`, `CLIPTextEncode`, `EmptySD3LatentImage`, `KSampler`, `VAEDecode`, and `SaveImage`.
 
-No custom Comfy node pack is required for this workflow.
+The GGUF node pack must be installed in the owned Slopperly Comfy runtime.
 
 ## Model Files
 
 The Slopperly model manager must place these files under the owned Comfy model directory before generation:
 
-- `models/diffusion_models/z_image_bf16.safetensors` from `Comfy-Org/z_image`
+- `models/diffusion_models/z-image-Q5_K_M.gguf` from `unsloth/Z-Image-GGUF`
 - `models/text_encoders/qwen_3_4b.safetensors` from `Comfy-Org/z_image_turbo`
 - `models/vae/ae.safetensors` from `Comfy-Org/z_image_turbo`
 
@@ -41,7 +42,7 @@ pytest tests/gpu/test_zimage.py --device cuda
 
 ## Expected Validation
 
-- Comfy `/object_info` includes all listed core node classes.
+- Comfy `/object_info` includes all listed GGUF and core node classes.
 - `workflow.api.json` validates as Comfy API format and contains no external inference URLs.
 - The addon plugin path calls `ZImagePlugin.load()` and `ZImagePlugin.generate()`.
 - The smoke payload returns a readable 1024x1024 PNG file.

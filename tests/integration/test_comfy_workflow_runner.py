@@ -588,15 +588,15 @@ class ComfyHandler(BaseHTTPRequestHandler):
                     }
                 })
             if any(
-                node.get("class_type") == "UNETLoader"
-                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("z_image")
+                node.get("class_type") == "UnetLoaderGGUF"
+                and str((node.get("inputs") or {}).get("unet_name", "")).startswith("z-image")
                 for node in ComfyHandler.last_prompt.values()
             ):
                 output_node = "12" if "12" in ComfyHandler.last_prompt else "10"
                 unet_name = next(
                     str((node.get("inputs") or {}).get("unet_name", ""))
                     for node in ComfyHandler.last_prompt.values()
-                    if node.get("class_type") == "UNETLoader"
+                    if node.get("class_type") == "UnetLoaderGGUF"
                 )
                 turbo = "turbo" in unet_name
                 img2img = output_node == "12"
@@ -1915,7 +1915,7 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 zimage_sampler="res_multistep",
                 zimage_scheduler="simple",
                 zimage_denoise=1.0,
-                zimage_model="z_image_bf16.safetensors",
+                zimage_model="z-image-Q5_K_M.gguf",
                 zimage_text_encoder="qwen_3_4b.safetensors",
                 zimage_vae="ae.safetensors",
             )
@@ -1934,7 +1934,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
 
         prompt = ComfyHandler.last_prompt
         self.assertEqual(ComfyHandler.upload_bodies, [])
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z_image_bf16.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z-image-Q5_K_M.gguf")
         self.assertEqual(prompt["3"]["inputs"]["clip_name"], "qwen_3_4b.safetensors")
         self.assertEqual(prompt["3"]["inputs"]["type"], "lumina2")
         self.assertEqual(prompt["4"]["inputs"]["vae_name"], "ae.safetensors")
@@ -1995,7 +1996,7 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
                 zimage_sampler="res_multistep",
                 zimage_scheduler="simple",
                 zimage_denoise=1.0,
-                zimage_model="z_image_turbo_bf16.safetensors",
+                zimage_model="z-image-turbo-Q5_K_M.gguf",
                 zimage_text_encoder="qwen_3_4b.safetensors",
                 zimage_vae="ae.safetensors",
             )
@@ -2014,7 +2015,8 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
 
         prompt = ComfyHandler.last_prompt
         self.assertEqual(ComfyHandler.upload_bodies, [])
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z_image_turbo_bf16.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "z-image-turbo-Q5_K_M.gguf")
         self.assertEqual(prompt["5"]["inputs"]["text"], "local Z-Image Turbo text to image")
         self.assertEqual(prompt["6"]["class_type"], "ConditioningZeroOut")
         self.assertEqual(prompt["8"]["inputs"]["cfg"], 1.0)

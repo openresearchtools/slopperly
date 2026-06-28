@@ -46,7 +46,7 @@ class _ZImageBase(ModelPlugin):
             gateway = SlopperlyRuntimeGateway()
 
         workflow_id = self.T2I_WORKFLOW_ID
-        stem = self.COMFY_MODEL.removesuffix(".safetensors")
+        stem = self.COMFY_MODEL.rsplit(".", 1)[0]
         if inputs.mode == "img2img" and inputs.image is not None:
             workflow_id = self.I2I_WORKFLOW_ID
             stem = f"{stem}_i2i"
@@ -92,7 +92,7 @@ class ZImagePlugin(_ZImageBase):
     DISPLAY_NAME = "Image: Z-Image"
     DESCRIPTION = "Text-to-image and img2img via local ComfyUI Z-Image"
     PARAMS = ParamSpec(steps=30, guidance=7.0)
-    COMFY_MODEL = "z_image_bf16.safetensors"
+    COMFY_MODEL = "z-image-Q5_K_M.gguf"
     T2I_WORKFLOW_ID = BASE_T2I_WORKFLOW_ID
     I2I_WORKFLOW_ID = BASE_I2I_WORKFLOW_ID
 
@@ -102,7 +102,7 @@ class ZImageTurboPlugin(_ZImageBase):
     DISPLAY_NAME = "Image: Z-Image Turbo (fast)"
     DESCRIPTION = "Fast text-to-image and img2img via local ComfyUI Z-Image Turbo"
     PARAMS = ParamSpec(steps=8, guidance=0.0)
-    COMFY_MODEL = "z_image_turbo_bf16.safetensors"
+    COMFY_MODEL = "z-image-turbo-Q5_K_M.gguf"
     T2I_WORKFLOW_ID = TURBO_T2I_WORKFLOW_ID
     I2I_WORKFLOW_ID = TURBO_I2I_WORKFLOW_ID
     TURBO_PROFILE = True

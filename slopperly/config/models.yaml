@@ -620,12 +620,11 @@ models:
       - Tongyi-MAI/Z-Image
     task: image_t2i_i2i
     runtime: comfy
-    model_source: https://huggingface.co/Comfy-Org/z_image
+    model_source: https://huggingface.co/unsloth/Z-Image-GGUF
     download_mode: hf_file
-    local_cache_path: models/diffusion_models/z_image_bf16.safetensors
+    local_cache_path: models/diffusion_models/z-image-Q5_K_M.gguf
     required_files:
-      - path: split_files/diffusion_models/z_image_bf16.safetensors
-        target: z_image_bf16.safetensors
+      - z-image-Q5_K_M.gguf
     auxiliary_sources:
       - id: zimage_text_encoder
         model_source: https://huggingface.co/Comfy-Org/z_image_turbo
@@ -641,7 +640,10 @@ models:
         required_files:
           - path: split_files/vae/ae.safetensors
             target: ae.safetensors
-    required_node_pack: comfyui core z-image
+    required_node_pack: comfyui_gguf + comfyui core z-image
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
     default_parameters:
@@ -661,12 +663,11 @@ models:
       - Tongyi-MAI/Z-Image-Turbo
     task: image_t2i_i2i
     runtime: comfy
-    model_source: https://huggingface.co/Comfy-Org/z_image_turbo
+    model_source: https://huggingface.co/unsloth/Z-Image-Turbo-GGUF
     download_mode: hf_file
-    local_cache_path: models/diffusion_models/z_image_turbo_bf16.safetensors
+    local_cache_path: models/diffusion_models/z-image-turbo-Q5_K_M.gguf
     required_files:
-      - path: split_files/diffusion_models/z_image_turbo_bf16.safetensors
-        target: z_image_turbo_bf16.safetensors
+      - z-image-turbo-Q5_K_M.gguf
     auxiliary_sources:
       - id: zimage_turbo_text_encoder
         model_source: https://huggingface.co/Comfy-Org/z_image_turbo
@@ -682,7 +683,10 @@ models:
         required_files:
           - path: split_files/vae/ae.safetensors
             target: ae.safetensors
-    required_node_pack: comfyui core z-image
+    required_node_pack: comfyui_gguf + comfyui core z-image
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
     default_parameters:

@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 
 from slopperly.audit.network_guard import local_only_network
@@ -9,8 +10,8 @@ BASE_LOGICAL_NAME = "zimage_t2i_i2i"
 TURBO_LOGICAL_NAME = "zimage_turbo_t2i_i2i"
 
 
-def test_zimage_t2i(gpu_cert, plugin_loader, base_models, repo_root):
-    _run_zimage_case(
+def test_zimage_base_t2i_and_i2i(gpu_cert, plugin_loader, base_models, repo_root):
+    t2i = _run_zimage_case(
         gpu_cert,
         plugin_loader,
         base_models,
@@ -25,10 +26,7 @@ def test_zimage_t2i(gpu_cert, plugin_loader, base_models, repo_root):
         filename="zimage_t2i.png",
         mode="txt2img",
     )
-
-
-def test_zimage_i2i(gpu_cert, plugin_loader, base_models, repo_root):
-    _run_zimage_case(
+    i2i = _run_zimage_case(
         gpu_cert,
         plugin_loader,
         base_models,
@@ -44,9 +42,44 @@ def test_zimage_i2i(gpu_cert, plugin_loader, base_models, repo_root):
         mode="img2img",
     )
 
+    manifest_path = gpu_cert.artifact_path(BASE_LOGICAL_NAME, "zimage_manifest.json")
+    manifest = {
+        "t2i": t2i,
+        "img2img": i2i,
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    gpu_cert.pass_artifact(
+        BASE_LOGICAL_NAME,
+        manifest_path,
+        {
+            "kind": "manifest",
+            "cases": {
+                "t2i": t2i["validation"],
+                "img2img": i2i["validation"],
+            },
+        },
+        metadata={
+            "runtime_url": t2i["runtime_url"],
+            "workflow_packs": {
+                "t2i": t2i["workflow_pack"],
+                "img2img": i2i["workflow_pack"],
+            },
+            "model_files": {
+                "gguf": "z-image-Q5_K_M.gguf",
+                "text_encoder": "qwen_3_4b.safetensors",
+                "vae": "ae.safetensors",
+            },
+            "artifacts": {
+                "t2i": t2i["artifact"],
+                "img2img": i2i["artifact"],
+            },
+            "source": i2i.get("source", ""),
+        },
+    )
 
-def test_zimage_turbo_t2i(gpu_cert, plugin_loader, base_models, repo_root):
-    _run_zimage_case(
+
+def test_zimage_turbo_t2i_and_i2i(gpu_cert, plugin_loader, base_models, repo_root):
+    t2i = _run_zimage_case(
         gpu_cert,
         plugin_loader,
         base_models,
@@ -61,10 +94,7 @@ def test_zimage_turbo_t2i(gpu_cert, plugin_loader, base_models, repo_root):
         filename="zimage_turbo_t2i.png",
         mode="txt2img",
     )
-
-
-def test_zimage_turbo_i2i(gpu_cert, plugin_loader, base_models, repo_root):
-    _run_zimage_case(
+    i2i = _run_zimage_case(
         gpu_cert,
         plugin_loader,
         base_models,
@@ -78,6 +108,41 @@ def test_zimage_turbo_i2i(gpu_cert, plugin_loader, base_models, repo_root):
         seed=130102,
         filename="zimage_turbo_i2i.png",
         mode="img2img",
+    )
+
+    manifest_path = gpu_cert.artifact_path(TURBO_LOGICAL_NAME, "zimage_turbo_manifest.json")
+    manifest = {
+        "t2i": t2i,
+        "img2img": i2i,
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    gpu_cert.pass_artifact(
+        TURBO_LOGICAL_NAME,
+        manifest_path,
+        {
+            "kind": "manifest",
+            "cases": {
+                "t2i": t2i["validation"],
+                "img2img": i2i["validation"],
+            },
+        },
+        metadata={
+            "runtime_url": t2i["runtime_url"],
+            "workflow_packs": {
+                "t2i": t2i["workflow_pack"],
+                "img2img": i2i["workflow_pack"],
+            },
+            "model_files": {
+                "gguf": "z-image-turbo-Q5_K_M.gguf",
+                "text_encoder": "qwen_3_4b.safetensors",
+                "vae": "ae.safetensors",
+            },
+            "artifacts": {
+                "t2i": t2i["artifact"],
+                "img2img": i2i["artifact"],
+            },
+            "source": i2i.get("source", ""),
+        },
     )
 
 
@@ -144,14 +209,16 @@ def _run_zimage_case(
     except ArtifactValidationError as exc:
         gpu_cert.fail(logical_name, f"{plugin_class} PNG validation failed: {exc}")
 
-    metadata = {
+    result = {
+        "artifact": str(output_path),
+        "validation": validation,
         "runtime_url": runtime_url,
         "workflow_pack": str(workflow_pack),
         "mode": mode,
     }
     if source is not None:
-        metadata["source"] = str(source)
-    gpu_cert.pass_artifact(logical_name, output_path, validation, metadata=metadata)
+        result["source"] = str(source)
+    return result
 
 
 def _load_fixture(gpu_cert, logical_name, path):

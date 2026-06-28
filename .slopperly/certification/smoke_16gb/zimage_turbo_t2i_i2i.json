@@ -1,0 +1,46 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/zimage_turbo_t2i_i2i/zimage_turbo_manifest.json",
+  "command": "pytest tests/gpu/test_zimage.py::test_zimage_turbo_t2i_and_i2i --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T13:41:20+00:00",
+  "logical_name": "zimage_turbo_t2i_i2i",
+  "metadata": {
+    "artifacts": {
+      "img2img": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/zimage_turbo_t2i_i2i/zimage_turbo_i2i.png",
+      "t2i": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/zimage_turbo_t2i_i2i/zimage_turbo_t2i.png"
+    },
+    "model_files": {
+      "gguf": "z-image-turbo-Q5_K_M.gguf",
+      "text_encoder": "qwen_3_4b.safetensors",
+      "vae": "ae.safetensors"
+    },
+    "runtime_url": "http://127.0.0.1:8190",
+    "source": "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
+    "workflow_packs": {
+      "img2img": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/zimage_turbo_t2i_i2i_img2img/workflow.api.json",
+      "t2i": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/zimage_turbo_t2i_i2i/workflow.api.json"
+    }
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "cases": {
+      "img2img": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      },
+      "t2i": {
+        "alpha": false,
+        "format": "PNG",
+        "height": 1024,
+        "kind": "image",
+        "width": 1024
+      }
+    },
+    "kind": "manifest"
+  }
+}

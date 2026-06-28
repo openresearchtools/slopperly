@@ -9,7 +9,7 @@
   "zimage_sampler": "res_multistep",
   "zimage_scheduler": "simple",
   "zimage_denoise": 1.0,
-  "zimage_model": "z_image_bf16.safetensors",
+  "zimage_model": "z-image-Q5_K_M.gguf",
   "zimage_text_encoder": "qwen_3_4b.safetensors",
   "zimage_vae": "ae.safetensors",
   "expected": {
