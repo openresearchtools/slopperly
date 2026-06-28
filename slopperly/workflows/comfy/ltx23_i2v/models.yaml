@@ -10,7 +10,7 @@ required_custom_nodes:
       - CreateVideo
       - SaveVideo
 model_files:
-  diffusion_models:
+  unet:
     - ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf
   loras:
     - ltx-2.3-22b-distilled-lora-384.safetensors
@@ -19,17 +19,12 @@ model_files:
     - ltx-2.3-22b-distilled_audio_vae.safetensors
   text_encoders:
     - gemma_3_12B_it_fp4_mixed.safetensors
-  embeddings:
     - ltx-2.3-22b-distilled_embeddings_connectors.safetensors
 supported_profiles:
-  - width: 1920
-    height: 1080
-    fps: 24
-    frames: 480
   - width: 1280
-    height: 720
+    height: 704
     fps: 24
-    frames: 121
+    frames: 17
 artifact_contract:
   output_type: mp4
   validation:

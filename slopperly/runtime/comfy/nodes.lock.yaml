@@ -83,6 +83,15 @@ custom_nodes:
       - DualCLIPLoaderGGUF
       - TripleCLIPLoaderGGUF
       - QuadrupleCLIPLoaderGGUF
+  - id: multigpu
+    repo: https://github.com/pollockjj/ComfyUI-MultiGPU.git
+    commit: b51c99a525e9607e43545ee2a8b7694c74a4775a
+    install_command: ""
+    python_extras: []
+    required_node_classes:
+      - UnetLoaderGGUFDisTorch2MultiGPU
+      - VAELoaderMultiGPU
+      - DeviceSelectorMultiGPU
   - id: video_helper_suite
     repo: https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git
     commit: 4ee72c065db22c9d96c2427954dc69e7b908444b

@@ -2,11 +2,13 @@ import tempfile
 import unittest
 from pathlib import Path
 import sys
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from slopperly.runtime.comfy import install as comfy_install_module
 from slopperly.runtime.comfy.install import (
     disable_foundation1_object_info_autodownload,
     install_comfy,
@@ -37,6 +39,12 @@ class RuntimeInstallerTests(unittest.TestCase):
         self.assertIn("slopperly_nodes", details)
         self.assertIn("object_info local-only", details)
         self.assertIn("install-manifest.json", details)
+
+    def test_comfy_install_report_only_does_not_mutate_runtime(self):
+        with patch.object(comfy_install_module, "install_comfy", return_value=[]) as mocked:
+            result = comfy_install_module.main(["--report-only"])
+        self.assertEqual(result, 0)
+        self.assertTrue(mocked.call_args.kwargs["dry_run"])
 
     def test_foundation1_patch_disables_object_info_autodownload(self):
         source = '''def _scan_checkpoints() -> list:

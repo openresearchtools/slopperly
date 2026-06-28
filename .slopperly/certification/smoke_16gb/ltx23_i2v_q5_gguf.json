@@ -1,0 +1,40 @@
+{
+  "artifact": ".slopperly/gpu-artifacts/smoke_16gb/ltx23_i2v_q5_gguf/ltx23_i2v_q5.mp4",
+  "command": "pytest tests/gpu/test_ltx23_i2v_existing_workflow.py::test_ltx23_i2v_existing_workflow --device cuda --profile smoke_16gb",
+  "generated_at_utc": "2026-06-28T06:55:05+00:00",
+  "logical_name": "ltx23_i2v_q5_gguf",
+  "metadata": {
+    "fps": 24.0,
+    "frames": 17,
+    "mapped_height": 704,
+    "mapped_width": 1280,
+    "model_files": {
+      "audio_vae": "ltx-2.3-22b-distilled_audio_vae.safetensors",
+      "connector": "ltx-2.3-22b-distilled_embeddings_connectors.safetensors",
+      "gguf": "ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf",
+      "lora": "ltx-2.3-22b-distilled-lora-384.safetensors",
+      "text_encoder": "gemma_3_12B_it_fp4_mixed.safetensors",
+      "video_vae": "ltx-2.3-22b-distilled_video_vae.safetensors"
+    },
+    "plugin": "video/ltx2.py",
+    "requested_height": 720,
+    "requested_width": 1280,
+    "runtime_url": "http://127.0.0.1:8190",
+    "source": "/home/user/Documents/Slopperly/tests/fixtures/vsr_source.ppm",
+    "workflow_id": "ltx23_i2v",
+    "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/ltx23_i2v/workflow.api.json"
+  },
+  "profile": "smoke_16gb",
+  "reason": "",
+  "schema_version": 1,
+  "status": "PASS",
+  "validation": {
+    "duration": 0.708008,
+    "fps": 24.0,
+    "frame_count": 17,
+    "has_audio": true,
+    "height": 704,
+    "kind": "video",
+    "width": 1280
+  }
+}

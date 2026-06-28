@@ -39,12 +39,12 @@ Local ComfyUI workflow pack for the existing LTX 2.3 Q5 image-to-video path.
 
 ## Model Files
 
-- `models/diffusion_models/ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf`
+- `models/unet/ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf`
 - `models/loras/ltx-2.3-22b-distilled-lora-384.safetensors`
 - `models/vae/ltx-2.3-22b-distilled_video_vae.safetensors`
 - `models/vae/ltx-2.3-22b-distilled_audio_vae.safetensors`
 - `models/text_encoders/gemma_3_12B_it_fp4_mixed.safetensors`
-- `models/embeddings/ltx-2.3-22b-distilled_embeddings_connectors.safetensors`
+- `models/text_encoders/ltx-2.3-22b-distilled_embeddings_connectors.safetensors`
 
 ## UI Parameter Mapping
 
@@ -59,6 +59,8 @@ Local ComfyUI workflow pack for the existing LTX 2.3 Q5 image-to-video path.
 - selected image strip -> upload to Comfy input storage, then patch node `7`, input `image`
 
 `steps` and `guidance` are deliberately unmapped in this initial graph because it uses a fixed `ManualSigmas` schedule and `BasicGuider` without a CFG input.
+
+The current certified 720-family profile maps a UI request of `1280x720` to the model-safe multiple-of-32 output size `1280x704`. Exact `1280x720` must not be claimed until a separate real artifact test proves that size.
 
 ## Output Contract
 
@@ -76,4 +78,4 @@ pytest tests/gpu/test_ltx23_i2v_existing_workflow.py --device cuda
 - `workflow.api.json` validates as Comfy API format.
 - The addon plugin path submits the workflow through `SlopperlyRuntimeGateway`.
 - `ffprobe` reads the output MP4.
-- Width, height, fps, frame count, and duration match the mapped request within normal video tolerance.
+- Width, height, fps, frame count, and duration match the mapped request within normal video tolerance. The certified smoke profile is `1280x704`, 24fps, 17 frames, with audio present.

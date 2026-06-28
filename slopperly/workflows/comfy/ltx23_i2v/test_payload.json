@@ -7,12 +7,12 @@
   "fps": 24,
   "strength": 0.7,
   "seed": 7788123,
-  "input_image": "tests/fixtures/ltx_i2v_source.png",
+  "input_image": "tests/fixtures/vsr_source.ppm",
   "expected": {
     "type": "video",
     "extension": ".mp4",
     "fps": 24,
     "width": 1280,
-    "height": 720
+    "height": 704
   }
 }

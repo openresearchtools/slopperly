@@ -271,7 +271,7 @@ def main(argv: list[str] | None = None) -> int:
         runtime_root=Path(args.runtime_root),
         pin=Path(args.pin),
         profile=args.profile,
-        dry_run=args.dry_run,
+        dry_run=args.dry_run or args.report_only,
         skip_pip=args.skip_pip,
         force=args.force,
     )
