@@ -1901,7 +1901,8 @@ class LocalPluginPathTests(unittest.TestCase):
 
         prompt = RuntimeHandler.comfy_prompts[-1]
         self.assertEqual(RuntimeHandler.comfy_uploads, [])
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "krea2_raw_fp8_scaled.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "krea2_raw-Q5_K_M.gguf")
         self.assertEqual(prompt["2"]["inputs"]["clip_name"], "qwen3vl_4b_fp8_scaled.safetensors")
         self.assertEqual(prompt["2"]["inputs"]["type"], "krea2")
         self.assertEqual(prompt["3"]["inputs"]["vae_name"], "qwen_image_vae.safetensors")
@@ -1971,7 +1972,8 @@ class LocalPluginPathTests(unittest.TestCase):
 
         prompt = RuntimeHandler.comfy_prompts[-1]
         self.assertEqual(RuntimeHandler.comfy_uploads, [])
-        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "krea2_turbo_fp8_scaled.safetensors")
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUF")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "krea2_turbo-Q5_K_M.gguf")
         self.assertEqual(prompt["2"]["inputs"]["clip_name"], "qwen3vl_4b_fp8_scaled.safetensors")
         self.assertEqual(prompt["2"]["inputs"]["type"], "krea2")
         self.assertIn("local Krea 2 Turbo text to image", prompt["4"]["inputs"]["prompt"])

@@ -11,7 +11,7 @@ Local ComfyUI text-to-image workflow pack for the existing `OzzyGT/Krea_2_Turbo_
 
 ## Required Nodes
 
-- `UNETLoader`
+- `UnetLoaderGGUF`
 - `CLIPLoader`
 - `VAELoader`
 - `TextGenerate`
@@ -22,15 +22,15 @@ Local ComfyUI text-to-image workflow pack for the existing `OzzyGT/Krea_2_Turbo_
 - `VAEDecode`
 - `SaveImage`
 
-These are ComfyUI core node classes from pinned ComfyUI commit `603d891eaf045d726d9c23276b4428daf2977624`. The workflow uses the official Krea-2 Turbo local Comfy template classes without hosted API nodes.
+The workflow uses the official Krea-2 Turbo local Comfy template classes without hosted API nodes while loading the Turbo Q5 GGUF diffusion backbone through pinned ComfyUI-GGUF.
 
 ## Model Files
 
-- `models/diffusion_models/krea2_turbo_fp8_scaled.safetensors`
+- `models/diffusion_models/krea2_turbo-Q5_K_M.gguf`
 - `models/text_encoders/qwen3vl_4b_fp8_scaled.safetensors`
 - `models/vae/qwen_image_vae.safetensors`
 
-The files are sourced from `Comfy-Org/Krea-2`. Hugging Face is used only as a local artifact source.
+The GGUF diffusion backbone is sourced from `vantagewithai/Krea-2-Turbo-GGUF`; shared text encoder and VAE files are sourced from `Comfy-Org/Krea-2`. Hugging Face is used only as a local artifact source.
 
 ## UI Parameter Mapping
 
@@ -40,7 +40,7 @@ The files are sourced from `Comfy-Org/Krea-2`. Hugging Face is used only as a lo
 - `steps` -> node `8`, input `steps`
 - `guidance` -> node `8`, input `cfg`
 - `seed` -> node `8`, input `seed`
-- Krea Turbo model file -> node `1`, input `unet_name`
+- Krea Turbo Q5 GGUF model file -> node `1`, input `unet_name`
 - Krea text encoder -> node `2`, input `clip_name`
 - Krea VAE -> node `3`, input `vae_name`
 - sampler/scheduler defaults -> node `8`, inputs `sampler_name` and `scheduler`

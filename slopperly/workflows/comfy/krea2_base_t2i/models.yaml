@@ -5,7 +5,6 @@ required_custom_nodes:
     repo: https://github.com/comfyanonymous/ComfyUI.git
     commit: 603d891eaf045d726d9c23276b4428daf2977624
     node_classes:
-      - UNETLoader
       - CLIPLoader
       - VAELoader
       - TextGenerate
@@ -14,9 +13,14 @@ required_custom_nodes:
       - KSampler
       - VAEDecode
       - SaveImage
+  - id: comfyui_gguf
+    repo: https://github.com/city96/ComfyUI-GGUF.git
+    commit: 6ea2651e7df66d7585f6ffee804b20e92fb38b8a
+    node_classes:
+      - UnetLoaderGGUF
 model_files:
-  - source: https://huggingface.co/Comfy-Org/Krea-2/resolve/main/diffusion_models/krea2_raw_fp8_scaled.safetensors
-    target: models/diffusion_models/krea2_raw_fp8_scaled.safetensors
+  - source: https://huggingface.co/vantagewithai/Krea-2-Raw-GGUF/resolve/main/krea2_raw-Q5_K_M.gguf
+    target: models/diffusion_models/krea2_raw-Q5_K_M.gguf
   - source: https://huggingface.co/Comfy-Org/Krea-2/resolve/main/text_encoders/qwen3vl_4b_fp8_scaled.safetensors
     target: models/text_encoders/qwen3vl_4b_fp8_scaled.safetensors
   - source: https://huggingface.co/Comfy-Org/Krea-2/resolve/main/vae/qwen_image_vae.safetensors

@@ -17,7 +17,7 @@ WORKFLOW_ID = "krea2_turbo_t2i"
 class Krea2TurboPlugin(ModelPlugin):
     MODEL_ID = "OzzyGT/Krea_2_Turbo_sdnq_dynamic_8bit"
     DISPLAY_NAME = "Image: Krea 2 Turbo"
-    DESCRIPTION = "Fast text-to-image via the local ComfyUI Krea 2 Turbo workflow"
+    DESCRIPTION = "Fast text-to-image via the local ComfyUI Krea 2 Turbo Q5 GGUF workflow"
     MODEL_TYPE = "image"
     INPUTS = InputSpec.PROMPT | InputSpec.NEG_PROMPT | InputSpec.LORA
     UI_SECTIONS = [
@@ -72,7 +72,7 @@ class Krea2TurboPlugin(ModelPlugin):
 
         _prepare_krea_inputs(
             inputs,
-            model_name="krea2_turbo_fp8_scaled.safetensors",
+            model_name="krea2_turbo-Q5_K_M.gguf",
             steps_default=self.PARAMS.steps,
             guidance_default=self.PARAMS.guidance,
             turbo=True,

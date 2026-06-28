@@ -1,6 +1,6 @@
 {
   "source": "https://docs.comfy.org/tutorials/image/krea/krea-2",
   "template_reference": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_krea2_turbo_t2i.json",
-  "note": "Editable source is the official Krea-2 ComfyUI template. This API workflow expands the local core generation path into plain Comfy API nodes and uses Krea 2 RAW/base weights.",
+  "note": "Editable source is the official Krea-2 ComfyUI template. This API workflow expands the local core generation path into plain Comfy API nodes and uses the Krea 2 RAW/base Q5 GGUF backbone.",
   "workflow_id": "krea2_base_t2i"
 }

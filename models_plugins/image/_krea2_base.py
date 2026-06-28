@@ -12,7 +12,7 @@ _MUTATOR_ATTR = "_slopperly_comfy_workflow_mutator"
 class Krea2BasePlugin(ModelPlugin):
     MODEL_ID = "ethanfel/Krea-2-Base-Diffusers"
     DISPLAY_NAME = "Image: Krea 2"
-    DESCRIPTION = "High-quality text-to-image via the local ComfyUI Krea 2 RAW workflow"
+    DESCRIPTION = "High-quality text-to-image via the local ComfyUI Krea 2 RAW Q5 GGUF workflow"
     MODEL_TYPE = "image"
     INPUTS = InputSpec.PROMPT | InputSpec.NEG_PROMPT | InputSpec.LORA
     UI_SECTIONS = [
@@ -59,7 +59,7 @@ class Krea2BasePlugin(ModelPlugin):
 
         _prepare_krea_inputs(
             inputs,
-            model_name="krea2_raw_fp8_scaled.safetensors",
+            model_name="krea2_raw-Q5_K_M.gguf",
             steps_default=self.PARAMS.steps,
             guidance_default=self.PARAMS.guidance,
             turbo=False,

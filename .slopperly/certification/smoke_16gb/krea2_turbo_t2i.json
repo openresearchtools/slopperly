@@ -1,9 +1,14 @@
 {
   "artifact": ".slopperly/gpu-artifacts/smoke_16gb/krea2_turbo_t2i/krea2_turbo_t2i.png",
   "command": "pytest tests/gpu/test_krea2.py::test_krea2_turbo_t2i --device cuda --profile smoke_16gb",
-  "generated_at_utc": "2026-06-27T19:52:03+00:00",
+  "generated_at_utc": "2026-06-28T09:02:43+00:00",
   "logical_name": "krea2_turbo_t2i",
   "metadata": {
+    "model_files": {
+      "gguf": "krea2_turbo-Q5_K_M.gguf",
+      "text_encoder": "qwen3vl_4b_fp8_scaled.safetensors",
+      "vae": "qwen_image_vae.safetensors"
+    },
     "result_path": "/home/user/Documents/Slopperly/.slopperly/gpu-artifacts/smoke_16gb/krea2_turbo_t2i/krea2_turbo_t2i.png",
     "runtime_url": "http://127.0.0.1:8190",
     "workflow_pack": "/home/user/Documents/Slopperly/slopperly/workflows/comfy/krea2_turbo_t2i/workflow.api.json"

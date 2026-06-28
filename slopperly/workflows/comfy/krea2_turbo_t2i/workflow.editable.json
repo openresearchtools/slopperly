@@ -1,5 +1,5 @@
 {
   "source": "https://raw.githubusercontent.com/Comfy-Org/workflow_templates/main/templates/image_krea2_turbo_t2i.json",
-  "note": "Editable source is the official Krea-2 Turbo ComfyUI template. This API workflow expands the local core generation path into plain Comfy API nodes for /prompt submission.",
+  "note": "Editable source is the official Krea-2 Turbo ComfyUI template. This API workflow expands the local core generation path into plain Comfy API nodes for /prompt submission and uses the Krea 2 Turbo Q5 GGUF backbone.",
   "workflow_id": "krea2_turbo_t2i"
 }

@@ -1093,12 +1093,11 @@ models:
       - ethanfel/Krea-2-Base-Diffusers
     task: image_t2i
     runtime: comfy
-    model_source: https://huggingface.co/Comfy-Org/Krea-2
+    model_source: https://huggingface.co/vantagewithai/Krea-2-Raw-GGUF
     download_mode: hf_file
-    local_cache_path: models/diffusion_models/krea2_raw_fp8_scaled.safetensors
+    local_cache_path: models/diffusion_models/krea2_raw-Q5_K_M.gguf
     required_files:
-      - path: diffusion_models/krea2_raw_fp8_scaled.safetensors
-        target: krea2_raw_fp8_scaled.safetensors
+      - krea2_raw-Q5_K_M.gguf
     auxiliary_sources:
       - id: krea2_base_text_encoder
         model_source: https://huggingface.co/Comfy-Org/Krea-2
@@ -1114,18 +1113,17 @@ models:
         required_files:
           - path: vae/qwen_image_vae.safetensors
             target: qwen_image_vae.safetensors
-    required_node_pack: comfyui core krea2
+    required_node_pack: comfyui_gguf + comfyui core krea2
     certification_requirements:
       gguf_backbone_required: true
-      primary_backbone_format: safetensors
-      next_action: install and wire a Krea 2 Base GGUF backbone if one is adopted, then rerun plugin-path artifact certification.
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
       - 1280x720
       - 720x1280
     context_limits: {}
     default_parameters:
-      diffusion_model: krea2_raw_fp8_scaled.safetensors
+      diffusion_model: krea2_raw-Q5_K_M.gguf
       text_encoder: qwen3vl_4b_fp8_scaled.safetensors
       clip_type: krea2
       vae: qwen_image_vae.safetensors
@@ -1145,12 +1143,11 @@ models:
       - OzzyGT/Krea_2_Turbo_sdnq_dynamic_8bit
     task: image_t2i
     runtime: comfy
-    model_source: https://huggingface.co/Comfy-Org/Krea-2
+    model_source: https://huggingface.co/vantagewithai/Krea-2-Turbo-GGUF
     download_mode: hf_file
-    local_cache_path: models/diffusion_models/krea2_turbo_fp8_scaled.safetensors
+    local_cache_path: models/diffusion_models/krea2_turbo-Q5_K_M.gguf
     required_files:
-      - path: diffusion_models/krea2_turbo_fp8_scaled.safetensors
-        target: krea2_turbo_fp8_scaled.safetensors
+      - krea2_turbo-Q5_K_M.gguf
     auxiliary_sources:
       - id: krea2_turbo_text_encoder
         model_source: https://huggingface.co/Comfy-Org/Krea-2
@@ -1166,18 +1163,17 @@ models:
         required_files:
           - path: vae/qwen_image_vae.safetensors
             target: qwen_image_vae.safetensors
-    required_node_pack: comfyui core krea2
+    required_node_pack: comfyui_gguf + comfyui core krea2
     certification_requirements:
       gguf_backbone_required: true
-      primary_backbone_format: safetensors
-      next_action: install and wire a Krea 2 Turbo GGUF backbone if one is adopted, then rerun plugin-path artifact certification.
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
       - 1280x720
       - 720x1280
     context_limits: {}
     default_parameters:
-      diffusion_model: krea2_turbo_fp8_scaled.safetensors
+      diffusion_model: krea2_turbo-Q5_K_M.gguf
       text_encoder: qwen3vl_4b_fp8_scaled.safetensors
       clip_type: krea2
       vae: qwen_image_vae.safetensors

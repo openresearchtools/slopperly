@@ -170,6 +170,6 @@
   "notes": [
     "The positive prompt is locally polished through Comfy core TextGenerate using the Krea/Qwen3VL text encoder before CLIPTextEncode.",
     "The existing negative prompt field maps to the second CLIPTextEncode node.",
-    "When the user selects LoRAs, the Krea plugin dynamically inserts local Comfy LoraLoaderModelOnly nodes between UNETLoader and KSampler."
+    "When the user selects LoRAs, the Krea plugin dynamically inserts local Comfy LoraLoaderModelOnly nodes between UnetLoaderGGUF and KSampler."
   ]
 }

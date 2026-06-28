@@ -11,7 +11,7 @@ Local ComfyUI text-to-image workflow pack for the existing `ethanfel/Krea-2-Base
 
 ## Required Nodes
 
-- `UNETLoader`
+- `UnetLoaderGGUF`
 - `CLIPLoader`
 - `VAELoader`
 - `TextGenerate`
@@ -21,15 +21,15 @@ Local ComfyUI text-to-image workflow pack for the existing `ethanfel/Krea-2-Base
 - `VAEDecode`
 - `SaveImage`
 
-These are ComfyUI core node classes from pinned ComfyUI commit `603d891eaf045d726d9c23276b4428daf2977624`. The workflow follows the official Krea-2 local Comfy template shape while using the RAW/base diffusion model file.
+The workflow follows the official Krea-2 local Comfy template shape while loading the RAW/base Q5 GGUF diffusion backbone through pinned ComfyUI-GGUF.
 
 ## Model Files
 
-- `models/diffusion_models/krea2_raw_fp8_scaled.safetensors`
+- `models/diffusion_models/krea2_raw-Q5_K_M.gguf`
 - `models/text_encoders/qwen3vl_4b_fp8_scaled.safetensors`
 - `models/vae/qwen_image_vae.safetensors`
 
-The files are sourced from `Comfy-Org/Krea-2`. Hugging Face is used only as a local artifact source.
+The GGUF diffusion backbone is sourced from `vantagewithai/Krea-2-Raw-GGUF`; shared text encoder and VAE files are sourced from `Comfy-Org/Krea-2`. Hugging Face is used only as a local artifact source.
 
 ## UI Parameter Mapping
 
@@ -40,7 +40,7 @@ The files are sourced from `Comfy-Org/Krea-2`. Hugging Face is used only as a lo
 - `steps` -> node `8`, input `steps`
 - `guidance` -> node `8`, input `cfg`
 - `seed` -> node `8`, input `seed`
-- Krea RAW model file -> node `1`, input `unet_name`
+- Krea RAW Q5 GGUF model file -> node `1`, input `unet_name`
 - Krea text encoder -> node `2`, input `clip_name`
 - Krea VAE -> node `3`, input `vae_name`
 - sampler/scheduler defaults -> node `8`, inputs `sampler_name` and `scheduler`

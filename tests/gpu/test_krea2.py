@@ -103,5 +103,12 @@ def _run_krea_case(
             "runtime_url": runtime_url,
             "workflow_pack": str(workflow_pack),
             "result_path": str(result_path),
+            "model_files": {
+                "gguf": "krea2_raw-Q5_K_M.gguf"
+                if logical_name == "krea2_base_t2i"
+                else "krea2_turbo-Q5_K_M.gguf",
+                "text_encoder": "qwen3vl_4b_fp8_scaled.safetensors",
+                "vae": "qwen_image_vae.safetensors",
+            },
         },
     )

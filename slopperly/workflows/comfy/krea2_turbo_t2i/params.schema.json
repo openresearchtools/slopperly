@@ -164,6 +164,6 @@
   "notes": [
     "The positive prompt is locally polished through Comfy core TextGenerate using the Krea/Qwen3VL text encoder before CLIPTextEncode.",
     "The official Turbo graph uses ConditioningZeroOut for the negative branch; the negative prompt field is preserved in the UI and recorded as deliberately unmapped.",
-    "When the user selects LoRAs, the Krea Turbo plugin dynamically inserts local Comfy LoraLoaderModelOnly nodes between UNETLoader and KSampler."
+    "When the user selects LoRAs, the Krea Turbo plugin dynamically inserts local Comfy LoraLoaderModelOnly nodes between UnetLoaderGGUF and KSampler."
   ]
 }
