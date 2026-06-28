@@ -31,6 +31,9 @@ models:
         required_files:
           - Qwen-Image-2512-Lightning-4steps-V1.0-bf16.safetensors
     required_node_pack: comfyui_gguf + comfyui core qwen image
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
       - 1328x1328
@@ -77,6 +80,9 @@ models:
         required_files:
           - Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors
     required_node_pack: comfyui_gguf + comfyui core qwen edit
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
     default_parameters:
@@ -116,6 +122,9 @@ models:
           - path: split_files/vae/flux2-vae.safetensors
             target: flux2-vae.safetensors
     required_node_pack: comfyui_gguf + comfyui core flux2
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1024x1024
       - 1344x768
@@ -157,6 +166,10 @@ models:
           - path: split_files/vae/flux2-vae.safetensors
             target: flux2-vae.safetensors
     required_node_pack: comfyui core flux2 klein
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: safetensors
+      next_action: install and wire a FLUX.2 Klein 4B GGUF backbone, then rerun T2I and edit plugin-path artifact certification.
     supported_resolutions:
       - 1024x1024
       - 1344x768
@@ -199,6 +212,10 @@ models:
         required_files:
           - full_encoder_small_decoder.safetensors
     required_node_pack: comfyui core flux2 klein
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: safetensors
+      next_action: install and wire a FLUX.2 Klein 9B GGUF backbone, then rerun T2I and edit plugin-path artifact certification.
     supported_resolutions:
       - 1024x1024
       - 1344x768
@@ -258,6 +275,10 @@ models:
           - path: loras/flux2-klein-schematic-amodal-segmentation-lora.safetensors
             target: flux2-klein-schematic-amodal-segmentation-lora.safetensors
     required_node_pack: comfyui core flux2 klein lora
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: safetensors
+      next_action: install and wire a schematic-compatible FLUX.2 Klein 9B GGUF backbone, then rerun all six schematic-mode artifact tests.
     supported_resolutions:
       - source-image-dimensions
     default_parameters:
@@ -696,6 +717,9 @@ models:
           - path: split_files/vae/wan_2.1_vae.safetensors
             target: wan_2.1_vae.safetensors
     required_node_pack: comfyui_gguf + comfyui core wan + video_helper_suite
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1280x704
       - 704x1280
@@ -763,6 +787,9 @@ models:
         required_files:
           - ltx-2.3-22b-distilled-lora-384.safetensors
     required_node_pack: comfyui_gguf + multigpu + comfyui core LTX + video_helper_suite
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: gguf
     supported_resolutions:
       - 1280x704
     supported_fps:
@@ -919,6 +946,10 @@ models:
           - path: split_files/vae/qwen_image_vae.safetensors
             target: qwen_image_vae.safetensors
     required_node_pack: comfyui core anima
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: safetensors
+      next_action: install and wire an Anima GGUF backbone if one is adopted, then rerun T2I and I2I plugin-path artifact certification.
     supported_resolutions:
       - 1024x1024
       - 1280x720
@@ -975,6 +1006,10 @@ models:
           - path: vae/flux2-vae.safetensors
             target: flux2-vae.safetensors
     required_node_pack: comfyui core ernie image
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: safetensors
+      next_action: install and wire an ERNIE Image GGUF backbone if one is adopted, then rerun plugin-path artifact certification.
     supported_resolutions:
       - 1024x1024
       - 1280x720
@@ -1030,6 +1065,10 @@ models:
           - path: vae/flux2-vae.safetensors
             target: flux2-vae.safetensors
     required_node_pack: comfyui core ernie image
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: safetensors
+      next_action: install and wire an ERNIE Turbo GGUF backbone if one is adopted, then rerun plugin-path artifact certification.
     supported_resolutions:
       - 1024x1024
       - 1280x720
@@ -1079,6 +1118,10 @@ models:
           - path: vae/qwen_image_vae.safetensors
             target: qwen_image_vae.safetensors
     required_node_pack: comfyui core krea2
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: safetensors
+      next_action: install and wire a Krea 2 Base GGUF backbone if one is adopted, then rerun plugin-path artifact certification.
     supported_resolutions:
       - 1024x1024
       - 1280x720
@@ -1127,6 +1170,10 @@ models:
           - path: vae/qwen_image_vae.safetensors
             target: qwen_image_vae.safetensors
     required_node_pack: comfyui core krea2
+    certification_requirements:
+      gguf_backbone_required: true
+      primary_backbone_format: safetensors
+      next_action: install and wire a Krea 2 Turbo GGUF backbone if one is adopted, then rerun plugin-path artifact certification.
     supported_resolutions:
       - 1024x1024
       - 1280x720

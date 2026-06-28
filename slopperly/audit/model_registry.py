@@ -65,6 +65,7 @@ def validate_model_registry(root: Path) -> list[str]:
         default_parameters = entry.get("default_parameters")
         if not isinstance(default_parameters, dict):
             errors.append(f"{name}: default_parameters must be a mapping")
+        _validate_certification_requirements(name, entry, errors)
         workflows = entry.get("workflows")
         if not isinstance(workflows, list) or not workflows:
             errors.append(f"{name}: workflows must be a non-empty list")
@@ -85,6 +86,30 @@ def validate_model_registry(root: Path) -> list[str]:
         except (TypeError, ValueError):
             errors.append(f"{name}: minimum_vram_gb must be numeric")
     return errors
+
+
+def _validate_certification_requirements(name: str, entry: dict, errors: list[str]) -> None:
+    requirements = entry.get("certification_requirements")
+    if requirements is None:
+        return
+    if not isinstance(requirements, dict):
+        errors.append(f"{name}: certification_requirements must be a mapping")
+        return
+    required = requirements.get("gguf_backbone_required")
+    if required is not None and not isinstance(required, bool):
+        errors.append(f"{name}: gguf_backbone_required must be boolean when present")
+    format_name = requirements.get("primary_backbone_format")
+    if format_name is not None and str(format_name) not in {"gguf", "safetensors", "diffusers"}:
+        errors.append(
+            f"{name}: primary_backbone_format must be one of gguf, safetensors, diffusers"
+        )
+    if required is True and not format_name:
+        errors.append(
+            f"{name}: primary_backbone_format is required when gguf_backbone_required is true"
+        )
+    next_action = requirements.get("next_action")
+    if next_action is not None and not isinstance(next_action, str):
+        errors.append(f"{name}: certification_requirements.next_action must be a string")
 
 
 def _validate_artifact_spec(name: str, entry: dict, errors: list[str]) -> None:

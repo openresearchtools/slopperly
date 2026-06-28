@@ -32,6 +32,9 @@ def audit(profile: str, root: Path) -> tuple[list[str], list[str]]:
             failures.append(f"{name}: missing validation_command")
             continue
         entry_failures: list[str] = []
+        policy_failure = gguf_policy_failure(entry)
+        if policy_failure:
+            entry_failures.append(policy_failure)
         for cert_name in required_certifications(entry):
             cert = certs.get(cert_name)
             if not cert:
@@ -53,6 +56,37 @@ def audit(profile: str, root: Path) -> tuple[list[str], list[str]]:
             continue
         passes.append(name)
     return passes, failures
+
+
+def gguf_policy_failure(entry: dict) -> str | None:
+    requirements = entry.get("certification_requirements")
+    if not isinstance(requirements, dict):
+        return None
+    if requirements.get("gguf_backbone_required") is not True:
+        return None
+
+    format_name = str(requirements.get("primary_backbone_format") or "").lower()
+    if format_name != "gguf":
+        next_action = requirements.get("next_action")
+        action = (
+            f"; next action: {next_action}"
+            if isinstance(next_action, str) and next_action.strip()
+            else "; next action: install and wire a GGUF backbone, then rerun the plugin-path artifact test"
+        )
+        return (
+            "GGUF backbone required but registry primary_backbone_format "
+            f"is {format_name or '<missing>'!r}{action}"
+        )
+
+    cache_path = str(entry.get("local_cache_path") or "").lower()
+    if not cache_path.endswith(".gguf"):
+        return f"GGUF backbone required but local_cache_path is not a GGUF file: {cache_path!r}"
+
+    runtime = str(entry.get("runtime") or "").lower()
+    node_pack = str(entry.get("required_node_pack") or "").lower()
+    if runtime == "comfy" and "gguf" not in node_pack:
+        return "GGUF backbone required but required_node_pack does not include a GGUF loader"
+    return None
 
 
 def required_certifications(entry: dict) -> list[str]:
