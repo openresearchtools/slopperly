@@ -1,0 +1,12 @@
+{
+  "workflow_id": "ltx23_lipsync_dialogue",
+  "description": "Editable notes for the Slopperly LTX 2.3 Q5 lipsync/dialogue workflow. The API graph in workflow.api.json is the submitted graph.",
+  "source": "Derived from the certified ltx23_i2v Q5 GGUF workflow with a local LoadAudio -> LTXVReferenceAudio conditioning branch.",
+  "api_node_summary": {
+    "1": "UnetLoaderGGUFDisTorch2MultiGPU Q5 LTX backbone",
+    "7": "LoadImage source portrait/frame",
+    "39": "LoadAudio uploaded dialogue/reference audio",
+    "40": "LTXVReferenceAudio patches model and conditioning",
+    "38": "SaveVideo raw Comfy MP4 output"
+  }
+}

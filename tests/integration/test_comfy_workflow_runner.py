@@ -869,6 +869,15 @@ def _ltx23_object_info() -> dict:
     return {node["class_type"]: {} for node in workflow.values()}
 
 
+def _ltx23_lipsync_object_info() -> dict:
+    workflow = json.loads(
+        (ROOT / "slopperly/workflows/comfy/ltx23_lipsync_dialogue/workflow.api.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    return {node["class_type"]: {} for node in workflow.values()}
+
+
 def _florence2_object_info() -> dict:
     workflow = json.loads(
         (ROOT / "slopperly/workflows/comfy/florence2_caption_ocr/workflow.api.json").read_text(
@@ -1188,6 +1197,64 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
             ComfyHandler.request_order.index("/upload/image"),
             ComfyHandler.request_order.index("/prompt"),
         )
+
+    def test_ltx23_lipsync_pack_uploads_image_audio_and_patches_reference_audio(self):
+        ComfyHandler.reset(_ltx23_lipsync_object_info())
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.png"
+            audio = Path(tmp) / "voice.wav"
+            destination = Path(tmp) / "result.mp4"
+            source.write_bytes(b"local image fixture bytes")
+            audio.write_bytes(b"RIFF$\x00\x00\x00WAVEfmt local audio fixture")
+            inputs = SimpleNamespace(
+                prompt="local lipsync dialogue",
+                neg_prompt="static mouth",
+                image=str(source),
+                audio_ref=str(audio),
+                width=1280,
+                height=704,
+                frames=25,
+                fps=24,
+                strength=0.7,
+                seed=230522,
+                ltx_reference_audio_guidance=1.75,
+            )
+
+            with local_only_network():
+                result = self.gateway.run_comfy_workflow(
+                    "ltx23_lipsync_dialogue",
+                    inputs,
+                    SimpleNamespace(),
+                    SimpleNamespace(comfyui_url=self.base_url),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.video_bytes)
+        self.assertEqual(len(ComfyHandler.upload_bodies), 2)
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["7"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["39"]["inputs"]["audio"], "uploaded_audio_2.wav")
+        self.assertEqual(prompt["11"]["inputs"]["text"], "local lipsync dialogue")
+        self.assertEqual(prompt["12"]["inputs"]["text"], "static mouth")
+        self.assertEqual(prompt["14"]["inputs"]["width"], 1280)
+        self.assertEqual(prompt["14"]["inputs"]["height"], 704)
+        self.assertEqual(prompt["14"]["inputs"]["length"], 25)
+        self.assertEqual(prompt["16"]["inputs"]["frames_number"], 25)
+        self.assertEqual(prompt["13"]["inputs"]["frame_rate"], 24.0)
+        self.assertEqual(prompt["16"]["inputs"]["frame_rate"], 24.0)
+        self.assertEqual(prompt["15"]["inputs"]["strength"], 0.7)
+        self.assertEqual(prompt["19"]["inputs"]["noise_seed"], 230522)
+        self.assertEqual(prompt["40"]["class_type"], "LTXVReferenceAudio")
+        self.assertEqual(prompt["40"]["inputs"]["model"], ["2", 0])
+        self.assertEqual(prompt["40"]["inputs"]["reference_audio"], ["39", 0])
+        self.assertEqual(prompt["40"]["inputs"]["audio_vae"], ["4", 0])
+        self.assertEqual(prompt["40"]["inputs"]["identity_guidance_scale"], 1.75)
+        self.assertEqual(prompt["18"]["inputs"]["model"], ["40", 0])
+        self.assertEqual(prompt["18"]["inputs"]["conditioning"], ["40", 1])
+        self.assertIn(b'filename="source.png"', ComfyHandler.upload_bodies[0])
+        self.assertIn(b'filename="voice.wav"', ComfyHandler.upload_bodies[1])
 
     def test_missing_object_info_nodes_block_before_upload_or_queue(self):
         ComfyHandler.reset({"LoadImage": {}})

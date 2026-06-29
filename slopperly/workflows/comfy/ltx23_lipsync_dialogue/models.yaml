@@ -1,0 +1,35 @@
+workflow_id: ltx23_lipsync_dialogue
+task: image_audio_to_video
+runtime: comfy
+required_custom_nodes:
+  - id: comfyui_gguf
+    classes:
+      - UnetLoaderGGUFDisTorch2MultiGPU
+  - id: video_helper_suite
+    classes:
+      - CreateVideo
+      - SaveVideo
+model_files:
+  unet:
+    - ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf
+  loras:
+    - ltx-2.3-22b-distilled-lora-384.safetensors
+  vae:
+    - ltx-2.3-22b-distilled_video_vae.safetensors
+    - ltx-2.3-22b-distilled_audio_vae.safetensors
+  text_encoders:
+    - gemma_3_12B_it_fp4_mixed.safetensors
+    - ltx-2.3-22b-distilled_embeddings_connectors.safetensors
+supported_profiles:
+  - width: 1280
+    height: 704
+    fps: 24
+    frames: audio_duration_rounded_to_8n_plus_1
+artifact_contract:
+  output_type: mp4
+  validation:
+    - ffprobe-readable
+    - fps matches patched fps
+    - frame count is generated at 8n+1 for LTX
+    - plugin finalization trims or pads video to the uploaded reference audio duration
+    - final returned MP4 contains the reference audio stream

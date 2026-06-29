@@ -33,6 +33,7 @@ comfyui:
     - KSamplerSelect
     - BasicScheduler
     - BasicGuider
+    - ResizeImagesByLongerEdge
     - ModelSamplingFlux
     - ModelSamplingSD3
     - CLIPVisionLoader
@@ -53,6 +54,18 @@ comfyui:
     - VAEDecodeAudio
     - WanImageToVideo
     - Wan22ImageToVideoLatent
+    - LTXAVTextEncoderLoader
+    - LTXVAudioVAELoader
+    - LTXVPreprocess
+    - LTXVConditioning
+    - LTXVReferenceAudio
+    - EmptyLTXVLatentVideo
+    - LTXVImgToVideoInplace
+    - LTXVEmptyLatentAudio
+    - LTXVConcatAVLatent
+    - ManualSigmas
+    - LTXVSeparateAVLatent
+    - LTXVAudioVAEDecode
     - CreateVideo
     - SaveVideo
     - UpscaleModelLoader

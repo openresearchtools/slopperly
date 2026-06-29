@@ -1,0 +1,20 @@
+{
+  "prompt": "A local LTX Q5 dialogue shot with natural lip motion and clear speech timing.",
+  "negative_prompt": "static mouth, frozen face, low quality, flicker, watermark",
+  "width": 1280,
+  "height": 720,
+  "frames": 25,
+  "fps": 24,
+  "strength": 0.7,
+  "seed": 7788125,
+  "input_image": "tests/fixtures/vsr_source.ppm",
+  "audio_ref": "tests/fixtures/stem_split_source.wav",
+  "expected": {
+    "type": "video",
+    "extension": ".mp4",
+    "fps": 24,
+    "width": 1280,
+    "height": 704,
+    "duration": "matches audio_ref"
+  }
+}
