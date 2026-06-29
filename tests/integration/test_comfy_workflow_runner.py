@@ -1198,6 +1198,81 @@ class ComfyWorkflowRunnerIntegrationTests(unittest.TestCase):
             ComfyHandler.request_order.index("/prompt"),
         )
 
+    def test_ltx23_multi_pack_uploads_start_middle_and_last_anchors(self):
+        workflow = json.loads(
+            (ROOT / "slopperly/workflows/comfy/ltx23_multi_staged/workflow.api.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        ComfyHandler.reset({node["class_type"]: {} for node in workflow.values()})
+        with tempfile.TemporaryDirectory() as tmp:
+            start = Path(tmp) / "start.png"
+            middle_1 = Path(tmp) / "middle_1.png"
+            middle_2 = Path(tmp) / "middle_2.png"
+            middle_3 = Path(tmp) / "middle_3.png"
+            last = Path(tmp) / "last.png"
+            destination = Path(tmp) / "result.mp4"
+            for path in (start, middle_1, middle_2, middle_3, last):
+                path.write_bytes(b"local image fixture bytes")
+            inputs = SimpleNamespace(
+                prompt="local multi anchor video",
+                neg_prompt="static",
+                image=str(start),
+                middle_images_paths=[
+                    (str(middle_1), 0.25),
+                    (str(middle_2), 0.5),
+                    (str(middle_3), 0.75),
+                ],
+                last_image=str(last),
+                width=1280,
+                height=704,
+                frames=17,
+                fps=24,
+                strength=0.7,
+                ltx_middle_frame_1=4,
+                ltx_middle_frame_2=8,
+                ltx_middle_frame_3=12,
+                ltx_last_frame_idx=-1,
+                ltx_guide_strength=1.0,
+                seed=230523,
+            )
+
+            with local_only_network():
+                result = self.gateway.run_comfy_workflow(
+                    "ltx23_multi_staged",
+                    inputs,
+                    SimpleNamespace(),
+                    SimpleNamespace(comfyui_url=self.base_url),
+                    destination=str(destination),
+                    timeout=2,
+                )
+
+            self.assertEqual(result, str(destination))
+            self.assertEqual(destination.read_bytes(), ComfyHandler.video_bytes)
+
+        self.assertEqual(len(ComfyHandler.upload_bodies), 5)
+        prompt = ComfyHandler.last_prompt
+        self.assertEqual(prompt["1"]["class_type"], "UnetLoaderGGUFDisTorch2MultiGPU")
+        self.assertEqual(prompt["1"]["inputs"]["unet_name"], "ltx-2.3-22b-distilled-1.1-Q5_K_M.gguf")
+        self.assertEqual(prompt["7"]["inputs"]["image"], "uploaded_source.png")
+        self.assertEqual(prompt["24"]["inputs"]["image"], "uploaded_source_2.png")
+        self.assertEqual(prompt["40"]["inputs"]["image"], "uploaded_source_3.png")
+        self.assertEqual(prompt["45"]["inputs"]["image"], "uploaded_source_4.png")
+        self.assertEqual(prompt["29"]["inputs"]["image"], "uploaded_source_5.png")
+        self.assertEqual(prompt["28"]["inputs"]["frame_idx"], 4)
+        self.assertEqual(prompt["44"]["inputs"]["frame_idx"], 8)
+        self.assertEqual(prompt["49"]["inputs"]["frame_idx"], 12)
+        self.assertEqual(prompt["33"]["inputs"]["frame_idx"], -1)
+        self.assertEqual(prompt["17"]["inputs"]["video_latent"], ["33", 2])
+        self.assertEqual(prompt["18"]["inputs"]["conditioning"], ["33", 0])
+        self.assertEqual(prompt["39"]["class_type"], "LTXVCropGuides")
+        self.assertEqual(prompt["34"]["inputs"]["samples"], ["39", 2])
+        self.assertIn(b'filename="start.png"', ComfyHandler.upload_bodies[0])
+        self.assertIn(b'filename="middle_1.png"', ComfyHandler.upload_bodies[1])
+        self.assertIn(b'filename="middle_2.png"', ComfyHandler.upload_bodies[2])
+        self.assertIn(b'filename="middle_3.png"', ComfyHandler.upload_bodies[3])
+        self.assertIn(b'filename="last.png"', ComfyHandler.upload_bodies[4])
+
     def test_ltx23_lipsync_pack_uploads_image_audio_and_patches_reference_audio(self):
         ComfyHandler.reset(_ltx23_lipsync_object_info())
         with tempfile.TemporaryDirectory() as tmp:

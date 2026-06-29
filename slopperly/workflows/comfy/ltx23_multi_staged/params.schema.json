@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "workflow_id": "ltx23_multi_staged",
+  "description": "Patch schema for the committed LTX 2.3 Q5 GGUF multi-anchor API workflow.",
+  "inputs": {
+    "prompt": [
+      {
+        "node": "11",
+        "input": "text"
+      }
+    ],
+    "negative_prompt": [
+      {
+        "node": "12",
+        "input": "text"
+      }
+    ],
+    "width": [
+      {
+        "node": "8",
+        "input": "width"
+      },
+      {
+        "node": "14",
+        "input": "width"
+      },
+      {
+        "node": "25",
+        "input": "width"
+      },
+      {
+        "node": "30",
+        "input": "width"
+      },
+      {
+        "node": "41",
+        "input": "width"
+      },
+      {
+        "node": "46",
+        "input": "width"
+      }
+    ],
+    "height": [
+      {
+        "node": "8",
+        "input": "height"
+      },
+      {
+        "node": "14",
+        "input": "height"
+      },
+      {
+        "node": "25",
+        "input": "height"
+      },
+      {
+        "node": "30",
+        "input": "height"
+      },
+      {
+        "node": "41",
+        "input": "height"
+      },
+      {
+        "node": "46",
+        "input": "height"
+      }
+    ],
+    "frames": [
+      {
+        "node": "14",
+        "input": "length"
+      },
+      {
+        "node": "16",
+        "input": "frames_number"
+      }
+    ],
+    "fps": [
+      {
+        "node": "13",
+        "input": "frame_rate"
+      },
+      {
+        "node": "16",
+        "input": "frame_rate"
+      },
+      {
+        "node": "37",
+        "input": "fps"
+      }
+    ],
+    "strength": [
+      {
+        "node": "15",
+        "input": "strength"
+      }
+    ],
+    "ltx_middle_frame_1": [
+      {
+        "node": "28",
+        "input": "frame_idx"
+      }
+    ],
+    "ltx_middle_frame_2": [
+      {
+        "node": "44",
+        "input": "frame_idx"
+      }
+    ],
+    "ltx_middle_frame_3": [
+      {
+        "node": "49",
+        "input": "frame_idx"
+      }
+    ],
+    "ltx_last_frame_idx": [
+      {
+        "node": "33",
+        "input": "frame_idx"
+      }
+    ],
+    "ltx_guide_strength": [
+      {
+        "node": "28",
+        "input": "strength"
+      },
+      {
+        "node": "33",
+        "input": "strength"
+      },
+      {
+        "node": "44",
+        "input": "strength"
+      },
+      {
+        "node": "49",
+        "input": "strength"
+      }
+    ],
+    "seed": [
+      {
+        "node": "19",
+        "input": "noise_seed"
+      }
+    ]
+  },
+  "uploads": {
+    "image": [
+      {
+        "node": "7",
+        "input": "image",
+        "type": "input"
+      }
+    ],
+    "middle_images_paths[0].path": [
+      {
+        "node": "24",
+        "input": "image",
+        "type": "input",
+        "optional": true
+      }
+    ],
+    "middle_images_paths[1].path": [
+      {
+        "node": "40",
+        "input": "image",
+        "type": "input",
+        "optional": true
+      }
+    ],
+    "middle_images_paths[2].path": [
+      {
+        "node": "45",
+        "input": "image",
+        "type": "input",
+        "optional": true
+      }
+    ],
+    "last_image": [
+      {
+        "node": "29",
+        "input": "image",
+        "type": "input",
+        "optional": true
+      }
+    ]
+  },
+  "unmapped_ui_parameters": {
+    "steps": "The committed workflow uses ManualSigmas at node 21 instead of a direct steps input.",
+    "guidance": "The committed workflow uses BasicGuider without a direct CFG input.",
+    "ltx23_stage_mode": "The legacy stage-mode selector remains visible. The certified local GGUF graph executes the full single-stage Q5 profile; STEP1/STEP2 direct Diffusers modes are not exposed until separate local Comfy graphs pass artifact tests.",
+    "dynamic_lora_files": "The committed workflow uses the pinned distilled LTX LoRA. Arbitrary project LoRA injection remains visible in the Blender UI but requires separate graph mutation and artifact certification.",
+    "middle_anchors_over_three": "The local GGUF graph maps the first three middle anchors plus the final anchor. Extra middle anchors remain ignored with a plugin usage note until a larger certified graph is added."
+  },
+  "output": {
+    "node": "38",
+    "type": "video/mp4",
+    "contract": "Return the first SaveVideo artifact as the generated MP4 path."
+  }
+}

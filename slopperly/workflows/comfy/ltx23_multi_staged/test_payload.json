@@ -1,0 +1,23 @@
+{
+  "prompt": "local LTX Q5 multi-anchor certification shot with clear start, middle, and final poses",
+  "negative_prompt": "static pose, frozen frame, low quality, flicker, watermark",
+  "image": "tests/fixtures/vsr_source.ppm",
+  "middle_images_paths": [
+    [
+      "tests/fixtures/florence2_caption.png",
+      0.5
+    ]
+  ],
+  "last_image": "tests/fixtures/birefnet_source.ppm",
+  "width": 1280,
+  "height": 720,
+  "frames": 17,
+  "fps": 24.0,
+  "strength": 0.7,
+  "ltx_middle_frame_1": 8,
+  "ltx_middle_frame_2": 8,
+  "ltx_middle_frame_3": 8,
+  "ltx_last_frame_idx": -1,
+  "ltx_guide_strength": 1.0,
+  "seed": 230523
+}
